@@ -1,0 +1,85 @@
+import { Link } from "@tanstack/react-router";
+import { LayoutList, Search, Receipt, Truck as TruckIcon } from "lucide-react";
+import type { ReactNode } from "react";
+
+const NAV = [
+  { to: "/board", label: "Board", icon: LayoutList },
+  { to: "/hunt", label: "Hunt", icon: Search },
+  { to: "/ledger", label: "Money", icon: Receipt },
+  { to: "/truck", label: "Truck", icon: TruckIcon },
+] as const;
+
+export function AppShell({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
+          <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+          {action}
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 pb-28 pt-4">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
+        <div className="mx-auto grid max-w-3xl grid-cols-4">
+          {NAV.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+              activeProps={{ className: "text-primary" }}
+            >
+              <Icon className="size-6" />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+export function Loading({ label = "Loading…" }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center gap-3 py-16 text-muted-foreground">
+      <span className="size-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+      {label}
+    </div>
+  );
+}
+
+export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const message = error instanceof Error ? error.message : "Something went wrong.";
+  return (
+    <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+      <p className="font-medium text-destructive">That didn't load</p>
+      <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+      {onRetry ? (
+        <button
+          onClick={onRetry}
+          className="mt-3 rounded-lg border border-border px-3 py-2 text-sm font-medium"
+        >
+          Try again
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function Empty({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border p-8 text-center">
+      <p className="font-medium">{title}</p>
+      {hint ? <p className="mt-1 text-sm text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
