@@ -10,33 +10,191 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedBoardRouteImport } from './routes/_authenticated/board'
+import { Route as AuthenticatedHuntRouteImport } from './routes/_authenticated/hunt'
+import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
+import { Route as AuthenticatedTruckRouteImport } from './routes/_authenticated/truck'
+import { Route as ApiLoadsRouteImport } from './routes/api/loads'
+import { Route as AuthenticatedDocsLoadIdRouteImport } from './routes/_authenticated/docs.$loadId'
+import { Route as AuthenticatedLoadsIdRouteImport } from './routes/_authenticated/loads.$id'
+import { Route as ApiLoadsIdConfirmRouteImport } from './routes/api/loads.$id.confirm'
+import { Route as ApiLoadsIdPackDotpdfRouteImport } from './routes/api/loads.$id.pack[.]pdf'
+import { Route as ApiLoadsIdPursueRouteImport } from './routes/api/loads.$id.pursue'
+import { Route as ApiLoadsIdSkipRouteImport } from './routes/api/loads.$id.skip'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedBoardRoute = AuthenticatedBoardRouteImport.update({
+  id: '/board',
+  path: '/board',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHuntRoute = AuthenticatedHuntRouteImport.update({
+  id: '/hunt',
+  path: '/hunt',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLedgerRoute = AuthenticatedLedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTruckRoute = AuthenticatedTruckRouteImport.update({
+  id: '/truck',
+  path: '/truck',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiLoadsRoute = ApiLoadsRouteImport.update({
+  id: '/api/loads',
+  path: '/api/loads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDocsLoadIdRoute = AuthenticatedDocsLoadIdRouteImport.update({
+  id: '/docs/$loadId',
+  path: '/docs/$loadId',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLoadsIdRoute = AuthenticatedLoadsIdRouteImport.update({
+  id: '/loads/$id',
+  path: '/loads/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiLoadsIdConfirmRoute = ApiLoadsIdConfirmRouteImport.update({
+  id: '/$id/confirm',
+  path: '/$id/confirm',
+  getParentRoute: () => ApiLoadsRoute,
+} as any)
+const ApiLoadsIdPackDotpdfRoute = ApiLoadsIdPackDotpdfRouteImport.update({
+  id: '/$id/pack.pdf',
+  path: '/$id/pack.pdf',
+  getParentRoute: () => ApiLoadsRoute,
+} as any)
+const ApiLoadsIdPursueRoute = ApiLoadsIdPursueRouteImport.update({
+  id: '/$id/pursue',
+  path: '/$id/pursue',
+  getParentRoute: () => ApiLoadsRoute,
+} as any)
+const ApiLoadsIdSkipRoute = ApiLoadsIdSkipRouteImport.update({
+  id: '/$id/skip',
+  path: '/$id/skip',
+  getParentRoute: () => ApiLoadsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/board': typeof AuthenticatedBoardRoute
+  '/hunt': typeof AuthenticatedHuntRoute
+  '/ledger': typeof AuthenticatedLedgerRoute
+  '/truck': typeof AuthenticatedTruckRoute
+  '/api/loads': typeof ApiLoadsRouteWithChildren
+  '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
+  '/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
+  '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
+  '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
+  '/api/loads/$id/skip': typeof ApiLoadsIdSkipRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/board': typeof AuthenticatedBoardRoute
+  '/hunt': typeof AuthenticatedHuntRoute
+  '/ledger': typeof AuthenticatedLedgerRoute
+  '/truck': typeof AuthenticatedTruckRoute
+  '/api/loads': typeof ApiLoadsRouteWithChildren
+  '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
+  '/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
+  '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
+  '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
+  '/api/loads/$id/skip': typeof ApiLoadsIdSkipRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/board': typeof AuthenticatedBoardRoute
+  '/_authenticated/hunt': typeof AuthenticatedHuntRoute
+  '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
+  '/_authenticated/truck': typeof AuthenticatedTruckRoute
+  '/api/loads': typeof ApiLoadsRouteWithChildren
+  '/_authenticated/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
+  '/_authenticated/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
+  '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
+  '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
+  '/api/loads/$id/skip': typeof ApiLoadsIdSkipRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/board'
+    | '/hunt'
+    | '/ledger'
+    | '/truck'
+    | '/api/loads'
+    | '/docs/$loadId'
+    | '/loads/$id'
+    | '/api/loads/$id/confirm'
+    | '/api/loads/$id/pack.pdf'
+    | '/api/loads/$id/pursue'
+    | '/api/loads/$id/skip'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/board'
+    | '/hunt'
+    | '/ledger'
+    | '/truck'
+    | '/api/loads'
+    | '/docs/$loadId'
+    | '/loads/$id'
+    | '/api/loads/$id/confirm'
+    | '/api/loads/$id/pack.pdf'
+    | '/api/loads/$id/pursue'
+    | '/api/loads/$id/skip'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/board'
+    | '/_authenticated/hunt'
+    | '/_authenticated/ledger'
+    | '/_authenticated/truck'
+    | '/api/loads'
+    | '/_authenticated/docs/$loadId'
+    | '/_authenticated/loads/$id'
+    | '/api/loads/$id/confirm'
+    | '/api/loads/$id/pack.pdf'
+    | '/api/loads/$id/pursue'
+    | '/api/loads/$id/skip'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ApiLoadsRoute: typeof ApiLoadsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +206,144 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/board': {
+      id: '/_authenticated/board'
+      path: '/board'
+      fullPath: '/board'
+      preLoaderRoute: typeof AuthenticatedBoardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hunt': {
+      id: '/_authenticated/hunt'
+      path: '/hunt'
+      fullPath: '/hunt'
+      preLoaderRoute: typeof AuthenticatedHuntRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ledger': {
+      id: '/_authenticated/ledger'
+      path: '/ledger'
+      fullPath: '/ledger'
+      preLoaderRoute: typeof AuthenticatedLedgerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/truck': {
+      id: '/_authenticated/truck'
+      path: '/truck'
+      fullPath: '/truck'
+      preLoaderRoute: typeof AuthenticatedTruckRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/loads': {
+      id: '/api/loads'
+      path: '/api/loads'
+      fullPath: '/api/loads'
+      preLoaderRoute: typeof ApiLoadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/docs/$loadId': {
+      id: '/_authenticated/docs/$loadId'
+      path: '/docs/$loadId'
+      fullPath: '/docs/$loadId'
+      preLoaderRoute: typeof AuthenticatedDocsLoadIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/loads/$id': {
+      id: '/_authenticated/loads/$id'
+      path: '/loads/$id'
+      fullPath: '/loads/$id'
+      preLoaderRoute: typeof AuthenticatedLoadsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/loads/$id/confirm': {
+      id: '/api/loads/$id/confirm'
+      path: '/$id/confirm'
+      fullPath: '/api/loads/$id/confirm'
+      preLoaderRoute: typeof ApiLoadsIdConfirmRouteImport
+      parentRoute: typeof ApiLoadsRoute
+    }
+    '/api/loads/$id/pack.pdf': {
+      id: '/api/loads/$id/pack.pdf'
+      path: '/$id/pack.pdf'
+      fullPath: '/api/loads/$id/pack.pdf'
+      preLoaderRoute: typeof ApiLoadsIdPackDotpdfRouteImport
+      parentRoute: typeof ApiLoadsRoute
+    }
+    '/api/loads/$id/pursue': {
+      id: '/api/loads/$id/pursue'
+      path: '/$id/pursue'
+      fullPath: '/api/loads/$id/pursue'
+      preLoaderRoute: typeof ApiLoadsIdPursueRouteImport
+      parentRoute: typeof ApiLoadsRoute
+    }
+    '/api/loads/$id/skip': {
+      id: '/api/loads/$id/skip'
+      path: '/$id/skip'
+      fullPath: '/api/loads/$id/skip'
+      preLoaderRoute: typeof ApiLoadsIdSkipRouteImport
+      parentRoute: typeof ApiLoadsRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBoardRoute: typeof AuthenticatedBoardRoute
+  AuthenticatedHuntRoute: typeof AuthenticatedHuntRoute
+  AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
+  AuthenticatedTruckRoute: typeof AuthenticatedTruckRoute
+  AuthenticatedDocsLoadIdRoute: typeof AuthenticatedDocsLoadIdRoute
+  AuthenticatedLoadsIdRoute: typeof AuthenticatedLoadsIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBoardRoute: AuthenticatedBoardRoute,
+  AuthenticatedHuntRoute: AuthenticatedHuntRoute,
+  AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
+  AuthenticatedTruckRoute: AuthenticatedTruckRoute,
+  AuthenticatedDocsLoadIdRoute: AuthenticatedDocsLoadIdRoute,
+  AuthenticatedLoadsIdRoute: AuthenticatedLoadsIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface ApiLoadsRouteChildren {
+  ApiLoadsIdConfirmRoute: typeof ApiLoadsIdConfirmRoute
+  ApiLoadsIdPackDotpdfRoute: typeof ApiLoadsIdPackDotpdfRoute
+  ApiLoadsIdPursueRoute: typeof ApiLoadsIdPursueRoute
+  ApiLoadsIdSkipRoute: typeof ApiLoadsIdSkipRoute
+}
+
+const ApiLoadsRouteChildren: ApiLoadsRouteChildren = {
+  ApiLoadsIdConfirmRoute: ApiLoadsIdConfirmRoute,
+  ApiLoadsIdPackDotpdfRoute: ApiLoadsIdPackDotpdfRoute,
+  ApiLoadsIdPursueRoute: ApiLoadsIdPursueRoute,
+  ApiLoadsIdSkipRoute: ApiLoadsIdSkipRoute,
+}
+
+const ApiLoadsRouteWithChildren = ApiLoadsRoute._addFileChildren(
+  ApiLoadsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ApiLoadsRoute: ApiLoadsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
