@@ -309,7 +309,7 @@ function TruckPage() {
         </Group>
 
         <Group title="Home base">
-          <Field label="City">
+          <Field label="City (not saved)">
             <input
               className="ez-input"
               value={form.home_base_city}
@@ -317,6 +317,7 @@ function TruckPage() {
               placeholder="Laredo, TX"
             />
           </Field>
+
           <Field label="Latitude">
             <input className="ez-input" inputMode="decimal" value={form.home_base_lat} onChange={set("home_base_lat")} />
           </Field>
