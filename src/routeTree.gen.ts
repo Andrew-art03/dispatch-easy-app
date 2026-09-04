@@ -16,6 +16,7 @@ import { Route as AuthenticatedBoardRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedGoalRouteImport } from './routes/_authenticated/goal'
 import { Route as AuthenticatedHuntRouteImport } from './routes/_authenticated/hunt'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTruckRouteImport } from './routes/_authenticated/truck'
 import { Route as ApiLoadsRouteImport } from './routes/api/loads'
 import { Route as AuthenticatedDocsIndexRouteImport } from './routes/_authenticated/docs.index'
@@ -58,6 +59,11 @@ const AuthenticatedHuntRoute = AuthenticatedHuntRouteImport.update({
 const AuthenticatedLedgerRoute = AuthenticatedLedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTruckRoute = AuthenticatedTruckRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/goal': typeof AuthenticatedGoalRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/truck': typeof AuthenticatedTruckRoute
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/goal': typeof AuthenticatedGoalRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/truck': typeof AuthenticatedTruckRoute
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/goal': typeof AuthenticatedGoalRoute
   '/_authenticated/hunt': typeof AuthenticatedHuntRoute
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/truck': typeof AuthenticatedTruckRoute
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/_authenticated/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/goal'
     | '/hunt'
     | '/ledger'
+    | '/settings'
     | '/truck'
     | '/api/loads'
     | '/docs/$loadId'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/goal'
     | '/hunt'
     | '/ledger'
+    | '/settings'
     | '/truck'
     | '/api/loads'
     | '/docs/$loadId'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/goal'
     | '/_authenticated/hunt'
     | '/_authenticated/ledger'
+    | '/_authenticated/settings'
     | '/_authenticated/truck'
     | '/api/loads'
     | '/_authenticated/docs/$loadId'
@@ -270,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger'
       fullPath: '/ledger'
       preLoaderRoute: typeof AuthenticatedLedgerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/truck': {
@@ -343,6 +362,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGoalRoute: typeof AuthenticatedGoalRoute
   AuthenticatedHuntRoute: typeof AuthenticatedHuntRoute
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTruckRoute: typeof AuthenticatedTruckRoute
   AuthenticatedDocsLoadIdRoute: typeof AuthenticatedDocsLoadIdRoute
   AuthenticatedLoadsIdRoute: typeof AuthenticatedLoadsIdRoute
@@ -354,6 +374,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGoalRoute: AuthenticatedGoalRoute,
   AuthenticatedHuntRoute: AuthenticatedHuntRoute,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTruckRoute: AuthenticatedTruckRoute,
   AuthenticatedDocsLoadIdRoute: AuthenticatedDocsLoadIdRoute,
   AuthenticatedLoadsIdRoute: AuthenticatedLoadsIdRoute,

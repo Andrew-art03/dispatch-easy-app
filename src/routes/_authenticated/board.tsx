@@ -1,16 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Settings, Radar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
-import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
-import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
-import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
-import { GoalGlanceCard, useTruckColor } from "@/components/GoalProgress";
-import boardTruckFogAsset from "@/assets/board-truck-fog.jpg.asset.json";
-
-// Visual-only mock for the week goal glance (design pass).
-const GOAL_MOCK = { earned: 3400, target: 6000 };
+import { AppShell } from "@/components/AppShell";
+import { EZVoiceSheet } from "@/components/EZVoice";
+import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -18,7 +13,8 @@ export const Route = createFileRoute("/_authenticated/board")({
       { title: "Load board — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Every load your truck is working, grouped from found to delivered, with true net and a take or skip call.",
+        content:
+          "Every load your truck is working, grouped from found to delivered, with true net and a take or skip call.",
       },
       { property: "og:title", content: "Load board — EZ Trucking Auto Dispatching" },
       {
@@ -30,29 +26,94 @@ export const Route = createFileRoute("/_authenticated/board")({
   component: BoardPage,
 });
 
-const GROUPS: { state: LoadState; label: string }[] = [
-  { state: "candidate_found", label: "Found" },
-  { state: "qualified", label: "Qualified" },
-  { state: "booked", label: "Booked" },
-  { state: "in_transit", label: "Rolling" },
-  { state: "delivered", label: "Delivered" },
+// Design-phase mock data — not wired to load/stop/score yet.
+const WEEK = { earned: 2100, target: 3000 };
+
+type Pill = { text: string; tone: "take" | "counter" };
+
+type MockCard = {
+  head: string;
+  headTone?: "green" | "amber";
+  route: string;
+  money?: string;
+  pill?: Pill;
+  sub: string;
+  note?: string;
+  button?: string;
+};
+
+const SECTIONS: { title: string; count: number; cards: MockCard[] }[] = [
+  {
+    title: "Empty · Looking",
+    count: 3,
+    cards: [
+      {
+        head: "#4471 · Broker A · 6 min",
+        route: "Dallas → Memphis",
+        money: "$1,412 keep · $2.41/mi",
+        pill: { text: "Take it", tone: "take" },
+        sub: "$2,150 · 892 mi · 118 empty",
+      },
+      {
+        head: "#4468 · Broker C · 11 min",
+        route: "Amarillo → Oklahoma City",
+        money: "$418 keep · $1.96/mi",
+        pill: { text: "Counter", tone: "counter" },
+        sub: "$780 · 271 mi · 12 empty · ask $850",
+        note: "+1 stale · Lubbock → Denver · below floor",
+      },
+    ],
+  },
+  {
+    title: "Counter out",
+    count: 1,
+    cards: [
+      {
+        head: "#4452 · Broker D · Waiting on broker",
+        route: "Amarillo → Kansas City",
+        money: "$611 keep at your ask · $2.08/mi",
+        sub: "Offered $1,150 · asked $1,300 · detention 2h free requested",
+        button: "Review draft reply",
+      },
+    ],
+  },
+  {
+    title: "Booked",
+    count: 1,
+    cards: [
+      {
+        head: "#4431 · Broker A · Rate con matches",
+        headTone: "green",
+        route: "Fort Worth → Amarillo",
+        money: "$702 keep · $2.22/mi",
+        sub: "Pickup today 15:00 · Door 6 · confirmed by voice 9:12",
+      },
+    ],
+  },
+  {
+    title: "Rolling · Done",
+    count: 2,
+    cards: [
+      {
+        head: "#4419 · Broker E · At dock · 0:42 free left",
+        headTone: "amber",
+        route: "Houston → Amarillo",
+        sub: "Detention clock armed · broker notified",
+      },
+      {
+        head: "#4402 · Broker A · Delivered · POD in",
+        headTone: "green",
+        route: "Odessa → Houston",
+        money: "$1,380 kept · actual",
+        sub: "Est. $1,348 · +$32 · lumper receipt unclaimed",
+      },
+    ],
+  },
 ];
 
 function BoardPage() {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [truckColor] = useTruckColor();
-
-  const query = useQuery({
-    queryKey: ["board"],
-    queryFn: async (): Promise<LoadWithRelations[]> => {
-      const { data, error } = await supabase
-        .from("load")
-        .select("*, stop(*), score(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as LoadWithRelations[];
-    },
-  });
 
   const truckQuery = useQuery({
     queryKey: ["board-truck"],
@@ -68,207 +129,178 @@ function BoardPage() {
     },
   });
 
-  const loads = query.data ?? [];
-  const best = [...loads]
-    .filter((l) => latestScore(l.score))
-    .sort(
-      (a, b) => (latestScore(b.score)?.true_net ?? 0) - (latestScore(a.score)?.true_net ?? 0),
-    )[0];
-  const bestScore = best ? latestScore(best.score) : null;
-  const needsYou = loads.filter(
-    (l) => l.state === "rate_con_received" || l.state === "terms_proposed",
-  ).length;
-  const unit = truckQuery.data?.unit_number;
-  const firstStop = best?.stop?.slice().sort((a, b) => a.seq - b.seq)[0];
+  const hasTruck = Boolean(truckQuery.data?.unit_number);
+  const progress = WEEK.earned / WEEK.target;
 
   return (
     <AppShell
       title="Board"
       action={
-        <button
-          onClick={() => setVoiceOpen(true)}
-          className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
-        >
-          Talk to EZ
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setVoiceOpen(true)}
+            className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
+          >
+            Talk to EZ
+          </button>
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+          >
+            <Settings className="size-5 text-muted-foreground" />
+          </Link>
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-lg font-semibold">Morning, driver</p>
-          <p className="truncate text-sm text-muted-foreground">
-            {unit
-              ? `Unit ${unit} is ${firstStop ? `empty in ${firstStop.city ?? "the yard"}` : "waiting on a load"}`
-              : "Add your truck to get sharper numbers"}
-          </p>
-        </div>
-        <span className="rounded-full border border-border px-3 py-1 text-sm">
-          Needs you · {needsYou}
-        </span>
+        <p className="min-w-0 flex-1 text-base font-semibold">
+          Morning, Andrew. Unit 12 is empty in Amarillo.
+        </p>
+        <span className="rounded-full border border-border px-3 py-1 text-sm">Needs you · 4</span>
       </div>
 
-      {!unit ? (
-        <div className="relative mb-4 overflow-hidden rounded-2xl border border-border">
-          <img
-            src={boardTruckFogAsset.url}
-            alt="Chrome semi truck with headlights on, rolling through fog"
-            className="h-44 w-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent p-4 pt-10">
-            <p className="font-semibold">No truck on file yet</p>
-            <p className="text-sm text-muted-foreground">
-              Add your truck to get sharper numbers.
-            </p>
-            <Link to="/truck" className="ez-btn-primary mt-3">
-              Add my truck
-            </Link>
-          </div>
-        </div>
+      {!hasTruck ? (
+        <Link
+          to="/settings"
+          className="mb-4 flex min-h-12 items-center justify-between rounded-xl border border-border bg-card px-4 text-sm active:opacity-80"
+        >
+          <span className="font-medium">Set up your truck in Settings</span>
+          <span className="text-muted-foreground">Open →</span>
+        </Link>
       ) : null}
 
-      <div className="mb-4">
-        <GoalGlanceCard
-          progress={GOAL_MOCK.earned / GOAL_MOCK.target}
-          truckColor={truckColor}
-          earned={money(GOAL_MOCK.earned)}
-          target={money(GOAL_MOCK.target)}
-        />
-      </div>
+      {/* EZ's Pick */}
+      <section className="relative mb-4 overflow-hidden rounded-2xl border border-ez-amber/60 bg-card p-5">
+        <div className="flex items-center gap-2">
+          <span className="size-2.5 rounded-full bg-ez-amber" />
+          <span className="text-xs font-semibold uppercase tracking-wide text-ez-amber">
+            EZ's pick
+          </span>
+        </div>
+        <p className="mt-3 text-xl font-semibold">Amarillo → Dallas → Memphis</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ready 2 PM · reposition 118 mi · #4471 Thu 6 AM · home Sat · floor $1.85
+        </p>
 
-      {query.isPending ? <Loading label="Loading your loads…" /> : null}
-      {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          You keep about
+        </p>
+        <p className="ez-num text-5xl">$1,412</p>
+        <p className="ez-num text-base text-muted-foreground">$2.41 all-in/mi · high conf.</p>
 
-      {query.data ? (
-        <div className="space-y-6">
-          {best ? (
-            <section className="rounded-2xl border border-border bg-card p-5">
-              <EZStatusLine text="EZ found your best move · high confidence · just now" />
-              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                EZ's best move
-              </p>
-              <p className="text-xl font-semibold">{routeLabel(best.stop)}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Roll out, run it straight through, drop and get paid.
-              </p>
+        <ul className="mt-4 flex flex-wrap gap-4 text-sm">
+          <li className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-ez-green" />
+            Fits
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-ez-green" />
+            Pays
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-ez-amber" />
+            Your floor
+            <span className="text-muted-foreground">· market not verified</span>
+          </li>
+        </ul>
 
-              <p className="mt-4 text-sm text-muted-foreground">You keep about</p>
-              <p className="ez-num text-5xl">{money(bestScore?.true_net ?? null)}</p>
-              <p className="ez-num text-lg text-muted-foreground">
-                {rpm(bestScore?.all_in_rpm ?? null)} / mi
-              </p>
+        <p className="mt-4 text-sm">
+          <span className="font-semibold">One thing to do:</span> say yes to Memphis
+        </p>
 
-              <ul className="mt-4 flex flex-wrap gap-4 text-sm">
-                {[
-                  { label: "Fits", ok: true },
-                  { label: "Profit", ok: bestScore?.verdict === "take" },
-                  { label: "Market", ok: false },
-                ].map((d) => (
-                  <li key={d.label} className="flex items-center gap-2">
-                    <span
-                      className={`size-2 rounded-full ${d.ok ? "bg-ez-green" : "bg-ez-amber"}`}
-                    />
-                    {d.label}
-                  </li>
-                ))}
-              </ul>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button className="ez-btn-primary">See the load</button>
+          <button className="ez-btn-secondary">Needs you 2</button>
+        </div>
+      </section>
 
-              <p className="mt-4 text-sm">
-                <span className="font-semibold">One thing to do:</span> confirm the plan
-              </p>
+      {/* Your week */}
+      <section className="mb-6 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Your week
+          </span>
+          <span className="ez-num">
+            $2,100 <span className="text-muted-foreground">of $3,000</span>
+          </span>
+        </div>
+        <div className="mt-8">
+          <GoalBar progress={progress} truckColor={truckColor} />
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">$900 to go · Memphis gets you there</p>
+      </section>
 
-              <div className="mt-4 space-y-3">
-                <Link
-                  to="/loads/$id"
-                  params={{ id: best.id }}
-                  className="ez-btn-primary"
-                >
-                  Review best load
-                </Link>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setVoiceOpen(true)}
-                    className="ez-btn-secondary text-ez-amber"
+      <div className="space-y-6">
+        {SECTIONS.map((section) => (
+          <section key={section.title}>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {section.title} · {section.count}
+            </h2>
+            <ul className="space-y-2">
+              {section.cards.map((card) => (
+                <li key={card.head} className="rounded-xl border border-border bg-card p-4">
+                  <p
+                    className={`ez-ref truncate ${
+                      card.headTone === "green"
+                        ? "text-ez-green"
+                        : card.headTone === "amber"
+                          ? "text-ez-amber"
+                          : "text-muted-foreground"
+                    }`}
                   >
-                    Talk to EZ
-                  </button>
-                  <Link to="/hunt" className="ez-btn-secondary">
-                    See exceptions · {needsYou}
-                  </Link>
-                </div>
-              </div>
-            </section>
-          ) : null}
+                    {card.head}
+                  </p>
+                  <div className="mt-1 flex items-start justify-between gap-3">
+                    <p className="min-w-0 truncate font-semibold">{card.route}</p>
+                    {card.pill ? (
+                      <span
+                        className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                          card.pill.tone === "take"
+                            ? "bg-ez-green text-primary-foreground"
+                            : "bg-ez-amber text-accent-foreground"
+                        }`}
+                      >
+                        {card.pill.text}
+                      </span>
+                    ) : null}
+                  </div>
+                  {card.money ? <p className="ez-num mt-2 text-xl">{card.money}</p> : null}
+                  <p className="mt-1 text-sm text-muted-foreground">{card.sub}</p>
+                  {card.note ? (
+                    <p className="mt-2 text-sm text-ez-red">{card.note}</p>
+                  ) : null}
+                  {card.button ? (
+                    <button className="ez-btn-secondary mt-3">{card.button}</button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
 
-          {GROUPS.map((group) => {
-            const rows = loads.filter((l) => l.state === group.state);
-            if (rows.length === 0) return null;
-            return (
-              <section key={group.state}>
-                <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.label} · {rows.length}
-                </h2>
-                <ul className="space-y-2">
-                  {rows.map((load) => (
-                    <LoadRow key={load.id} load={load} />
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
-          {loads.length === 0 ? (
-            <Empty title="No loads yet" hint="Paste a load to get started." />
-          ) : null}
-        </div>
-      ) : null}
+      <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Radar className="size-4 text-ez-amber" />
+        Scout · Hunting for Unit 12 · 3 found · last 4 min ago
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        EZ is watching your lane · say "find me a load out of Amarillo" · MC 1234567
+      </p>
 
       <EZVoiceSheet
         open={voiceOpen}
         onClose={() => setVoiceOpen(false)}
         transcript="What's my best move today?"
         heard={[
-          { label: "Truck", value: unit ? `Unit ${unit}` : "Your truck", sure: true },
-          { label: "Load", value: best?.reference ?? "best move", sure: true },
+          { label: "Truck", value: "Unit 12", sure: true },
+          { label: "Load", value: "#4471", sure: true },
           { label: "Action", value: "Review this load", sure: false },
         ]}
-        keepAmount={money(bestScore?.true_net ?? null)}
-        rpmLabel={rpm(bestScore?.all_in_rpm ?? null)}
-        verdictWord={bestScore ? VERDICT_LABEL[bestScore.verdict] : "—"}
+        keepAmount="$1,412"
+        rpmLabel="$2.41"
+        verdictWord="Take it"
       />
     </AppShell>
-  );
-}
-
-function LoadRow({ load }: { load: LoadWithRelations }) {
-  const score: Score | null = latestScore(load.score);
-  return (
-    <li>
-      <Link
-        to="/loads/$id"
-        params={{ id: load.id }}
-        className="block rounded-xl border border-border bg-card p-4 active:opacity-80"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="ez-ref truncate text-muted-foreground">
-              {load.reference ?? "No reference"}
-            </p>
-            <p className="mt-0.5 truncate font-semibold">{routeLabel(load.stop)}</p>
-          </div>
-          {score ? (
-            <span className="shrink-0 text-sm font-semibold text-muted-foreground">
-              {VERDICT_LABEL[score.verdict]}
-            </span>
-          ) : null}
-        </div>
-        <p className="ez-num mt-3 text-2xl">
-          {money(score?.true_net ?? null)} keep
-          <span className="text-muted-foreground">
-            {" "}
-            · {rpm(score?.all_in_rpm ?? null)}/mi
-          </span>
-        </p>
-      </Link>
-    </li>
   );
 }
