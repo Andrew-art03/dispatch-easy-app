@@ -30,22 +30,22 @@ export function routeLabel(stops: Stop[] | null | undefined) {
 }
 
 const VERDICT_STYLE: Record<Verdict, string> = {
-  take: "bg-primary text-primary-foreground",
-  negotiate: "bg-accent text-accent-foreground",
-  skip: "bg-destructive text-destructive-foreground",
+  take: "bg-ez-green text-primary-foreground",
+  negotiate: "bg-ez-amber text-accent-foreground",
+  skip: "bg-secondary text-muted-foreground",
 };
 
-const VERDICT_LABEL: Record<Verdict, string> = {
+export const VERDICT_LABEL: Record<Verdict, string> = {
   take: "Take it",
-  negotiate: "Negotiate",
-  skip: "Skip",
+  negotiate: "Counter",
+  skip: "Pass",
 };
 
 export function VerdictBadge({ verdict, big }: { verdict: Verdict; big?: boolean }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center rounded-full font-semibold ${VERDICT_STYLE[verdict]} ${
-        big ? "px-4 py-2 text-base" : "px-3 py-1 text-xs"
+        big ? "px-4 py-2 text-base uppercase tracking-wide" : "px-3 py-1 text-xs"
       }`}
     >
       {VERDICT_LABEL[verdict]}
