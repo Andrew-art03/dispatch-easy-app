@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutList, Search, Receipt, Truck as TruckIcon } from "lucide-react";
+import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 const NAV = [
   { to: "/board", label: "Board", icon: LayoutList },
+  { to: "/goal", label: "Goal", icon: Target },
   { to: "/truck", label: "My Truck", icon: TruckIcon },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/ledger", label: "Money", icon: Receipt },
@@ -31,7 +32,7 @@ export function AppShell({
       <main className="mx-auto max-w-3xl px-4 pb-28 pt-4">{children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
-        <div className="mx-auto grid max-w-3xl grid-cols-4">
+        <div className="mx-auto grid max-w-3xl grid-cols-5">
           {NAV.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
