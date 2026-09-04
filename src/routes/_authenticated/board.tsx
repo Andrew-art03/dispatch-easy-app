@@ -39,6 +39,7 @@ const GROUPS: { state: LoadState; label: string }[] = [
 
 function BoardPage() {
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [truckColor] = useTruckColor();
 
   const query = useQuery({
     queryKey: ["board"],
@@ -103,6 +104,15 @@ function BoardPage() {
         <span className="rounded-full border border-border px-3 py-1 text-sm">
           Needs you · {needsYou}
         </span>
+      </div>
+
+      <div className="mb-4">
+        <GoalGlanceCard
+          progress={GOAL_MOCK.earned / GOAL_MOCK.target}
+          truckColor={truckColor}
+          earned={money(GOAL_MOCK.earned)}
+          target={money(GOAL_MOCK.target)}
+        />
       </div>
 
       {query.isPending ? <Loading label="Loading your loads…" /> : null}
