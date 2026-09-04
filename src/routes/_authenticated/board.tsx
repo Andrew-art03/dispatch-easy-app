@@ -107,6 +107,26 @@ function BoardPage() {
         </span>
       </div>
 
+      {!unit ? (
+        <div className="relative mb-4 overflow-hidden rounded-2xl border border-border">
+          <img
+            src={boardTruckFogAsset.url}
+            alt="Chrome semi truck with headlights on, rolling through fog"
+            className="h-44 w-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent p-4 pt-10">
+            <p className="font-semibold">No truck on file yet</p>
+            <p className="text-sm text-muted-foreground">
+              Add your truck to get sharper numbers.
+            </p>
+            <Link to="/truck" className="ez-btn-primary mt-3">
+              Add my truck
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-4">
         <GoalGlanceCard
           progress={GOAL_MOCK.earned / GOAL_MOCK.target}
