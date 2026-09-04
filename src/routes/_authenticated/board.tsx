@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
 import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
-import { latestScore, money, routeLabel, VerdictBadge } from "@/lib/load-utils";
+import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
+import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -32,6 +34,8 @@ const GROUPS: { state: LoadState; label: string }[] = [
 ];
 
 function BoardPage() {
+  const [voiceOpen, setVoiceOpen] = useState(false);
+
   const query = useQuery({
     queryKey: ["board"],
     queryFn: async (): Promise<LoadWithRelations[]> => {
@@ -44,21 +48,125 @@ function BoardPage() {
     },
   });
 
+  const truckQuery = useQuery({
+    queryKey: ["board-truck"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("truck")
+        .select("unit_number")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { unit_number: string } | null;
+    },
+  });
+
+  const loads = query.data ?? [];
+  const best = [...loads]
+    .filter((l) => latestScore(l.score))
+    .sort(
+      (a, b) => (latestScore(b.score)?.true_net ?? 0) - (latestScore(a.score)?.true_net ?? 0),
+    )[0];
+  const bestScore = best ? latestScore(best.score) : null;
+  const needsYou = loads.filter(
+    (l) => l.state === "rate_con_received" || l.state === "terms_proposed",
+  ).length;
+  const unit = truckQuery.data?.unit_number;
+  const firstStop = best?.stop?.slice().sort((a, b) => a.seq - b.seq)[0];
+
   return (
     <AppShell
       title="Board"
       action={
-        <Link to="/hunt" className="ez-btn-primary px-4 py-2 text-sm">
-          Paste a load
-        </Link>
+        <button
+          onClick={() => setVoiceOpen(true)}
+          className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
+        >
+          Talk to EZ
+        </button>
       }
     >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-lg font-semibold">Morning, driver</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {unit
+              ? `Unit ${unit} is ${firstStop ? `empty in ${firstStop.city ?? "the yard"}` : "waiting on a load"}`
+              : "Add your truck to get sharper numbers"}
+          </p>
+        </div>
+        <span className="rounded-full border border-border px-3 py-1 text-sm">
+          Needs you · {needsYou}
+        </span>
+      </div>
+
       {query.isPending ? <Loading label="Loading your loads…" /> : null}
       {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
+
       {query.data ? (
         <div className="space-y-6">
+          {best ? (
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <EZStatusLine text="EZ found your best move · high confidence · just now" />
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                EZ's best move
+              </p>
+              <p className="text-xl font-semibold">{routeLabel(best.stop)}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Roll out, run it straight through, drop and get paid.
+              </p>
+
+              <p className="mt-4 text-sm text-muted-foreground">You keep about</p>
+              <p className="ez-num text-5xl">{money(bestScore?.true_net ?? null)}</p>
+              <p className="ez-num text-lg text-muted-foreground">
+                {rpm(bestScore?.all_in_rpm ?? null)} / mi
+              </p>
+
+              <ul className="mt-4 flex flex-wrap gap-4 text-sm">
+                {[
+                  { label: "Fits", ok: true },
+                  { label: "Profit", ok: bestScore?.verdict === "take" },
+                  { label: "Market", ok: false },
+                ].map((d) => (
+                  <li key={d.label} className="flex items-center gap-2">
+                    <span
+                      className={`size-2 rounded-full ${d.ok ? "bg-ez-green" : "bg-ez-amber"}`}
+                    />
+                    {d.label}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-4 text-sm">
+                <span className="font-semibold">One thing to do:</span> confirm the plan
+              </p>
+
+              <div className="mt-4 space-y-3">
+                <Link
+                  to="/loads/$id"
+                  params={{ id: best.id }}
+                  className="ez-btn-primary"
+                >
+                  Review best load
+                </Link>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setVoiceOpen(true)}
+                    className="ez-btn-secondary text-ez-amber"
+                  >
+                    Talk to EZ
+                  </button>
+                  <Link to="/hunt" className="ez-btn-secondary">
+                    See exceptions · {needsYou}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           {GROUPS.map((group) => {
-            const rows = query.data.filter((l) => l.state === group.state);
+            const rows = loads.filter((l) => l.state === group.state);
             if (rows.length === 0) return null;
             return (
               <section key={group.state}>
@@ -73,11 +181,25 @@ function BoardPage() {
               </section>
             );
           })}
-          {query.data.length === 0 ? (
+          {loads.length === 0 ? (
             <Empty title="No loads yet" hint="Paste a load to get started." />
           ) : null}
         </div>
       ) : null}
+
+      <EZVoiceSheet
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        transcript="What's my best move today?"
+        heard={[
+          { label: "Truck", value: unit ? `Unit ${unit}` : "Your truck", sure: true },
+          { label: "Load", value: best?.reference ?? "best move", sure: true },
+          { label: "Action", value: "Review this load", sure: false },
+        ]}
+        keepAmount={money(bestScore?.true_net ?? null)}
+        rpmLabel={rpm(bestScore?.all_in_rpm ?? null)}
+        verdictWord={bestScore ? VERDICT_LABEL[bestScore.verdict] : "—"}
+      />
     </AppShell>
   );
 }
@@ -93,23 +215,24 @@ function LoadRow({ load }: { load: LoadWithRelations }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm text-muted-foreground">
+            <p className="ez-ref truncate text-muted-foreground">
               {load.reference ?? "No reference"}
             </p>
             <p className="mt-0.5 truncate font-semibold">{routeLabel(load.stop)}</p>
           </div>
-          {score ? <VerdictBadge verdict={score.verdict} /> : null}
+          {score ? (
+            <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+              {VERDICT_LABEL[score.verdict]}
+            </span>
+          ) : null}
         </div>
-        <div className="mt-3 flex items-center gap-5 text-sm">
-          <span>
-            <span className="text-muted-foreground">Gross </span>
-            <span className="font-semibold">{money(load.gross_rate)}</span>
+        <p className="ez-num mt-3 text-2xl">
+          {money(score?.true_net ?? null)} keep
+          <span className="text-muted-foreground">
+            {" "}
+            · {rpm(score?.all_in_rpm ?? null)}/mi
           </span>
-          <span>
-            <span className="text-muted-foreground">Net </span>
-            <span className="font-semibold">{money(score?.true_net ?? null)}</span>
-          </span>
-        </div>
+        </p>
       </Link>
     </li>
   );
