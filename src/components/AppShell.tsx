@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 
 const NAV = [
   { to: "/board", label: "Board", icon: LayoutList },
+  { to: "/truck", label: "My Truck", icon: TruckIcon },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/ledger", label: "Money", icon: Receipt },
-  { to: "/truck", label: "Truck", icon: TruckIcon },
 ] as const;
+
 
 export function AppShell({
   title,
