@@ -100,7 +100,7 @@ export function GoalGlanceCard({
           {earned} of {target}
         </span>
       </div>
-      <div className="mt-5">
+      <div className="mt-8">
         <GoalBar progress={progress} truckColor={truckColor} />
       </div>
     </Link>
