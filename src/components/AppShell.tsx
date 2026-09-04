@@ -19,7 +19,7 @@ export function AppShell({
   bottomSticky,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   action?: ReactNode;
   bottomSticky?: ReactNode;
   children: ReactNode;
@@ -28,7 +28,7 @@ export function AppShell({
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
-          <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{title}</h1>
           {action}
         </div>
       </header>

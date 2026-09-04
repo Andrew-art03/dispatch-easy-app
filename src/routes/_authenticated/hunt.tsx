@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowRight, AudioLines, Camera, Wallet } from "lucide-react";
-import { WEEK_GOAL, moneyShort } from "@/lib/goal";
+import { WEEK_GOAL, money } from "@/lib/goal";
 import { supabase } from "@/lib/supabase";
 import { authedFetch, useMe } from "@/lib/session";
 import { AppShell, ErrorBox } from "@/components/AppShell";
@@ -292,7 +292,7 @@ function WeekChip() {
   return (
     <div className="flex shrink-0 items-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-3 py-1.5 text-xs font-semibold text-ez-amber">
       <Wallet className="size-4" />
-      {moneyShort(WEEK_GOAL.earned)} / {moneyShort(WEEK_GOAL.target)}
+      {money(WEEK_GOAL.earned)} / {money(WEEK_GOAL.target)}
     </div>
   );
 }
