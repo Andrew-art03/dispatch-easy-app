@@ -43,18 +43,42 @@ export function AppShell({
             <div className="px-4 pb-2 pt-3">{bottomSticky}</div>
           ) : null}
           <div className="grid grid-cols-5">
-            {NAV.map(({ to, label, icon: Icon, activeClass }) => (
+            {NAV.map(({ to, label, icon: Icon, amber }) => (
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
-                activeProps={{ className: activeClass ?? "text-primary" }}
+                className="flex flex-col items-center gap-1 py-3 text-xs transition-colors"
+                activeOptions={{ exact: false }}
               >
-                <Icon className="size-6" />
-                {label}
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn(
+                        "size-6",
+                        isActive
+                          ? amber
+                            ? "text-ez-amber"
+                            : "text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        isActive
+                          ? amber
+                            ? "font-semibold text-ez-amber"
+                            : "font-semibold text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </>
+                )}
               </Link>
             ))}
           </div>
+
         </div>
       </nav>
     </div>
