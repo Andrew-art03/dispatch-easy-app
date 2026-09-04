@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/board", label: "Board", icon: LayoutList },
