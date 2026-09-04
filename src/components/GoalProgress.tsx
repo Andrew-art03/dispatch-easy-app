@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Settings2 } from "lucide-react";
+import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
 
 export type TruckColor = { name: string; value: string };
 
