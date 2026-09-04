@@ -18,6 +18,7 @@ import { Route as AuthenticatedHuntRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
 import { Route as AuthenticatedTruckRouteImport } from './routes/_authenticated/truck'
 import { Route as ApiLoadsRouteImport } from './routes/api/loads'
+import { Route as AuthenticatedDocsIndexRouteImport } from './routes/_authenticated/docs.index'
 import { Route as AuthenticatedDocsLoadIdRouteImport } from './routes/_authenticated/docs.$loadId'
 import { Route as AuthenticatedLoadsIdRouteImport } from './routes/_authenticated/loads.$id'
 import { Route as ApiLoadsIdConfirmRouteImport } from './routes/api/loads.$id.confirm'
@@ -69,6 +70,11 @@ const ApiLoadsRoute = ApiLoadsRouteImport.update({
   path: '/api/loads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDocsIndexRoute = AuthenticatedDocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDocsLoadIdRoute = AuthenticatedDocsLoadIdRouteImport.update({
   id: '/docs/$loadId',
   path: '/docs/$loadId',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
   '/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/docs/': typeof AuthenticatedDocsIndexRoute
   '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
   '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
   '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
   '/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/docs': typeof AuthenticatedDocsIndexRoute
   '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
   '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
   '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/api/loads': typeof ApiLoadsRouteWithChildren
   '/_authenticated/docs/$loadId': typeof AuthenticatedDocsLoadIdRoute
   '/_authenticated/loads/$id': typeof AuthenticatedLoadsIdRoute
+  '/_authenticated/docs/': typeof AuthenticatedDocsIndexRoute
   '/api/loads/$id/confirm': typeof ApiLoadsIdConfirmRoute
   '/api/loads/$id/pack.pdf': typeof ApiLoadsIdPackDotpdfRoute
   '/api/loads/$id/pursue': typeof ApiLoadsIdPursueRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/api/loads'
     | '/docs/$loadId'
     | '/loads/$id'
+    | '/docs/'
     | '/api/loads/$id/confirm'
     | '/api/loads/$id/pack.pdf'
     | '/api/loads/$id/pursue'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/api/loads'
     | '/docs/$loadId'
     | '/loads/$id'
+    | '/docs'
     | '/api/loads/$id/confirm'
     | '/api/loads/$id/pack.pdf'
     | '/api/loads/$id/pursue'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/api/loads'
     | '/_authenticated/docs/$loadId'
     | '/_authenticated/loads/$id'
+    | '/_authenticated/docs/'
     | '/api/loads/$id/confirm'
     | '/api/loads/$id/pack.pdf'
     | '/api/loads/$id/pursue'
@@ -274,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLoadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/docs/': {
+      id: '/_authenticated/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof AuthenticatedDocsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/docs/$loadId': {
       id: '/_authenticated/docs/$loadId'
       path: '/docs/$loadId'
@@ -327,6 +346,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTruckRoute: typeof AuthenticatedTruckRoute
   AuthenticatedDocsLoadIdRoute: typeof AuthenticatedDocsLoadIdRoute
   AuthenticatedLoadsIdRoute: typeof AuthenticatedLoadsIdRoute
+  AuthenticatedDocsIndexRoute: typeof AuthenticatedDocsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -337,6 +357,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTruckRoute: AuthenticatedTruckRoute,
   AuthenticatedDocsLoadIdRoute: AuthenticatedDocsLoadIdRoute,
   AuthenticatedLoadsIdRoute: AuthenticatedLoadsIdRoute,
+  AuthenticatedDocsIndexRoute: AuthenticatedDocsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

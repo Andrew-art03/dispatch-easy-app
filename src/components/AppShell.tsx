@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-react";
+import { LayoutList, Search, FileText, Wallet, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const NAV: { to: string; label: string; icon: typeof LayoutList; activeClass?: string }[] = [
+const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
-  { to: "/goal", label: "Goal", icon: Target },
-  { to: "/truck", label: "My Truck", icon: TruckIcon },
-  { to: "/hunt", label: "Hunt", icon: Search, activeClass: "text-ez-amber" },
-  { to: "/ledger", label: "Money", icon: Receipt },
+  { to: "/hunt", label: "Hunt", icon: Search, amber: true },
+  { to: "/truck", label: "Truck", icon: TruckIcon },
+  { to: "/docs", label: "Docs", icon: FileText },
+  { to: "/goal", label: "Week $", icon: Wallet },
 ];
+
 
 
 export function AppShell({
@@ -18,7 +19,7 @@ export function AppShell({
   bottomSticky,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   action?: ReactNode;
   bottomSticky?: ReactNode;
   children: ReactNode;
@@ -26,8 +27,8 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
-          <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+        <div className="mx-auto flex min-h-14 max-w-3xl items-center py-2 justify-between gap-3 px-4">
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{title}</h1>
           {action}
         </div>
       </header>
@@ -42,18 +43,42 @@ export function AppShell({
             <div className="px-4 pb-2 pt-3">{bottomSticky}</div>
           ) : null}
           <div className="grid grid-cols-5">
-            {NAV.map(({ to, label, icon: Icon, activeClass }) => (
+            {NAV.map(({ to, label, icon: Icon, amber }) => (
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
-                activeProps={{ className: activeClass ?? "text-primary" }}
+                className="flex flex-col items-center gap-1 py-3 text-xs transition-colors"
+                activeOptions={{ exact: false }}
               >
-                <Icon className="size-6" />
-                {label}
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn(
+                        "size-6",
+                        isActive
+                          ? amber
+                            ? "text-ez-amber"
+                            : "text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        isActive
+                          ? amber
+                            ? "font-semibold text-ez-amber"
+                            : "font-semibold text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </>
+                )}
               </Link>
             ))}
           </div>
+
         </div>
       </nav>
     </div>

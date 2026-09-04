@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { Camera, Mic } from "lucide-react";
+import { ArrowRight, AudioLines, Camera, Wallet } from "lucide-react";
+import { WEEK_GOAL, money } from "@/lib/goal";
 import { supabase } from "@/lib/supabase";
 import { authedFetch, useMe } from "@/lib/session";
 import { AppShell, ErrorBox } from "@/components/AppShell";
@@ -152,7 +153,7 @@ function HuntPage() {
 
   return (
     <AppShell
-      title="Drop a load. Easy scores it."
+      title={<EasyTitle />}
       action={<WeekChip />}
       bottomSticky={<TalkToEasyPill />}
     >
@@ -164,19 +165,31 @@ function HuntPage() {
             submit.mutate();
           }}
         >
-          <textarea
-            className="ez-input min-h-[16rem] resize-none"
-            placeholder="Paste the load here — rate, pickup, delivery, dates, miles."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
+          <div className="relative">
+            <textarea
+              className="ez-input min-h-[16rem] resize-none text-left"
+              placeholder="Paste the board card, e.g. Dallas → Atlanta · $2.40/mi · 842 mi · pickup Fri"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+              Paste
+            </span>
+          </div>
 
-          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-2 px-4 py-3 text-sm text-muted-foreground transition-colors active:bg-card">
-            <Camera className="size-5 text-ez-amber" />
-            {file ? file.name : "Snap a photo of the posting"}
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-2 px-4 py-3 transition-colors active:bg-card">
+            <Camera className="size-5 shrink-0 text-ez-amber" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                {file ? file.name : "Snap the rate con or board card"}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Photo or PDF · Clear image works best.
+              </span>
+            </span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               capture="environment"
               className="sr-only"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
@@ -188,13 +201,14 @@ function HuntPage() {
           <button
             type="submit"
             disabled={submit.isPending || !canScore}
-            className="ez-btn-primary mt-2 disabled:opacity-40"
+            className="ez-btn-primary mt-2 flex items-center justify-center gap-2 disabled:opacity-40"
           >
-            {submit.isPending ? "Scoring…" : "Score what I keep."}
+            {submit.isPending ? "Scoring…" : "Score what I keep"}
+            {submit.isPending ? null : <ArrowRight className="size-5" />}
           </button>
 
           <p className="text-center text-xs text-muted-foreground">
-            Doesn't book it. Doesn't touch DAT.
+            Doesn't book. Doesn't touch DAT. Just the number.
           </p>
         </form>
       ) : (
@@ -256,11 +270,29 @@ function HuntPage() {
   );
 }
 
+function EasyTitle() {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-ez-amber/70 text-base font-bold text-ez-amber">
+        E
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-lg font-semibold tracking-tight">
+          Drop a load. Easy scores it.
+        </span>
+        <span className="block truncate text-xs text-muted-foreground">
+          Paste the board card, or snap the posting.
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function WeekChip() {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-3 py-1.5 text-xs font-semibold text-ez-amber">
-      <span className="size-2 rounded-full bg-ez-amber" />
-      $3.4k / $6k
+    <div className="flex shrink-0 items-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-3 py-1.5 text-xs font-semibold text-ez-amber">
+      <Wallet className="size-4" />
+      {money(WEEK_GOAL.earned)} / {money(WEEK_GOAL.target)}
     </div>
   );
 }
@@ -271,7 +303,9 @@ function TalkToEasyPill() {
       type="button"
       className="flex w-full items-center justify-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-4 py-3 text-sm font-semibold text-ez-amber transition-colors active:bg-ez-amber/20"
     >
-      <Mic className="size-4" />
+      <span className="flex size-7 items-center justify-center rounded-full border border-ez-amber/40 bg-ez-amber/10">
+        <AudioLines className="size-4" />
+      </span>
       Talk to Easy
     </button>
   );
