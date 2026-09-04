@@ -276,6 +276,16 @@ function LoadCard() {
           Show alternatives · Ask {money(score?.recommended_bid ?? null)} (soon)
         </p>
 
+        {canConfirm ? (
+          <button
+            onClick={() => callEndpoint.mutate("confirm")}
+            disabled={callEndpoint.isPending}
+            className="ez-btn-secondary"
+          >
+            Confirm load
+          </button>
+        ) : null}
+
         {!canConfirm ? (
           <p className="text-center text-sm text-muted-foreground">
             You can confirm once the rate con is in.
