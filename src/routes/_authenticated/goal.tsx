@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Receipt } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ColorPickerButton, GoalBar, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
+import { WEEK_GOAL, money } from "@/lib/goal";
 
 export const Route = createFileRoute("/_authenticated/goal")({
   head: () => ({
@@ -20,9 +22,6 @@ export const Route = createFileRoute("/_authenticated/goal")({
 
 // Visual-only mock data — no tables touched.
 const MOCK = {
-  target: 6000,
-  earned: 3400,
-  weekLabel: "Week of Sep 1",
   routes: [
     { from: "Amarillo, TX", to: "Dallas, TX", date: "Tue Sep 8", net: 1450 },
     { from: "Dallas, TX", to: "Atlanta, GA", date: "Thu Sep 10", net: 1890 },
@@ -33,45 +32,44 @@ const MOCK = {
 // Toggle to preview the reached-goal state (design pass only).
 const SHOW_GOAL_REACHED = false;
 
-function money(value: number) {
-  return `$${value.toLocaleString()}`;
-}
-
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
-  const earned = SHOW_GOAL_REACHED ? MOCK.target : MOCK.earned;
-  const progress = Math.min(1, earned / MOCK.target);
+  const earned = SHOW_GOAL_REACHED ? WEEK_GOAL.target : WEEK_GOAL.earned;
+  const progress = Math.min(1, earned / WEEK_GOAL.target);
   const reached = progress >= 1;
   const [bumpAnswered, setBumpAnswered] = useState(false);
 
   return (
     <AppShell
-      title="Goal"
+      title="Week $"
       action={<ColorPickerButton color={truckColor} onPick={setTruckColor} />}
     >
-      <section className="rounded-2xl border border-border bg-card p-5">
-        <p className="text-sm text-muted-foreground">{MOCK.weekLabel}</p>
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">This week's goal</h2>
+            <div className="mt-2 h-0.5 w-14 rounded-full bg-ez-amber" />
+          </div>
+          <p className="ez-num shrink-0 text-2xl">
+            {money(earned)}{" "}
+            <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
+          </p>
+        </div>
 
-        <p className="mt-3 text-sm text-muted-foreground">
-          {reached ? "Goal hit. Nice running." : "You've banked"}
-        </p>
-        <p className="ez-num mt-1 text-5xl">{money(earned)}</p>
-        <p className="ez-num mt-1 text-lg text-muted-foreground">
-          of {money(MOCK.target)} goal · {Math.round(progress * 100)}%
-        </p>
+        <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
 
-        <div className="mt-10">
+        <div className="mt-12">
           <GoalBar progress={progress} truckColor={truckColor} big />
         </div>
         <div className="mt-2 flex justify-between text-xs text-muted-foreground">
           <span>$0</span>
-          <span>{money(MOCK.target)}</span>
+          <span className="font-semibold text-ez-amber">{money(WEEK_GOAL.target)}</span>
         </div>
 
         {reached ? (
-          <div className="mt-5 rounded-xl border border-primary/40 bg-primary/10 p-4">
+          <div className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4">
             <div className="flex items-center gap-3">
-              <TruckGlyph color={truckColor} className="h-8 w-16" />
+              <TruckGlyph color={truckColor} className="h-9 w-16" />
               <div>
                 <p className="font-semibold text-primary">You hit the goal 🎉</p>
                 <p className="text-sm text-muted-foreground">Every mile after this is gravy.</p>
@@ -103,8 +101,8 @@ function GoalPage() {
             ) : null}
           </div>
         ) : (
-          <p className="mt-5 text-sm text-muted-foreground">
-            {money(MOCK.target - earned)} to go — the loads below get you there.
+          <p className="mt-6 text-sm text-muted-foreground">
+            {money(WEEK_GOAL.target - earned)} to go — the loads below get you there.
           </p>
         )}
       </section>
@@ -130,6 +128,17 @@ function GoalPage() {
           ))}
         </ul>
       </section>
+
+      <Link
+        to="/ledger"
+        className="mt-4 flex min-h-14 items-center justify-between rounded-xl border border-border bg-card p-4 active:opacity-80"
+      >
+        <span className="flex items-center gap-3 font-semibold">
+          <Receipt className="size-5 text-muted-foreground" />
+          Money in and out
+        </span>
+        <span className="text-sm text-muted-foreground">Open →</span>
+      </Link>
     </AppShell>
   );
 }
