@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-react";
+import { LayoutList, Search, FileText, Wallet, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const NAV: { to: string; label: string; icon: typeof LayoutList; activeClass?: string }[] = [
+const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
-  { to: "/goal", label: "Goal", icon: Target },
-  { to: "/truck", label: "My Truck", icon: TruckIcon },
-  { to: "/hunt", label: "Hunt", icon: Search, activeClass: "text-ez-amber" },
-  { to: "/ledger", label: "Money", icon: Receipt },
+  { to: "/hunt", label: "Hunt", icon: Search, amber: true },
+  { to: "/truck", label: "Truck", icon: TruckIcon },
+  { to: "/docs", label: "Docs", icon: FileText },
+  { to: "/goal", label: "Week $", icon: Wallet },
 ];
+
 
 
 export function AppShell({
