@@ -13,57 +13,22 @@ export const TRUCK_COLORS: TruckColor[] = [
   { name: "Sky", value: "#7CC4FF" },
 ];
 
-let glyphSeed = 0;
-
-/** Small rendered-looking 18-wheeler: body gradient, chrome highlights, ground shadow. */
+/**
+ * Chrome truck photo riding the goal bar. The body always stays chrome;
+ * the picked color only tints the glow beneath it via a colored drop-shadow.
+ */
 export function TruckGlyph({ color, className }: { color: string; className?: string }) {
-  const [id] = useState(() => `tg${++glyphSeed}`);
   return (
-    <svg viewBox="0 0 64 34" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id={`${id}-body`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.85" />
-          <stop offset="35%" stopColor={color} />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
-        </linearGradient>
-        <linearGradient id={`${id}-cab`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.7" />
-          <stop offset="45%" stopColor={color} />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.5" />
-        </linearGradient>
-        <radialGradient id={`${id}-shadow`} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor="#000000" stopOpacity="0.65" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* ground shadow */}
-      <ellipse cx="32" cy="31" rx="27" ry="3.2" fill={`url(#${id}-shadow)`} />
-
-      {/* trailer */}
-      <rect x="1" y="7" width="35" height="16" rx="2.5" fill={`url(#${id}-body)`} />
-      <rect x="2.5" y="8.5" width="32" height="3" rx="1.5" fill="#FFFFFF" opacity="0.35" />
-      <rect x="1" y="19" width="35" height="4" rx="1.5" fill="#000000" opacity="0.25" />
-
-      {/* cab */}
-      <path d="M38 10h9.5l8 8v5H38z" fill={`url(#${id}-cab)`} />
-      <path d="M38 10h9.5l2 4H38z" fill="#FFFFFF" opacity="0.3" />
-      <rect x="47.5" y="13" width="6" height="4.5" rx="1" fill="#0B0C0E" opacity="0.85" />
-      <rect x="47.8" y="13.3" width="5.4" height="1.6" rx="0.8" fill="#FFFFFF" opacity="0.3" />
-
-      {/* chrome trim */}
-      <rect x="36.4" y="9" width="1.6" height="14" rx="0.8" fill="#EDEEF0" opacity="0.7" />
-      <rect x="38" y="21.5" width="18" height="2" rx="1" fill="#EDEEF0" opacity="0.55" />
-
-      {/* wheels */}
-      {[10, 19, 28, 43, 53].map((cx) => (
-        <g key={cx}>
-          <circle cx={cx} cy="25" r="4" fill="#15181C" />
-          <circle cx={cx} cy="25" r="1.7" fill="#C9CED6" />
-          <circle cx={cx} cy="23.6" r="3.6" fill="#FFFFFF" opacity="0.08" />
-        </g>
-      ))}
-    </svg>
+    <img
+      src={goalTruckAsset.url}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={`select-none object-contain ${className ?? ""}`}
+      style={{
+        filter: `drop-shadow(0 6px 10px rgba(0,0,0,0.55)) drop-shadow(0 14px 22px ${color})`,
+      }}
+    />
   );
 }
 
