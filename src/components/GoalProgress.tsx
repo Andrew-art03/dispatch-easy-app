@@ -62,11 +62,11 @@ export function GoalBar({
       {/* truck riding the leading edge of the fill */}
       <div
         className="absolute -top-1 transition-all duration-700 ease-out"
-        style={{ left: `calc(${pct * 100}% - ${pct * (big ? 56 : 32)}px)` }}
+        style={{ left: `calc(${pct * 100}% - ${pct * (big ? 84 : 40)}px)` }}
       >
         <TruckGlyph
           color={truckColor}
-          className={big ? "h-10 w-20 -translate-y-7" : "h-5 w-9 -translate-y-3.5"}
+          className={big ? "h-16 w-28 -translate-y-11" : "h-7 w-12 -translate-y-4"}
         />
       </div>
     </div>
