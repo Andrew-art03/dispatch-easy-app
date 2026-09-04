@@ -324,7 +324,7 @@ function Line({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function Stat({ label, value, note }: { label: string; value: string; note?: string | undefined }) {
   return (
     <div className="rounded-xl bg-surface-2 p-3">
       <dt className="text-xs text-muted-foreground">{label}</dt>
