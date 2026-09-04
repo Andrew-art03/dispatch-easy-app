@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
 import type { Deal, LoadWithRelations } from "@/lib/types";
+import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
 import {
   latestScore,
   money,
@@ -12,7 +13,7 @@ import {
   prettyValue,
   rpm,
   stopLabel,
-  VerdictBadge,
+  VERDICT_LABEL,
 } from "@/lib/load-utils";
 
 export const Route = createFileRoute("/_authenticated/loads/$id")({
@@ -39,6 +40,7 @@ function LoadCard() {
   const [showMath, setShowMath] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["load", id],
@@ -94,30 +96,96 @@ function LoadCard() {
   const inputs = (score?.inputs ?? {}) as Record<string, unknown>;
   const canConfirm = load.state === "rate_con_received";
 
+  const keep = money(score?.true_net ?? null);
+  const verdictWord = score ? VERDICT_LABEL[score.verdict] : "No call yet";
+  const gross = Number(load.gross_rate ?? 0);
+  const net = Number(score?.true_net ?? 0);
+  const tripCost = score?.true_net != null && load.gross_rate != null ? gross - net : null;
+  const minsAgo = score?.created_at
+    ? Math.max(1, Math.round((Date.now() - new Date(score.created_at).getTime()) / 60000))
+    : null;
+  const floor = score?.floor_rate ?? deal?.floor_rate ?? null;
+
+  const chips: { title: string; sentence: string; watch: boolean }[] = [
+    {
+      title: "Fit",
+      sentence: load.equipment
+        ? `Runs on your ${load.equipment} with ${load.deadhead_miles ?? 0} miles of empty.`
+        : "Equipment not listed on this load yet.",
+      watch: (load.deadhead_miles ?? 0) > 150 || !load.equipment,
+    },
+    {
+      title: "Profit",
+      sentence:
+        score?.true_net != null
+          ? `You keep about ${keep} after estimated trip costs.`
+          : "No numbers scored yet on this load.",
+      watch: score?.verdict !== "take",
+    },
+    {
+      title: "Market",
+      sentence: `Your floor ${money(floor)} · Market not verified`,
+      watch: true,
+    },
+  ];
+
   return (
     <AppShell title={load.reference ?? "Load"}>
       <div className="space-y-4">
-        <section className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">{load.state.replace(/_/g, " ")}</p>
-              <p className="mt-1 text-3xl font-bold">{money(score?.true_net ?? null)}</p>
-              <p className="text-sm text-muted-foreground">true net after all costs</p>
-            </div>
-            {score ? <VerdictBadge verdict={score.verdict} big /> : null}
-          </div>
+        <EZStatusLine
+          text={`EZ found your best move · high confidence · ${minsAgo ?? "—"} min ago`}
+        />
 
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <Stat label="All-in per mile" value={rpm(score?.all_in_rpm ?? null)} />
-            <Stat label="Net per day" value={money(score?.net_per_day ?? null)} />
-            <Stat label="Recommended bid" value={money(score?.recommended_bid ?? null)} />
+        <section className="rounded-2xl border border-border bg-card p-5">
+          {load.reference ? (
+            <p className="ez-ref text-muted-foreground">{load.reference}</p>
+          ) : null}
+          <p className="mt-1 text-sm text-muted-foreground">You keep about</p>
+          <p className="ez-num text-6xl text-foreground">{keep}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            after estimated trip costs ·{" "}
+            <span className="font-semibold text-foreground">{verdictWord}</span>
+          </p>
+
+          <dl className="mt-5 grid grid-cols-3 gap-3 text-center">
+            <Stat label="All-in / mi" value={rpm(score?.all_in_rpm ?? null)} />
+            <Stat label="Gross" value={money(load.gross_rate)} />
             <Stat
-              label="Walk-away floor"
-              value={money(score?.floor_rate ?? deal?.floor_rate ?? null)}
+              label="Miles"
+              value={load.loaded_miles ? String(load.loaded_miles) : "—"}
+              note={
+                load.deadhead_miles
+                  ? `+${load.deadhead_miles} empty`
+                  : undefined
+              }
             />
-            <Stat label="Gross rate" value={money(load.gross_rate)} />
-            <Stat label="Loaded miles" value={load.loaded_miles ? String(load.loaded_miles) : "—"} />
           </dl>
+        </section>
+
+        <section className="space-y-2">
+          {chips.map((chip) => (
+            <div key={chip.title} className={`ez-chip ${chip.watch ? "ez-chip-watch" : ""}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {chip.title}
+              </p>
+              <p className="text-sm">{chip.sentence}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            EZ's call
+          </p>
+          <p className="mt-1 text-base">
+            {score?.reasons?.[0] ?? "EZ has not scored this load yet."}
+          </p>
+          <p className="mt-2 text-sm">
+            <span className="font-semibold text-ez-amber">Watch it:</span>{" "}
+            {load.state === "rate_con_received"
+              ? "Rate con is in — read the pay terms before you confirm."
+              : "No rate con yet, so the terms can still change."}
+          </p>
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-4">
@@ -127,11 +195,11 @@ function LoadCard() {
           <ol className="mt-2 space-y-3">
             {stops.map((stop) => (
               <li key={stop.id} className="flex gap-3">
-                <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
+                <span className="mt-1 size-2 shrink-0 rounded-full bg-ez-green" />
                 <div className="min-w-0">
                   <p className="text-xs uppercase text-muted-foreground">{stop.type}</p>
                   <p className="font-medium">{stopLabel(stop)}</p>
-                  <p className="truncate text-sm text-muted-foreground">{stop.address}</p>
+                  <p className="text-sm text-muted-foreground">{stop.address}</p>
                   {stop.window_start ? (
                     <p className="text-sm text-muted-foreground">
                       {new Date(stop.window_start).toLocaleString()}
@@ -144,42 +212,26 @@ function LoadCard() {
           </ol>
         </section>
 
-        {score?.reasons && score.reasons.length > 0 ? (
-          <section className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Why
-            </h2>
-            <ul className="mt-2 space-y-2 text-sm">
-              {score.reasons.map((reason, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>{reason}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
         <section className="rounded-2xl border border-border bg-card">
           <button
             onClick={() => setShowMath((v) => !v)}
-            className="flex w-full items-center justify-between p-4 text-left font-medium"
+            className="flex min-h-12 w-full items-center justify-between p-4 text-left font-medium"
           >
             How we calculated this
             <span className="text-muted-foreground">{showMath ? "Hide" : "Show"}</span>
           </button>
           {showMath ? (
             <dl className="border-t border-border p-4 text-sm">
-              {Object.entries(inputs).length === 0 ? (
-                <p className="text-muted-foreground">No inputs recorded for this load.</p>
-              ) : (
-                Object.entries(inputs).map(([key, value]) => (
-                  <div key={key} className="flex justify-between gap-4 border-b border-border/60 py-2 last:border-0">
-                    <dt className="text-muted-foreground">{prettyLabel(key)}</dt>
-                    <dd className="text-right font-medium">{prettyValue(value)}</dd>
-                  </div>
-                ))
-              )}
+              <Line label="Gross pay" value={money(load.gross_rate)} />
+              <Line label="Trip cost" value={tripCost != null ? `− ${money(tripCost)}` : "—"} />
+              <Line label="You keep" value={keep} />
+              <Line
+                label="Miles"
+                value={`${load.loaded_miles ?? "—"} loaded · ${load.deadhead_miles ?? 0} empty`}
+              />
+              {Object.entries(inputs).map(([key, value]) => (
+                <Line key={key} label={prettyLabel(key)} value={prettyValue(value)} />
+              ))}
             </dl>
           ) : null}
         </section>
@@ -187,57 +239,97 @@ function LoadCard() {
         <Link
           to="/docs/$loadId"
           params={{ loadId: load.id }}
-          className="block rounded-2xl border border-border bg-card p-4 text-center font-medium"
+          className="ez-btn-secondary"
         >
           Paperwork for this load
         </Link>
 
         {actionError ? <ErrorBox error={new Error(actionError)} /> : null}
         {actionNote ? (
-          <p className="rounded-xl border border-border bg-card p-3 text-sm text-primary">
+          <p className="rounded-xl border border-border bg-card p-3 text-sm text-ez-green">
             {actionNote}
           </p>
         ) : null}
 
+        <button
+          onClick={() => callEndpoint.mutate("pursue")}
+          disabled={callEndpoint.isPending}
+          className="ez-btn-primary disabled:opacity-40"
+        >
+          {callEndpoint.isPending ? "Working…" : "Pursue this load"}
+        </button>
+
         <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => callEndpoint.mutate("pursue")}
-            disabled={callEndpoint.isPending}
-            className="rounded-xl border border-border py-4 font-semibold"
-          >
-            Pursue
+          <button onClick={() => setVoiceOpen(true)} className="ez-btn-secondary text-ez-amber">
+            Ask EZ why
           </button>
           <button
             onClick={() => callEndpoint.mutate("skip")}
             disabled={callEndpoint.isPending}
-            className="rounded-xl border border-border py-4 font-semibold text-muted-foreground"
+            className="ez-btn-secondary text-muted-foreground"
           >
             Skip
           </button>
         </div>
 
-        <button
-          onClick={() => callEndpoint.mutate("confirm")}
-          disabled={!canConfirm || callEndpoint.isPending}
-          className="ez-btn-primary w-full disabled:opacity-40"
-        >
-          {callEndpoint.isPending ? "Working…" : "Confirm load"}
-        </button>
+        <p className="pt-1 text-center text-sm text-muted-foreground">
+          Show alternatives · Ask {money(score?.recommended_bid ?? null)} (soon)
+        </p>
+
+        {canConfirm ? (
+          <button
+            onClick={() => callEndpoint.mutate("confirm")}
+            disabled={callEndpoint.isPending}
+            className="ez-btn-secondary"
+          >
+            Confirm load
+          </button>
+        ) : null}
+
         {!canConfirm ? (
           <p className="text-center text-sm text-muted-foreground">
             You can confirm once the rate con is in.
           </p>
         ) : null}
+
+        <EZVoiceSheet
+          open={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          transcript="Book the Amarillo load"
+          heard={[
+            { label: "Load", value: load.reference ?? "this load", sure: true },
+            { label: "Action", value: "Confirm load", sure: true },
+            { label: "Pay terms", value: deal?.payment_terms ?? "not read yet", sure: false },
+          ]}
+          keepAmount={keep}
+          rpmLabel={rpm(score?.all_in_rpm ?? null)}
+          verdictWord={verdictWord}
+          confirmDisabled={!canConfirm || callEndpoint.isPending}
+          onConfirm={() => {
+            callEndpoint.mutate("confirm");
+            setVoiceOpen(false);
+          }}
+        />
       </div>
     </AppShell>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Line({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-secondary p-3">
+    <div className="flex justify-between gap-4 border-b border-border/60 py-2 last:border-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function Stat({ label, value, note }: { label: string; value: string; note?: string | undefined }) {
+  return (
+    <div className="rounded-xl bg-surface-2 p-3">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-lg font-semibold">{value}</dd>
+      <dd className="ez-num mt-1 text-2xl">{value}</dd>
+      {note ? <dd className="text-xs text-ez-amber">{note}</dd> : null}
     </div>
   );
 }
