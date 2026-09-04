@@ -19,6 +19,14 @@
  */
 
 @theme inline {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-ez-green: var(--ez-green);
+  --color-ez-red: var(--ez-red);
+  --color-ez-amber: var(--ez-amber);
+  --color-surface-2: var(--surface-2);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
