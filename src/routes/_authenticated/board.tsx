@@ -6,6 +6,10 @@ import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
 import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
 import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
 import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
+import { GoalGlanceCard, useTruckColor } from "@/components/GoalProgress";
+
+// Visual-only mock for the week goal glance (design pass).
+const GOAL_MOCK = { earned: 3400, target: 6000 };
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -35,6 +39,7 @@ const GROUPS: { state: LoadState; label: string }[] = [
 
 function BoardPage() {
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [truckColor] = useTruckColor();
 
   const query = useQuery({
     queryKey: ["board"],
@@ -99,6 +104,15 @@ function BoardPage() {
         <span className="rounded-full border border-border px-3 py-1 text-sm">
           Needs you · {needsYou}
         </span>
+      </div>
+
+      <div className="mb-4">
+        <GoalGlanceCard
+          progress={GOAL_MOCK.earned / GOAL_MOCK.target}
+          truckColor={truckColor}
+          earned={money(GOAL_MOCK.earned)}
+          target={money(GOAL_MOCK.target)}
+        />
       </div>
 
       {query.isPending ? <Loading label="Loading your loads…" /> : null}
