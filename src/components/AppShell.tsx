@@ -6,7 +6,7 @@ const NAV = [
   { to: "/board", label: "Board", icon: LayoutList },
   { to: "/goal", label: "Goal", icon: Target },
   { to: "/truck", label: "My Truck", icon: TruckIcon },
-  { to: "/hunt", label: "Hunt", icon: Search },
+  { to: "/hunt", label: "Hunt", icon: Search, activeClass: "text-ez-amber" },
   { to: "/ledger", label: "Money", icon: Receipt },
 ] as const;
 
