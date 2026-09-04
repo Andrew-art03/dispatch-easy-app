@@ -6,6 +6,10 @@ import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
 import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
 import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
 import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
+import { GoalGlanceCard, useTruckColor } from "@/components/GoalProgress";
+
+// Visual-only mock for the week goal glance (design pass).
+const GOAL_MOCK = { earned: 3400, target: 6000 };
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
