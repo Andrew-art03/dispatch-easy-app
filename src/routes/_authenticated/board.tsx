@@ -7,6 +7,7 @@ import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
 import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
 import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
 import { GoalGlanceCard, useTruckColor } from "@/components/GoalProgress";
+import boardTruckFogAsset from "@/assets/board-truck-fog.jpg.asset.json";
 
 // Visual-only mock for the week goal glance (design pass).
 const GOAL_MOCK = { earned: 3400, target: 6000 };
@@ -105,6 +106,26 @@ function BoardPage() {
           Needs you · {needsYou}
         </span>
       </div>
+
+      {!unit ? (
+        <div className="relative mb-4 overflow-hidden rounded-2xl border border-border">
+          <img
+            src={boardTruckFogAsset.url}
+            alt="Chrome semi truck with headlights on, rolling through fog"
+            className="h-44 w-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent p-4 pt-10">
+            <p className="font-semibold">No truck on file yet</p>
+            <p className="text-sm text-muted-foreground">
+              Add your truck to get sharper numbers.
+            </p>
+            <Link to="/truck" className="ez-btn-primary mt-3">
+              Add my truck
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-4">
         <GoalGlanceCard
