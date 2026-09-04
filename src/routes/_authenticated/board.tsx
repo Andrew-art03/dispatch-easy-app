@@ -7,6 +7,7 @@ import type { LoadState, LoadWithRelations, Score } from "@/lib/types";
 import { latestScore, money, routeLabel, rpm, VERDICT_LABEL } from "@/lib/load-utils";
 import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
 import { GoalGlanceCard, useTruckColor } from "@/components/GoalProgress";
+import boardTruckFogAsset from "@/assets/board-truck-fog.jpg.asset.json";
 
 // Visual-only mock for the week goal glance (design pass).
 const GOAL_MOCK = { earned: 3400, target: 6000 };
