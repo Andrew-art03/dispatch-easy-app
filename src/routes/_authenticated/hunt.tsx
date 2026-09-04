@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { Camera, Mic } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { authedFetch, useMe } from "@/lib/session";
 import { AppShell, ErrorBox } from "@/components/AppShell";
@@ -9,15 +10,15 @@ import type { EquipmentType } from "@/lib/types";
 export const Route = createFileRoute("/_authenticated/hunt")({
   head: () => ({
     meta: [
-      { title: "Paste a load — EZ Trucking Auto Dispatching" },
+      { title: "Drop a load — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Paste the load text or snap the posting, check the fields we pulled out, and add it to your board.",
+        content: "Paste the load text or snap the posting and let Easy score what you keep.",
       },
-      { property: "og:title", content: "Paste a load — EZ Trucking Auto Dispatching" },
+      { property: "og:title", content: "Drop a load — EZ Trucking Auto Dispatching" },
       {
         property: "og:description",
-        content: "Paste the load or snap the posting and add it to your board in seconds.",
+        content: "Paste the load or snap the posting and Easy scores your true net in seconds.",
       },
     ],
   }),
@@ -147,24 +148,32 @@ function HuntPage() {
   const set = (key: keyof Parsed) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setParsed((p) => (p ? { ...p, [key]: e.target.value } : p));
 
+  const canScore = text.trim().length > 0 || file !== null;
+
   return (
-    <AppShell title="Paste the load">
+    <AppShell
+      title="Drop a load. Easy scores it."
+      action={<WeekChip />}
+      bottomSticky={<TalkToEasyPill />}
+    >
       {!parsed ? (
         <form
-          className="space-y-4"
+          className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             submit.mutate();
           }}
         >
           <textarea
-            className="ez-input min-h-48"
+            className="ez-input min-h-[16rem] resize-none"
             placeholder="Paste the load here — rate, pickup, delivery, dates, miles."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <label className="block rounded-2xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-            {file ? file.name : "Or add a photo of the posting"}
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-2 px-4 py-3 text-sm text-muted-foreground transition-colors active:bg-card">
+            <Camera className="size-5 text-ez-amber" />
+            {file ? file.name : "Snap a photo of the posting"}
             <input
               type="file"
               accept="image/*"
@@ -173,14 +182,20 @@ function HuntPage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </label>
+
           {submit.isError ? <ErrorBox error={submit.error} /> : null}
+
           <button
             type="submit"
-            disabled={submit.isPending || (!text.trim() && !file)}
-            className="ez-btn-primary w-full disabled:opacity-40"
+            disabled={submit.isPending || !canScore}
+            className="ez-btn-primary mt-2 disabled:opacity-40"
           >
-            {submit.isPending ? "Reading…" : "Read this load"}
+            {submit.isPending ? "Scoring…" : "Score what I keep."}
           </button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Doesn't book it. Doesn't touch DAT.
+          </p>
         </form>
       ) : (
         <form
@@ -238,6 +253,27 @@ function HuntPage() {
         </form>
       )}
     </AppShell>
+  );
+}
+
+function WeekChip() {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-3 py-1.5 text-xs font-semibold text-ez-amber">
+      <span className="size-2 rounded-full bg-ez-amber" />
+      $3.4k / $6k
+    </div>
+  );
+}
+
+function TalkToEasyPill() {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-4 py-3 text-sm font-semibold text-ez-amber transition-colors active:bg-ez-amber/20"
+    >
+      <Mic className="size-4" />
+      Talk to Easy
+    </button>
   );
 }
 

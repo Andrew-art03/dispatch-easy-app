@@ -1,23 +1,26 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
-const NAV = [
+const NAV: { to: string; label: string; icon: typeof LayoutList; activeClass?: string }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
   { to: "/goal", label: "Goal", icon: Target },
   { to: "/truck", label: "My Truck", icon: TruckIcon },
-  { to: "/hunt", label: "Hunt", icon: Search },
+  { to: "/hunt", label: "Hunt", icon: Search, activeClass: "text-ez-amber" },
   { to: "/ledger", label: "Money", icon: Receipt },
-] as const;
+];
 
 
 export function AppShell({
   title,
   action,
+  bottomSticky,
   children,
 }: {
   title: string;
   action?: ReactNode;
+  bottomSticky?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -29,21 +32,28 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-28 pt-4">{children}</main>
+      <main className={cn("mx-auto max-w-3xl px-4 pt-4", bottomSticky ? "pb-36" : "pb-28")}>
+        {children}
+      </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
-        <div className="mx-auto grid max-w-3xl grid-cols-5">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
-              activeProps={{ className: "text-primary" }}
-            >
-              <Icon className="size-6" />
-              {label}
-            </Link>
-          ))}
+        <div className="mx-auto flex max-w-3xl flex-col">
+          {bottomSticky ? (
+            <div className="px-4 pb-2 pt-3">{bottomSticky}</div>
+          ) : null}
+          <div className="grid grid-cols-5">
+            {NAV.map(({ to, label, icon: Icon, activeClass }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+                activeProps={{ className: activeClass ?? "text-primary" }}
+              >
+                <Icon className="size-6" />
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       </nav>
     </div>
