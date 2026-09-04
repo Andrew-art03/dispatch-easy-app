@@ -119,6 +119,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
   }
 }
@@ -144,12 +145,63 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    min-height: 60px;
     border-radius: var(--radius);
     background-color: var(--color-primary);
     color: var(--color-primary-foreground);
-    padding: 1rem 1.25rem;
-    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 1.0625rem;
     font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .ez-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-2);
+    color: var(--color-foreground);
+    padding: 0.5rem 1rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+
+  .ez-num {
+    font-family: var(--font-condensed);
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+
+  .ez-ref {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: -0.02em;
+  }
+
+  .ez-chip {
+    border-left: 3px solid var(--color-ez-green);
+    background-color: var(--color-surface-2);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .ez-chip-watch {
+    border-left-color: var(--color-ez-amber);
+  }
+
+  .ez-ring {
+    animation: ez-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes ez-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.08); opacity: 0.45; }
   }
 
   .ez-btn-primary:active {
