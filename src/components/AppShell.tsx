@@ -3,13 +3,13 @@ import { LayoutList, Target, Search, Receipt, Truck as TruckIcon } from "lucide-
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+const NAV: { to: string; label: string; icon: typeof LayoutList; activeClass?: string }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
   { to: "/goal", label: "Goal", icon: Target },
   { to: "/truck", label: "My Truck", icon: TruckIcon },
   { to: "/hunt", label: "Hunt", icon: Search, activeClass: "text-ez-amber" },
   { to: "/ledger", label: "Money", icon: Receipt },
-] as const;
+];
 
 
 export function AppShell({
