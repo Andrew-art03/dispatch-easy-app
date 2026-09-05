@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GoalBar, TRUCK_COLORS, TruckGlyph } from "@/components/GoalProgress";
+import { GoalBar, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
 import { WEEK_GOAL, money } from "@/lib/goal";
 
 const SESSION_KEY = "ez-intro-played";
@@ -11,6 +11,7 @@ const SESSION_KEY = "ez-intro-played";
 export function IntroAnimation() {
   const [phase, setPhase] = useState<"off" | "drive" | "bar" | "out">("off");
   const [barProgress, setBarProgress] = useState(0);
+  const [truckColor] = useTruckColor();
 
   useEffect(() => {
     try {
@@ -38,8 +39,6 @@ export function IntroAnimation() {
 
   if (phase === "off") return null;
 
-  const color = TRUCK_COLORS[0]!.value;
-
   return (
     <div
       aria-hidden="true"
@@ -50,7 +49,7 @@ export function IntroAnimation() {
       <div className="w-full max-w-md">
         {phase === "drive" ? (
           <div className="flex h-40 items-center justify-center">
-            <TruckGlyph color={color} className="ez-intro-drive h-24 w-44" />
+            <TruckGlyph color={truckColor} className="ez-intro-drive h-24 w-44" />
           </div>
         ) : (
           <div className="h-40 pt-16">
@@ -61,7 +60,7 @@ export function IntroAnimation() {
                 <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
               </span>
             </div>
-            <GoalBar progress={barProgress} truckColor={color} big />
+            <GoalBar progress={barProgress} truckColor={truckColor} big />
           </div>
         )}
       </div>

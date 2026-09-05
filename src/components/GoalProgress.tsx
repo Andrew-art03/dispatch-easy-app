@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Settings2 } from "lucide-react";
 import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
@@ -73,8 +73,30 @@ export function GoalBar({
   );
 }
 
+const COLOR_KEY = "ez-truck-color";
+const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
+
 export function useTruckColor() {
-  const [color, setColor] = useState(TRUCK_COLORS[0]!.value);
+  const [color, setColorState] = useState(DEFAULT_COLOR);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(COLOR_KEY);
+      if (stored) setColorState(stored);
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, []);
+
+  const setColor = useCallback((value: string) => {
+    setColorState(value);
+    try {
+      localStorage.setItem(COLOR_KEY, value);
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, []);
+
   return [color, setColor] as const;
 }
 
