@@ -10,6 +10,7 @@ const SESSION_KEY = "ez-intro-played";
  */
 export function IntroAnimation() {
   const [phase, setPhase] = useState<"off" | "drive" | "bar" | "out">("off");
+  const [barProgress, setBarProgress] = useState(0);
 
   useEffect(() => {
     try {
@@ -20,7 +21,12 @@ export function IntroAnimation() {
     }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setPhase("drive");
-    const t1 = setTimeout(() => setPhase("bar"), 700);
+    const t1 = setTimeout(() => {
+      setPhase("bar");
+      requestAnimationFrame(() =>
+        setBarProgress(Math.min(1, WEEK_GOAL.earned / WEEK_GOAL.target)),
+      );
+    }, 700);
     const t2 = setTimeout(() => setPhase("out"), 1700);
     const t3 = setTimeout(() => setPhase("off"), 2050);
     return () => {
@@ -33,7 +39,6 @@ export function IntroAnimation() {
   if (phase === "off") return null;
 
   const color = TRUCK_COLORS[0]!.value;
-  const progress = Math.min(1, WEEK_GOAL.earned / WEEK_GOAL.target);
 
   return (
     <div
@@ -56,7 +61,7 @@ export function IntroAnimation() {
                 <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
               </span>
             </div>
-            <GoalBar progress={progress} truckColor={color} big />
+            <GoalBar progress={barProgress} truckColor={color} big />
           </div>
         )}
       </div>
