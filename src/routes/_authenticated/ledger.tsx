@@ -30,6 +30,15 @@ function weekKey(iso: string | null) {
   return monday.toISOString().slice(0, 10);
 }
 
+function formatWeekLabel(key: string) {
+  if (key === "No date" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return key;
+  const monday = new Date(`${key}T00:00:00`);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `Week of ${fmt(monday)}–${fmt(sunday)}`;
+}
+
 function money(v: number) {
   const sign = v < 0 ? "-" : "";
   return `${sign}$${Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -69,13 +78,13 @@ function LedgerPage() {
                 <section key={week}>
                   <div className="mb-2 flex items-baseline justify-between">
                     <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      Week of {week}
+                      {formatWeekLabel(week)}
                     </h2>
-                    <span className={`font-bold ${total < 0 ? "text-destructive" : "text-primary"}`}>
+                    <span className={`font-bold ${total < 0 ? "text-ez-red" : "text-ez-green"}`}>
                       {money(total)}
                     </span>
                   </div>
-                  <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="overflow-hidden rounded-2xl border border-border bg-card">
                     <table className="w-full text-sm">
                       <tbody>
                         {lines.map((line) => (
@@ -89,7 +98,7 @@ function LedgerPage() {
                             </td>
                             <td
                               className={`p-3 text-right font-semibold ${
-                                Number(line.amount) < 0 ? "text-destructive" : ""
+                                Number(line.amount) < 0 ? "text-ez-red" : "text-ez-green"
                               }`}
                             >
                               {money(Number(line.amount))}
