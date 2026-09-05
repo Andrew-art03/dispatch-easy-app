@@ -95,8 +95,8 @@ function DocsIndexPage() {
 
   return (
     <AppShell title="Paperwork">
-      <div className="space-y-4">
-        <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+      <div className="space-y-5">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <label className="block">
             <span className="mb-1 block text-sm text-muted-foreground">What is this?</span>
             <select
@@ -112,7 +112,7 @@ function DocsIndexPage() {
             </select>
           </label>
 
-          <label className="ez-btn-primary block w-full cursor-pointer text-center">
+          <label className="ez-btn-amber block w-full cursor-pointer text-center">
             {upload.isPending ? "Uploading…" : "Take a photo or upload"}
             <input
               type="file"
@@ -162,7 +162,7 @@ function DocsIndexPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="inline-block rounded-full border border-ez-amber/30 bg-ez-amber/10 px-2 py-0.5 text-xs font-semibold text-ez-amber">
+                      <span className="inline-block rounded-full border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                         {doc.type.replace(/_/g, " ")}
                       </span>
                       <p className="mt-1 truncate text-sm">
