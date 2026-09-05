@@ -131,7 +131,7 @@ function LoadCard() {
 
   return (
     <AppShell title={load.reference ?? "Load"}>
-      <div className="space-y-4">
+      <div className="space-y-5">
         <EZStatusLine
           text={`EZ found your best move · high confidence · ${minsAgo ?? "—"} min ago`}
         />
@@ -173,7 +173,7 @@ function LoadCard() {
           ))}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-4">
+        <section className="rounded-2xl border border-border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             EZ's call
           </p>
@@ -188,7 +188,7 @@ function LoadCard() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-4">
+        <section className="rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Stops
           </h2>
@@ -215,13 +215,13 @@ function LoadCard() {
         <section className="rounded-2xl border border-border bg-card">
           <button
             onClick={() => setShowMath((v) => !v)}
-            className="flex min-h-12 w-full items-center justify-between p-4 text-left font-medium"
+            className="flex min-h-12 w-full items-center justify-between p-5 text-left font-medium"
           >
             How we calculated this
             <span className="text-muted-foreground">{showMath ? "Hide" : "Show"}</span>
           </button>
           {showMath ? (
-            <dl className="border-t border-border p-4 text-sm">
+            <dl className="border-t border-border p-5 text-sm">
               <Line label="Gross pay" value={money(load.gross_rate)} />
               <Line label="Trip cost" value={tripCost != null ? `− ${money(tripCost)}` : "—"} />
               <Line label="You keep" value={keep} />
@@ -254,7 +254,7 @@ function LoadCard() {
         <button
           onClick={() => callEndpoint.mutate("pursue")}
           disabled={callEndpoint.isPending}
-          className="ez-btn-primary disabled:opacity-40"
+          className="ez-btn-amber disabled:opacity-40"
         >
           {callEndpoint.isPending ? "Working…" : "Pursue this load"}
         </button>

@@ -185,14 +185,14 @@
   }
 
   .ez-chip {
-    border-left: 3px solid var(--color-ez-green);
+    border-left: 3px solid transparent;
     background-color: var(--color-surface-2);
     border-radius: 0.5rem;
     padding: 0.625rem 0.75rem;
   }
 
   .ez-chip-watch {
-    border-left-color: var(--color-ez-amber);
+    border-left-color: var(--color-ez-red);
   }
 
   .ez-ring {
