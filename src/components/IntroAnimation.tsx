@@ -50,7 +50,7 @@ export function IntroAnimation() {
       <div className="w-full max-w-md">
         {phase === "drive" ? (
           <div className="flex h-40 items-center justify-center">
-            <TruckGlyph color={color} className="ez-intro-drive h-24 w-44" />
+            <TruckGlyph color={truckColor} className="ez-intro-drive h-24 w-44" />
           </div>
         ) : (
           <div className="h-40 pt-16">
@@ -61,7 +61,7 @@ export function IntroAnimation() {
                 <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
               </span>
             </div>
-            <GoalBar progress={barProgress} truckColor={color} big />
+            <GoalBar progress={barProgress} truckColor={truckColor} big />
           </div>
         )}
       </div>
