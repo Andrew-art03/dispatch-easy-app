@@ -98,7 +98,7 @@ function LedgerPage() {
                             </td>
                             <td
                               className={`p-3 text-right font-semibold ${
-                                Number(line.amount) < 0 ? "text-destructive" : ""
+                                Number(line.amount) < 0 ? "text-ez-red" : "text-ez-green"
                               }`}
                             >
                               {money(Number(line.amount))}
