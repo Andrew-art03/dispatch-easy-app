@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Settings2 } from "lucide-react";
 import goalTruckAsset from "@/assets/goal-truck.png.asset.json";

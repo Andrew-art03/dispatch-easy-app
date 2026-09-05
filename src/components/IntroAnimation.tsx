@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GoalBar, TRUCK_COLORS, TruckGlyph } from "@/components/GoalProgress";
+import { GoalBar, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
 import { WEEK_GOAL, money } from "@/lib/goal";
 
 const SESSION_KEY = "ez-intro-played";
