@@ -191,18 +191,18 @@ function TruckPage() {
         <ErrorBox error={truckQuery.error} onRetry={() => truckQuery.refetch()} />
       ) : null}
 
-      <div className="mb-4 rounded-2xl border border-border bg-card p-4">
+      <div className="mb-5 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">Profile filled in</span>
           <span className="font-bold text-primary">{completeness}%</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
           <div className="h-full bg-primary transition-all" style={{ width: `${completeness}%` }} />
         </div>
       </div>
 
       <form
-        className="space-y-4"
+        className="space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();
@@ -230,7 +230,10 @@ function TruckPage() {
           <Field label="MPG empty">
             <input className="ez-input" inputMode="decimal" value={form.mpg_empty} onChange={set("mpg_empty")} />
           </Field>
-          <Field label="Fuel discount per gallon">
+          <Field
+            label="Fuel discount per gallon"
+            hint="Your card/network discount off pump price."
+          >
             <input
               className="ez-input"
               inputMode="decimal"
@@ -241,7 +244,10 @@ function TruckPage() {
         </Group>
 
         <Group title="Money set aside">
-          <Field label="Maintenance per mile">
+          <Field
+            label="Maintenance per mile"
+            hint="Money set aside per mile so repairs don't surprise you."
+          >
             <input
               className="ez-input"
               inputMode="decimal"
@@ -249,7 +255,7 @@ function TruckPage() {
               onChange={set("maintenance_reserve_per_mile")}
             />
           </Field>
-          <Field label="Tires per mile">
+          <Field label="Tires per mile" hint="Money set aside per mile so repairs don't surprise you.">
             <input
               className="ez-input"
               inputMode="decimal"
@@ -257,7 +263,10 @@ function TruckPage() {
               onChange={set("tire_reserve_per_mile")}
             />
           </Field>
-          <Field label="Overhead per day">
+          <Field
+            label="Overhead per day"
+            hint="Insurance, permits, phone — fixed costs whether you're rolling or not."
+          >
             <input
               className="ez-input"
               inputMode="decimal"
@@ -287,10 +296,16 @@ function TruckPage() {
         </Group>
 
         <Group title="What you will haul">
-          <Field label="Target cost per mile">
+          <Field
+            label="Target cost per mile"
+            hint="Your break-even. EZ won't recommend loads below this without flagging it."
+          >
             <input className="ez-input" inputMode="decimal" value={form.cpm_target} onChange={set("cpm_target")} />
           </Field>
-          <Field label="Max deadhead miles">
+          <Field
+            label="Max deadhead miles"
+            hint="How far empty you're willing to drive to reach a load."
+          >
             <input
               className="ez-input"
               inputMode="numeric"
@@ -309,7 +324,10 @@ function TruckPage() {
         </Group>
 
         <Group title="Home base">
-          <Field label="City (not saved)">
+          <Field
+            label="City"
+            hint="Used to fill in your coordinates below — not stored on its own."
+          >
             <input
               className="ez-input"
               value={form.home_base_city}
@@ -329,7 +347,7 @@ function TruckPage() {
         {save.isError ? <ErrorBox error={save.error} /> : null}
         {saved ? <p className="text-sm text-primary">Saved.</p> : null}
 
-        <button type="submit" disabled={save.isPending} className="ez-btn-primary w-full">
+        <button type="submit" disabled={save.isPending} className="ez-btn-amber w-full">
           {save.isPending ? "Saving…" : "Save truck"}
         </button>
       </form>
@@ -339,18 +357,19 @@ function TruckPage() {
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+    <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
       {children}
     </section>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
       {children}
+      {hint ? <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span> : null}
     </label>
   );
 }
