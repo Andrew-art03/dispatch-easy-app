@@ -30,6 +30,15 @@ function weekKey(iso: string | null) {
   return monday.toISOString().slice(0, 10);
 }
 
+function formatWeekLabel(key: string) {
+  if (key === "No date" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return key;
+  const monday = new Date(`${key}T00:00:00`);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `Week of ${fmt(monday)}–${fmt(sunday)}`;
+}
+
 function money(v: number) {
   const sign = v < 0 ? "-" : "";
   return `${sign}$${Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
