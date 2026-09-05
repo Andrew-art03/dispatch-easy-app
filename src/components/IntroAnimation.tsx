@@ -38,7 +38,7 @@ export function IntroAnimation() {
 
   if (phase === "off") return null;
 
-  const color = TRUCK_COLORS[0]!.value;
+  const [truckColor] = useTruckColor();
 
   return (
     <div
