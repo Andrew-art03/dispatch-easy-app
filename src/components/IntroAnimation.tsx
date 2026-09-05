@@ -11,6 +11,7 @@ const SESSION_KEY = "ez-intro-played";
 export function IntroAnimation() {
   const [phase, setPhase] = useState<"off" | "drive" | "bar" | "out">("off");
   const [barProgress, setBarProgress] = useState(0);
+  const [truckColor] = useTruckColor();
 
   useEffect(() => {
     try {
@@ -37,8 +38,6 @@ export function IntroAnimation() {
   }, []);
 
   if (phase === "off") return null;
-
-  const [truckColor] = useTruckColor();
 
   return (
     <div
