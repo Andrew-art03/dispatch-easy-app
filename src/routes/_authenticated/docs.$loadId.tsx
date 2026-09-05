@@ -102,8 +102,8 @@ function DocsPage() {
 
   return (
     <AppShell title="Paperwork">
-      <div className="space-y-4">
-        <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+      <div className="space-y-5">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <label className="block">
             <span className="mb-1 block text-sm text-muted-foreground">What is this?</span>
             <select
@@ -119,7 +119,7 @@ function DocsPage() {
             </select>
           </label>
 
-          <label className="ez-btn-primary block w-full cursor-pointer text-center">
+          <label className="ez-btn-amber block w-full cursor-pointer text-center">
             {upload.isPending ? "Uploading…" : "Take a photo or upload"}
             <input
               type="file"
@@ -175,7 +175,7 @@ function DocsPage() {
         <button
           onClick={() => bundle.mutate()}
           disabled={bundle.isPending}
-          className="w-full rounded-xl border border-border py-4 font-semibold"
+          className="ez-btn-secondary disabled:opacity-40"
         >
           {bundle.isPending ? "Building…" : "Bundle PDF"}
         </button>
