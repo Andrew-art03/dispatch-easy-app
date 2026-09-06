@@ -12,8 +12,6 @@ const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean
   { to: "/goal", label: "Week $", icon: Wallet },
 ];
 
-
-
 export function AppShell({
   title,
   action,
@@ -42,9 +40,7 @@ export function AppShell({
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
         <div className="mx-auto flex max-w-3xl flex-col">
-          {bottomSticky ? (
-            <div className="px-4 pb-2 pt-3">{bottomSticky}</div>
-          ) : null}
+          {bottomSticky ? <div className="px-4 pb-2 pt-3">{bottomSticky}</div> : null}
           <div className="grid grid-cols-5">
             {NAV.map(({ to, label, icon: Icon, amber }) => (
               <Link
@@ -81,7 +77,6 @@ export function AppShell({
               </Link>
             ))}
           </div>
-
         </div>
       </nav>
     </div>

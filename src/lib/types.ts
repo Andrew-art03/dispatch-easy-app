@@ -13,14 +13,7 @@ export type LoadState =
   | "learned"
   | "rejected";
 
-export type EquipmentType =
-  | "van"
-  | "reefer"
-  | "flatbed"
-  | "stepdeck"
-  | "hotshot"
-  | "box"
-  | "other";
+export type EquipmentType = "van" | "reefer" | "flatbed" | "stepdeck" | "hotshot" | "box" | "other";
 
 export type DocumentType =
   | "rate_con"

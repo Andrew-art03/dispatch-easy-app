@@ -6,6 +6,7 @@ import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
 import type { Deal, LoadWithRelations } from "@/lib/types";
 import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
+import { TrustCue } from "@/components/TrustCue";
 import {
   latestScore,
   money,
@@ -22,7 +23,8 @@ export const Route = createFileRoute("/_authenticated/loads/$id")({
       { title: "Load details — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "True net, all-in rate per mile, recommended bid and the reasons behind the call on this load.",
+        content:
+          "True net, all-in rate per mile, recommended bid and the reasons behind the call on this load.",
       },
       { property: "og:title", content: "Load details — EZ Trucking Auto Dispatching" },
       {
@@ -124,7 +126,7 @@ function LoadCard() {
     },
     {
       title: "Market",
-      sentence: `Your floor ${money(floor)} · Market not verified`,
+      sentence: `Your floor ${money(floor)} · Market not verified · your approval required`,
       watch: true,
     },
   ];
@@ -137,10 +139,11 @@ function LoadCard() {
         />
 
         <section className="rounded-2xl border border-border bg-card p-5">
-          {load.reference ? (
-            <p className="ez-ref text-muted-foreground">{load.reference}</p>
-          ) : null}
-          <p className="mt-1 text-sm text-muted-foreground">You keep about</p>
+          {load.reference ? <p className="ez-ref text-muted-foreground">{load.reference}</p> : null}
+          <p className="mt-1 text-sm text-muted-foreground">
+            You keep about
+            <TrustCue label="Estimated net" />
+          </p>
           <p className="ez-num text-6xl text-foreground">{keep}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             after estimated trip costs ·{" "}
@@ -153,11 +156,7 @@ function LoadCard() {
             <Stat
               label="Miles"
               value={load.loaded_miles ? String(load.loaded_miles) : "—"}
-              note={
-                load.deadhead_miles
-                  ? `+${load.deadhead_miles} empty`
-                  : undefined
-              }
+              note={load.deadhead_miles ? `+${load.deadhead_miles} empty` : undefined}
             />
           </dl>
         </section>
@@ -208,7 +207,9 @@ function LoadCard() {
                 </div>
               </li>
             ))}
-            {stops.length === 0 ? <p className="text-sm text-muted-foreground">No stops yet.</p> : null}
+            {stops.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No stops yet.</p>
+            ) : null}
           </ol>
         </section>
 
@@ -236,11 +237,7 @@ function LoadCard() {
           ) : null}
         </section>
 
-        <Link
-          to="/docs/$loadId"
-          params={{ loadId: load.id }}
-          className="ez-btn-secondary"
-        >
+        <Link to="/docs/$loadId" params={{ loadId: load.id }} className="ez-btn-secondary">
           Paperwork for this load
         </Link>
 
@@ -250,6 +247,10 @@ function LoadCard() {
             {actionNote}
           </p>
         ) : null}
+
+        <p className="text-center text-xs text-muted-foreground">
+          Your approval required — EZ never books a load on its own.
+        </p>
 
         <button
           onClick={() => callEndpoint.mutate("pursue")}
@@ -274,6 +275,7 @@ function LoadCard() {
 
         <p className="pt-1 text-center text-sm text-muted-foreground">
           Show alternatives · Ask {money(score?.recommended_bid ?? null)} (soon)
+          <TrustCue label="Draft only" />
         </p>
 
         {canConfirm ? (

@@ -101,10 +101,7 @@ function GoalPage() {
               .reduce((sum, d) => sum + (d.amount ?? 0), 0);
             const logged = day.amount !== null;
             return (
-              <li
-                key={day.day}
-                className={logged ? "text-foreground" : "text-muted-foreground/50"}
-              >
+              <li key={day.day} className={logged ? "text-foreground" : "text-muted-foreground/50"}>
                 <span className="font-semibold">{day.day}</span>{" "}
                 <span className="ez-num">{logged ? money(runningTotal) : "—"}</span>
               </li>

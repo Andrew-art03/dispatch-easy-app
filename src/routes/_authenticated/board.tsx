@@ -20,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/board")({
       { property: "og:title", content: "Load board — EZ Trucking Auto Dispatching" },
       {
         property: "og:description",
-        content: "Every load your truck is working, from found to delivered, with true net and a verdict.",
+        content:
+          "Every load your truck is working, from found to delivered, with true net and a verdict.",
       },
     ],
   }),
@@ -232,7 +233,9 @@ function BoardPage() {
         <p className="mt-4 text-sm">
           <span className="font-semibold">One thing to do:</span> say yes to Memphis
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Your approval required — EZ books nothing on its own.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your approval required — EZ books nothing on its own.
+        </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <button className="ez-btn-primary">See the load</button>
@@ -297,12 +300,12 @@ function BoardPage() {
                     </p>
                   ) : null}
                   <p className="mt-1 text-sm text-muted-foreground">{card.sub}</p>
-                  {card.note ? (
-                    <p className="mt-2 text-sm text-ez-red">{card.note}</p>
-                  ) : null}
+                  {card.note ? <p className="mt-2 text-sm text-ez-red">{card.note}</p> : null}
                   {card.button ? (
                     <>
-                      <p className="mt-2 text-xs text-muted-foreground">Draft only — nothing sent yet.</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Draft only — nothing sent yet.
+                      </p>
                       <button className="ez-btn-secondary mt-2">{card.button}</button>
                     </>
                   ) : null}

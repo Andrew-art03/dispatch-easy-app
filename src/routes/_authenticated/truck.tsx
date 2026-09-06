@@ -12,7 +12,8 @@ export const Route = createFileRoute("/_authenticated/truck")({
       { title: "Your truck — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Set your fuel, maintenance, tires, overhead and pay so every load gets scored on your real numbers.",
+        content:
+          "Set your fuel, maintenance, tires, overhead and pay so every load gets scored on your real numbers.",
       },
       { property: "og:title", content: "Your truck — EZ Trucking Auto Dispatching" },
       {
@@ -24,7 +25,15 @@ export const Route = createFileRoute("/_authenticated/truck")({
   component: TruckPage,
 });
 
-const EQUIPMENT: EquipmentType[] = ["van", "reefer", "flatbed", "stepdeck", "hotshot", "box", "other"];
+const EQUIPMENT: EquipmentType[] = [
+  "van",
+  "reefer",
+  "flatbed",
+  "stepdeck",
+  "hotshot",
+  "box",
+  "other",
+];
 
 type Form = {
   unit_number: string;
@@ -269,7 +278,12 @@ function TruckPage() {
       >
         <Group title="The truck">
           <Field label="Unit number">
-            <input className="ez-input" value={form.unit_number} onChange={set("unit_number")} required />
+            <input
+              className="ez-input"
+              value={form.unit_number}
+              onChange={set("unit_number")}
+              required
+            />
           </Field>
           <Field label="Equipment">
             <select className="ez-input" value={form.equipment} onChange={set("equipment")}>
@@ -283,14 +297,35 @@ function TruckPage() {
         </Group>
 
         <Group title="Size and load limits">
-          <Field label="Height (feet)" hint="Tallest point of the rig — keeps low bridges off your route.">
-            <input className="ez-input" inputMode="decimal" value={form.height_ft} onChange={set("height_ft")} />
+          <Field
+            label="Height (feet)"
+            hint="Tallest point of the rig — keeps low bridges off your route."
+          >
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.height_ft}
+              onChange={set("height_ft")}
+            />
           </Field>
           <Field label="Trailer length (feet)">
-            <input className="ez-input" inputMode="decimal" value={form.length_ft} onChange={set("length_ft")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.length_ft}
+              onChange={set("length_ft")}
+            />
           </Field>
-          <Field label="Max weight you can haul (lbs)" hint="Most you can legally put on the trailer.">
-            <input className="ez-input" inputMode="numeric" value={form.weight_lb} onChange={set("weight_lb")} />
+          <Field
+            label="Max weight you can haul (lbs)"
+            hint="Most you can legally put on the trailer."
+          >
+            <input
+              className="ez-input"
+              inputMode="numeric"
+              value={form.weight_lb}
+              onChange={set("weight_lb")}
+            />
           </Field>
           <label className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-4">
             <span className="text-sm font-medium">Hazmat endorsed</span>
@@ -320,15 +355,22 @@ function TruckPage() {
 
         <Group title="Fuel">
           <Field label="MPG loaded">
-            <input className="ez-input" inputMode="decimal" value={form.mpg_loaded} onChange={set("mpg_loaded")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.mpg_loaded}
+              onChange={set("mpg_loaded")}
+            />
           </Field>
           <Field label="MPG empty">
-            <input className="ez-input" inputMode="decimal" value={form.mpg_empty} onChange={set("mpg_empty")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.mpg_empty}
+              onChange={set("mpg_empty")}
+            />
           </Field>
-          <Field
-            label="Fuel discount per gallon"
-            hint="Your card/network discount off pump price."
-          >
+          <Field label="Fuel discount per gallon" hint="Your card/network discount off pump price.">
             <input
               className="ez-input"
               inputMode="decimal"
@@ -350,7 +392,10 @@ function TruckPage() {
               onChange={set("maintenance_reserve_per_mile")}
             />
           </Field>
-          <Field label="Tires per mile" hint="Money set aside per mile so repairs don't surprise you.">
+          <Field
+            label="Tires per mile"
+            hint="Money set aside per mile so repairs don't surprise you."
+          >
             <input
               className="ez-input"
               inputMode="decimal"
@@ -373,7 +418,11 @@ function TruckPage() {
 
         <Group title="Driver pay">
           <Field label="Pay type">
-            <select className="ez-input" value={form.driver_pay_type} onChange={set("driver_pay_type")}>
+            <select
+              className="ez-input"
+              value={form.driver_pay_type}
+              onChange={set("driver_pay_type")}
+            >
               <option value="none">None (I drive)</option>
               <option value="per_mile">Per mile</option>
               <option value="percent">Percent of gross</option>
@@ -395,7 +444,12 @@ function TruckPage() {
             label="Target cost per mile"
             hint="Your break-even. EZ won't recommend loads below this without flagging it."
           >
-            <input className="ez-input" inputMode="decimal" value={form.cpm_target} onChange={set("cpm_target")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.cpm_target}
+              onChange={set("cpm_target")}
+            />
           </Field>
           <Field
             label="Max deadhead miles"
@@ -432,10 +486,20 @@ function TruckPage() {
           </Field>
 
           <Field label="Latitude">
-            <input className="ez-input" inputMode="decimal" value={form.home_base_lat} onChange={set("home_base_lat")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.home_base_lat}
+              onChange={set("home_base_lat")}
+            />
           </Field>
           <Field label="Longitude">
-            <input className="ez-input" inputMode="decimal" value={form.home_base_lng} onChange={set("home_base_lng")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.home_base_lng}
+              onChange={set("home_base_lng")}
+            />
           </Field>
         </Group>
 
@@ -453,18 +517,30 @@ function TruckPage() {
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       {children}
     </section>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
       {children}
-      {hint ? <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span> : null}
+      {hint ? (
+        <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span>
+      ) : null}
     </label>
   );
 }
