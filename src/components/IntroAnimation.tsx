@@ -3,6 +3,7 @@ import { TruckGlyph, useTruckColor, WeeklyGoalChart } from "@/components/GoalPro
 import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
 
 const SESSION_KEY = "ez-intro-played";
+const CHART_EARNED = WEEK_DAY_EARNINGS.reduce((sum, day) => sum + (day.amount ?? 0), 0);
 
 /**
  * One-time cold-open intro: chrome truck drives in, turns, then rides the goal
@@ -54,7 +55,7 @@ export function IntroAnimation() {
             <div className="mb-2 flex items-baseline justify-between text-sm">
               <span className="font-semibold">This week's goal</span>
               <span className="ez-num">
-                {money(WEEK_GOAL.earned)}{" "}
+                {money(CHART_EARNED)}{" "}
                 <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
               </span>
             </div>

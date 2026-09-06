@@ -1,7 +1,7 @@
 /** Week Pay Tracker mock figures — visual only, shared across screens. */
 export const WEEK_GOAL = {
   target: 6000,
-  earned: 5400,
+  earned: 3400,
   weekLabel: "Week of Sep 1",
 };
 
