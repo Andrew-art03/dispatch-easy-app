@@ -73,6 +73,139 @@ export function GoalBar({
   );
 }
 
+export type WeekDayEarning = {
+  day: string;
+  amount: number | null;
+};
+
+export function WeeklyGoalChart({
+  days,
+  target,
+  truckColor,
+  reveal = 1,
+  compact = false,
+}: {
+  days: WeekDayEarning[];
+  target: number;
+  truckColor: string;
+  reveal?: number;
+  compact?: boolean;
+}) {
+  const width = 700;
+  const height = compact ? 230 : 310;
+  const left = 48;
+  const right = 660;
+  const top = compact ? 34 : 52;
+  const bottom = compact ? 178 : 238;
+  const activeDays = days.filter((day) => day.amount !== null);
+  const totals: number[] = [];
+  let running = 0;
+  for (const day of days) {
+    if (day.amount !== null) running += day.amount;
+    totals.push(running);
+  }
+  const ceiling = Math.max(target, running, 1);
+  const points = days.map((_, index) => ({
+    x: left + ((right - left) * index) / Math.max(days.length - 1, 1),
+    y: bottom - (Math.min(totals[index] ?? 0, ceiling) / ceiling) * (bottom - top),
+  }));
+  const activeCount = activeDays.length;
+  const activePoints = points.slice(0, activeCount);
+  const clampedReveal = Math.max(0, Math.min(1, reveal));
+  const scaledIndex = Math.max(0, activeCount - 1) * clampedReveal;
+  const startIndex = Math.floor(scaledIndex);
+  const endIndex = Math.min(startIndex + 1, Math.max(activeCount - 1, 0));
+  const fraction = scaledIndex - startIndex;
+  const startPoint = activePoints[startIndex] ?? { x: left, y: bottom };
+  const endPoint = activePoints[endIndex] ?? startPoint;
+  const truckPoint = {
+    x: startPoint.x + (endPoint.x - startPoint.x) * fraction,
+    y: startPoint.y + (endPoint.y - startPoint.y) * fraction,
+  };
+  const linePoints = activePoints.map((point) => `${point.x},${point.y}`).join(" ");
+  const fillPoints = `${left},${bottom} ${linePoints} ${activePoints.at(-1)?.x ?? left},${bottom}`;
+  const futurePoints = points.slice(Math.max(activeCount - 1, 0)).map((point) => `${point.x},${point.y}`).join(" ");
+
+  return (
+    <div className={`relative w-full ${compact ? "h-44" : "h-64"}`}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-full w-full overflow-visible"
+        role="img"
+        aria-label={`Weekly earnings: ${activeDays.map((day) => `${day.day} ${moneyLabel(day.amount ?? 0)}`).join(", ")}`}
+      >
+        <defs>
+          <linearGradient id={`week-fill-${compact ? "compact" : "full"}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-ez-amber)" stopOpacity="0.42" />
+            <stop offset="100%" stopColor="var(--color-ez-amber)" stopOpacity="0.03" />
+          </linearGradient>
+          <filter id={`week-glow-${compact ? "compact" : "full"}`} x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <clipPath id={`week-reveal-${compact ? "compact" : "full"}`}>
+            <rect x="0" y="0" width={width * clampedReveal} height={height} />
+          </clipPath>
+        </defs>
+
+        <line x1={left} y1={top} x2={right} y2={top} stroke="var(--color-ez-amber)" strokeOpacity="0.5" strokeDasharray="7 7" />
+        {!compact ? (
+          <text x={right} y={top - 14} textAnchor="end" fill="var(--color-ez-amber)" fontSize="24" fontWeight="700">
+            Goal {moneyLabel(target)}
+          </text>
+        ) : null}
+
+        <polyline points={futurePoints} fill="none" stroke="var(--color-border)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+        <g clipPath={`url(#week-reveal-${compact ? "compact" : "full"})`}>
+          <polygon points={fillPoints} fill={`url(#week-fill-${compact ? "compact" : "full"})`} />
+          <polyline
+            points={linePoints}
+            fill="none"
+            stroke="var(--color-ez-amber)"
+            strokeWidth="9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter={`url(#week-glow-${compact ? "compact" : "full"})`}
+          />
+        </g>
+
+        {days.map((day, index) => {
+          const point = points[index];
+          if (!point) return null;
+          const active = day.amount !== null;
+          return (
+            <g key={day.day} opacity={active ? 1 : 0.35}>
+              <circle cx={point.x} cy={point.y} r={active ? 8 : 6} fill={active ? "var(--color-ez-amber)" : "var(--color-surface-2)"} stroke="var(--color-background)" strokeWidth="4" />
+              {!compact && active ? (
+                <text x={point.x} y={point.y - 22} textAnchor="middle" fill="var(--color-foreground)" fontSize="21" fontWeight="700">
+                  {moneyLabel(day.amount ?? 0)}
+                </text>
+              ) : null}
+              <text x={point.x} y={bottom + 34} textAnchor="middle" fill={active ? "var(--color-muted-foreground)" : "var(--color-muted-foreground)"} fontSize="20" fontWeight="600">
+                {day.day}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div
+        className="pointer-events-none absolute transition-[left,top] duration-700 ease-out"
+        style={{
+          left: `${(truckPoint.x / width) * 100}%`,
+          top: `${(truckPoint.y / height) * 100}%`,
+          transform: "translate(-48%, -70%)",
+        }}
+      >
+        <TruckGlyph color={truckColor} className={compact ? "h-10 w-20" : "h-14 w-28"} />
+      </div>
+    </div>
+  );
+}
+
+function moneyLabel(value: number) {
+  return `$${value.toLocaleString()}`;
+}
+
 const COLOR_KEY = "ez-truck-color";
 const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
 
