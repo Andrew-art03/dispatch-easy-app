@@ -12,7 +12,8 @@ export const Route = createFileRoute("/_authenticated/truck")({
       { title: "Your truck — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Set your fuel, maintenance, tires, overhead and pay so every load gets scored on your real numbers.",
+        content:
+          "Set your fuel, maintenance, tires, overhead and pay so every load gets scored on your real numbers.",
       },
       { property: "og:title", content: "Your truck — EZ Trucking Auto Dispatching" },
       {
@@ -24,7 +25,15 @@ export const Route = createFileRoute("/_authenticated/truck")({
   component: TruckPage,
 });
 
-const EQUIPMENT: EquipmentType[] = ["van", "reefer", "flatbed", "stepdeck", "hotshot", "box", "other"];
+const EQUIPMENT: EquipmentType[] = [
+  "van",
+  "reefer",
+  "flatbed",
+  "stepdeck",
+  "hotshot",
+  "box",
+  "other",
+];
 
 type Form = {
   unit_number: string;
@@ -40,6 +49,11 @@ type Form = {
   cpm_target: string;
   max_deadhead_miles: string;
   banned_states: string;
+  height_ft: string;
+  length_ft: string;
+  weight_lb: string;
+  hazmat: boolean;
+  hos_hours_left: string;
   home_base_city: string;
   home_base_lat: string;
   home_base_lng: string;
@@ -59,6 +73,11 @@ const EMPTY: Form = {
   cpm_target: "",
   max_deadhead_miles: "150",
   banned_states: "",
+  height_ft: "13.6",
+  length_ft: "53",
+  weight_lb: "",
+  hazmat: false,
+  hos_hours_left: "",
   home_base_city: "",
   home_base_lat: "",
   home_base_lng: "",
@@ -77,6 +96,10 @@ const REQUIRED: (keyof Form)[] = [
   "driver_pay_value",
   "cpm_target",
   "max_deadhead_miles",
+  "height_ft",
+  "length_ft",
+  "weight_lb",
+  "hos_hours_left",
   "home_base_lat",
   "home_base_lng",
 ];
@@ -107,6 +130,20 @@ function TruckPage() {
     },
   });
 
+  const driverQuery = useQuery({
+    queryKey: ["driver"],
+    queryFn: async (): Promise<{ id: string; hos_hours_left: number | null } | null> => {
+      const { data, error } = await supabase
+        .from("driver")
+        .select("id, hos_hours_left")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as { id: string; hos_hours_left: number | null }) ?? null;
+    },
+  });
+
   useEffect(() => {
     const t = truckQuery.data;
     if (!t) return;
@@ -124,13 +161,18 @@ function TruckPage() {
       cpm_target: t.cpm_target?.toString() ?? "",
       max_deadhead_miles: t.max_deadhead_miles?.toString() ?? "",
       banned_states: (t.banned_states ?? []).join(", "),
+      height_ft: t.height_ft?.toString() ?? "",
+      length_ft: t.length_ft?.toString() ?? "",
+      weight_lb: t.weight_lb?.toString() ?? "",
+      hazmat: Boolean(t.hazmat),
+      hos_hours_left: driverQuery.data?.hos_hours_left?.toString() ?? "",
       home_base_city: "",
       home_base_lat: t.home_base_lat?.toString() ?? "",
       home_base_lng: t.home_base_lng?.toString() ?? "",
     });
-  }, [truckQuery.data]);
+  }, [truckQuery.data, driverQuery.data]);
 
-  const filled = REQUIRED.filter((key) => form[key].toString().trim() !== "").length;
+  const filled = REQUIRED.filter((key) => String(form[key]).trim() !== "").length;
   const completeness = Math.round((filled / REQUIRED.length) * 100);
 
   const save = useMutation({
@@ -155,6 +197,10 @@ function TruckPage() {
           .split(",")
           .map((s) => s.trim().toUpperCase())
           .filter(Boolean),
+        height_ft: num(form.height_ft),
+        length_ft: num(form.length_ft),
+        weight_lb: num(form.weight_lb),
+        hazmat: form.hazmat,
         home_base_lat: num(form.home_base_lat),
         home_base_lng: num(form.home_base_lng),
       };
@@ -165,19 +211,41 @@ function TruckPage() {
         const { error } = await supabase.from("truck").insert(payload);
         if (error) throw error;
       }
+
+      const hours = num(form.hos_hours_left);
+      if (driverQuery.data) {
+        const { error } = await supabase
+          .from("driver")
+          .update({ hos_hours_left: hours })
+          .eq("id", driverQuery.data.id);
+        if (error) throw error;
+      } else if (hours !== null) {
+        const { error } = await supabase.from("driver").insert({
+          org_id: orgId,
+          name: me.data?.fullName ?? "Me",
+          hos_hours_left: hours,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["truck"] });
+      queryClient.invalidateQueries({ queryKey: ["driver"] });
     },
   });
+
+  const setBool = (key: keyof Form) => (value: boolean) => {
+    setSaved(false);
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const set = (key: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setSaved(false);
     setForm((f) => ({ ...f, [key]: e.target.value }));
   };
 
-  if (truckQuery.isPending || me.isPending) {
+  if (truckQuery.isPending || driverQuery.isPending || me.isPending) {
     return (
       <AppShell title="Your truck">
         <Loading />
@@ -210,7 +278,12 @@ function TruckPage() {
       >
         <Group title="The truck">
           <Field label="Unit number">
-            <input className="ez-input" value={form.unit_number} onChange={set("unit_number")} required />
+            <input
+              className="ez-input"
+              value={form.unit_number}
+              onChange={set("unit_number")}
+              required
+            />
           </Field>
           <Field label="Equipment">
             <select className="ez-input" value={form.equipment} onChange={set("equipment")}>
@@ -223,17 +296,81 @@ function TruckPage() {
           </Field>
         </Group>
 
-        <Group title="Fuel">
-          <Field label="MPG loaded">
-            <input className="ez-input" inputMode="decimal" value={form.mpg_loaded} onChange={set("mpg_loaded")} />
+        <Group title="Size and load limits">
+          <Field
+            label="Height (feet)"
+            hint="Tallest point of the rig — keeps low bridges off your route."
+          >
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.height_ft}
+              onChange={set("height_ft")}
+            />
           </Field>
-          <Field label="MPG empty">
-            <input className="ez-input" inputMode="decimal" value={form.mpg_empty} onChange={set("mpg_empty")} />
+          <Field label="Trailer length (feet)">
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.length_ft}
+              onChange={set("length_ft")}
+            />
           </Field>
           <Field
-            label="Fuel discount per gallon"
-            hint="Your card/network discount off pump price."
+            label="Max weight you can haul (lbs)"
+            hint="Most you can legally put on the trailer."
           >
+            <input
+              className="ez-input"
+              inputMode="numeric"
+              value={form.weight_lb}
+              onChange={set("weight_lb")}
+            />
+          </Field>
+          <label className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-4">
+            <span className="text-sm font-medium">Hazmat endorsed</span>
+            <input
+              type="checkbox"
+              className="size-6 accent-[var(--color-ez-amber)]"
+              checked={form.hazmat}
+              onChange={(e) => setBool("hazmat")(e.target.checked)}
+            />
+          </label>
+        </Group>
+
+        <Group title="Hours left">
+          <Field
+            label="Hours you have left to drive"
+            hint="Your numbers, not your log. EZ uses it to see if a load fits today."
+          >
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.hos_hours_left}
+              onChange={set("hos_hours_left")}
+              placeholder="8"
+            />
+          </Field>
+        </Group>
+
+        <Group title="Fuel">
+          <Field label="MPG loaded">
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.mpg_loaded}
+              onChange={set("mpg_loaded")}
+            />
+          </Field>
+          <Field label="MPG empty">
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.mpg_empty}
+              onChange={set("mpg_empty")}
+            />
+          </Field>
+          <Field label="Fuel discount per gallon" hint="Your card/network discount off pump price.">
             <input
               className="ez-input"
               inputMode="decimal"
@@ -255,7 +392,10 @@ function TruckPage() {
               onChange={set("maintenance_reserve_per_mile")}
             />
           </Field>
-          <Field label="Tires per mile" hint="Money set aside per mile so repairs don't surprise you.">
+          <Field
+            label="Tires per mile"
+            hint="Money set aside per mile so repairs don't surprise you."
+          >
             <input
               className="ez-input"
               inputMode="decimal"
@@ -278,7 +418,11 @@ function TruckPage() {
 
         <Group title="Driver pay">
           <Field label="Pay type">
-            <select className="ez-input" value={form.driver_pay_type} onChange={set("driver_pay_type")}>
+            <select
+              className="ez-input"
+              value={form.driver_pay_type}
+              onChange={set("driver_pay_type")}
+            >
               <option value="none">None (I drive)</option>
               <option value="per_mile">Per mile</option>
               <option value="percent">Percent of gross</option>
@@ -300,7 +444,12 @@ function TruckPage() {
             label="Target cost per mile"
             hint="Your break-even. EZ won't recommend loads below this without flagging it."
           >
-            <input className="ez-input" inputMode="decimal" value={form.cpm_target} onChange={set("cpm_target")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.cpm_target}
+              onChange={set("cpm_target")}
+            />
           </Field>
           <Field
             label="Max deadhead miles"
@@ -337,10 +486,20 @@ function TruckPage() {
           </Field>
 
           <Field label="Latitude">
-            <input className="ez-input" inputMode="decimal" value={form.home_base_lat} onChange={set("home_base_lat")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.home_base_lat}
+              onChange={set("home_base_lat")}
+            />
           </Field>
           <Field label="Longitude">
-            <input className="ez-input" inputMode="decimal" value={form.home_base_lng} onChange={set("home_base_lng")} />
+            <input
+              className="ez-input"
+              inputMode="decimal"
+              value={form.home_base_lng}
+              onChange={set("home_base_lng")}
+            />
           </Field>
         </Group>
 
@@ -358,18 +517,30 @@ function TruckPage() {
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       {children}
     </section>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
       {children}
-      {hint ? <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span> : null}
+      {hint ? (
+        <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span>
+      ) : null}
     </label>
   );
 }

@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Settings, Radar } from "lucide-react";
+import { Settings, Radar, Truck as TruckIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { EZVoiceSheet } from "@/components/EZVoice";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { TrustCue } from "@/components/TrustCue";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -19,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/board")({
       { property: "og:title", content: "Load board — EZ Trucking Auto Dispatching" },
       {
         property: "og:description",
-        content: "Every load your truck is working, from found to delivered, with true net and a verdict.",
+        content:
+          "Every load your truck is working, from found to delivered, with true net and a verdict.",
       },
     ],
   }),
@@ -161,13 +163,33 @@ function BoardPage() {
       </div>
 
       {!hasTruck ? (
-        <Link
-          to="/settings"
-          className="mb-4 flex min-h-12 items-center justify-between rounded-xl border border-border bg-card px-4 text-sm active:opacity-80"
-        >
-          <span className="font-medium">Set up your truck in Settings</span>
-          <span className="text-muted-foreground">Open →</span>
-        </Link>
+        <section className="mb-4 rounded-2xl border border-ez-amber/40 bg-card p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-ez-amber/50 bg-surface-2">
+              <TruckIcon className="size-6 text-ez-amber" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold">Add your truck to get sharper numbers</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                No loads on the board yet. Your fuel, upkeep and hours are what turn a rate into
+                what you actually keep.
+              </p>
+            </div>
+          </div>
+          <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
+            <li>· Unit, size and hazmat</li>
+            <li>· Fuel, upkeep and daily costs</li>
+            <li>· Hours you have left to drive</li>
+          </ul>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Link to="/truck" className="ez-btn-amber text-center">
+              Set up my truck
+            </Link>
+            <Link to="/settings" className="ez-btn-secondary text-center">
+              Settings
+            </Link>
+          </div>
+        </section>
       ) : null}
 
       {/* EZ's Pick */}
@@ -186,7 +208,10 @@ function BoardPage() {
         <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           You keep about
         </p>
-        <p className="ez-num text-5xl">$1,412</p>
+        <p className="ez-num text-5xl">
+          $1,412
+          <TrustCue label="Estimated net" />
+        </p>
         <p className="ez-num text-base text-muted-foreground">$2.41 all-in/mi · high conf.</p>
 
         <ul className="mt-4 flex flex-wrap gap-4 text-sm">
@@ -207,6 +232,9 @@ function BoardPage() {
 
         <p className="mt-4 text-sm">
           <span className="font-semibold">One thing to do:</span> say yes to Memphis
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your approval required — EZ books nothing on its own.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -265,13 +293,21 @@ function BoardPage() {
                       </span>
                     ) : null}
                   </div>
-                  {card.money ? <p className="ez-num mt-2 text-xl">{card.money}</p> : null}
-                  <p className="mt-1 text-sm text-muted-foreground">{card.sub}</p>
-                  {card.note ? (
-                    <p className="mt-2 text-sm text-ez-red">{card.note}</p>
+                  {card.money ? (
+                    <p className="ez-num mt-2 text-xl">
+                      {card.money}
+                      <TrustCue label="Estimated net" />
+                    </p>
                   ) : null}
+                  <p className="mt-1 text-sm text-muted-foreground">{card.sub}</p>
+                  {card.note ? <p className="mt-2 text-sm text-ez-red">{card.note}</p> : null}
                   {card.button ? (
-                    <button className="ez-btn-secondary mt-3">{card.button}</button>
+                    <>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Draft only — nothing sent yet.
+                      </p>
+                      <button className="ez-btn-secondary mt-2">{card.button}</button>
+                    </>
                   ) : null}
                 </li>
               ))}

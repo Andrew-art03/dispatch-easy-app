@@ -13,14 +13,7 @@ export type LoadState =
   | "learned"
   | "rejected";
 
-export type EquipmentType =
-  | "van"
-  | "reefer"
-  | "flatbed"
-  | "stepdeck"
-  | "hotshot"
-  | "box"
-  | "other";
+export type EquipmentType = "van" | "reefer" | "flatbed" | "stepdeck" | "hotshot" | "box" | "other";
 
 export type DocumentType =
   | "rate_con"
@@ -109,6 +102,10 @@ export type Truck = {
   driver_pay_type: string | null;
   driver_pay_value: number | null;
   cpm_target: number | null;
+  height_ft: number | null;
+  length_ft: number | null;
+  weight_lb: number | null;
+  hazmat: boolean | null;
   max_deadhead_miles: number | null;
   banned_states: string[] | null;
   home_base_lat: number | null;

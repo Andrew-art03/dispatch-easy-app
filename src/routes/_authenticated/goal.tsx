@@ -94,6 +94,22 @@ function GoalPage() {
 
         <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
 
+        <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {days.map((day, index) => {
+            const runningTotal = days
+              .slice(0, index + 1)
+              .reduce((sum, d) => sum + (d.amount ?? 0), 0);
+            const logged = day.amount !== null;
+            return (
+              <li key={day.day} className={logged ? "text-foreground" : "text-muted-foreground/50"}>
+                <span className="font-semibold">{day.day}</span>{" "}
+                <span className="ez-num">{logged ? money(runningTotal) : "—"}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-1 text-xs text-muted-foreground">Running total, day by day.</p>
+
         <div className="relative mt-2">
           {showConfetti ? <GoalConfetti onDone={dismissConfetti} /> : null}
           <WeeklyGoalChart days={days} target={target} truckColor={truckColor} />
@@ -129,7 +145,9 @@ function GoalPage() {
               E
             </span>
             <div>
-              <p className="font-semibold">Want to raise next week's goal? I'd go +$500.</p>
+              <p className="font-semibold">
+                Want to raise next week's goal? I'd go +$1,000 — {money(target + 1000)}.
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Suggested from your ledger — your call.
               </p>
@@ -138,13 +156,13 @@ function GoalPage() {
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => chooseTarget(6500)}
+              onClick={() => chooseTarget(target + 1000)}
               className="ez-btn-amber min-h-12"
             >
-              Raise to $6,500
+              Raise to {money(target + 1000)}
             </button>
-            <button type="button" onClick={() => chooseTarget(6000)} className="ez-btn-secondary">
-              Keep $6,000
+            <button type="button" onClick={() => chooseTarget(target)} className="ez-btn-secondary">
+              Keep {money(target)}
             </button>
           </div>
         </section>
