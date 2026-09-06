@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { GoalBar, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
-import { WEEK_GOAL, money } from "@/lib/goal";
+import { TruckGlyph, useTruckColor, WeeklyGoalChart } from "@/components/GoalProgress";
+import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
 
 const SESSION_KEY = "ez-intro-played";
 
@@ -9,8 +9,8 @@ const SESSION_KEY = "ez-intro-played";
  * bar to the real week progress. Visual only — same math as the Week $ page.
  */
 export function IntroAnimation() {
-  const [phase, setPhase] = useState<"off" | "drive" | "bar" | "out">("off");
-  const [barProgress, setBarProgress] = useState(0);
+  const [phase, setPhase] = useState<"off" | "drive" | "chart" | "out">("off");
+  const [chartReveal, setChartReveal] = useState(0);
   const [truckColor] = useTruckColor();
 
   useEffect(() => {
@@ -23,13 +23,11 @@ export function IntroAnimation() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setPhase("drive");
     const t1 = setTimeout(() => {
-      setPhase("bar");
-      requestAnimationFrame(() =>
-        setBarProgress(Math.min(1, WEEK_GOAL.earned / WEEK_GOAL.target)),
-      );
-    }, 700);
-    const t2 = setTimeout(() => setPhase("out"), 1700);
-    const t3 = setTimeout(() => setPhase("off"), 2050);
+      setPhase("chart");
+      requestAnimationFrame(() => setChartReveal(1));
+    }, 1200);
+    const t2 = setTimeout(() => setPhase("out"), 2250);
+    const t3 = setTimeout(() => setPhase("off"), 2550);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -48,19 +46,25 @@ export function IntroAnimation() {
     >
       <div className="w-full max-w-md">
         {phase === "drive" ? (
-          <div className="flex h-40 items-center justify-center">
-            <TruckGlyph color={truckColor} className="ez-intro-drive h-24 w-44" />
+          <div className="flex h-64 items-center justify-center overflow-hidden">
+            <TruckGlyph color={truckColor} className="ez-intro-approach h-28 w-52" />
           </div>
         ) : (
-          <div className="h-40 pt-16">
-            <div className="mb-8 flex items-baseline justify-between text-sm">
+          <div className="pt-8">
+            <div className="mb-2 flex items-baseline justify-between text-sm">
               <span className="font-semibold">This week's goal</span>
               <span className="ez-num">
                 {money(WEEK_GOAL.earned)}{" "}
                 <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
               </span>
             </div>
-            <GoalBar progress={barProgress} truckColor={truckColor} big />
+            <WeeklyGoalChart
+              days={[...WEEK_DAY_EARNINGS]}
+              target={WEEK_GOAL.target}
+              truckColor={truckColor}
+              reveal={chartReveal}
+              compact
+            />
           </div>
         )}
       </div>

@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Receipt } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { ColorPickerButton, GoalBar, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
-import { WEEK_GOAL, money } from "@/lib/goal";
+import { GoalConfetti } from "@/components/GoalConfetti";
+import { ColorPickerButton, WeeklyGoalChart, useTruckColor } from "@/components/GoalProgress";
+import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
 
 export const Route = createFileRoute("/_authenticated/goal")({
   head: () => ({
@@ -29,15 +30,45 @@ const MOCK = {
   ],
 };
 
-// Toggle to preview the reached-goal state (design pass only).
-const SHOW_GOAL_REACHED = false;
-
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
-  const earned = SHOW_GOAL_REACHED ? WEEK_GOAL.target : WEEK_GOAL.earned;
-  const progress = Math.min(1, earned / WEEK_GOAL.target);
-  const reached = progress >= 1;
-  const [bumpAnswered, setBumpAnswered] = useState(false);
+  const [target, setTarget] = useState(WEEK_GOAL.target);
+  const [days, setDays] = useState<(typeof WEEK_DAY_EARNINGS[number])[]>([...WEEK_DAY_EARNINGS]);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showRaisePrompt, setShowRaisePrompt] = useState(false);
+  const previousEarned = useRef(WEEK_GOAL.earned);
+  const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
+  const earned = useMemo(
+    () => days.reduce((sum, day) => sum + (day.amount ?? 0), 0),
+    [days],
+  );
+
+  useEffect(() => {
+    const crossed = previousEarned.current < target && earned >= target;
+    previousEarned.current = earned;
+    if (!crossed) return;
+    try {
+      if (localStorage.getItem(celebrationKey)) return;
+      localStorage.setItem(celebrationKey, "1");
+    } catch {
+      // The demo still celebrates when storage is unavailable.
+    }
+    setShowCelebration(true);
+    setShowRaisePrompt(true);
+  }, [celebrationKey, earned, target]);
+
+  const simulateDelivery = () => {
+    setDays((current) =>
+      current.map((day) => (day.day === "Sat" ? { ...day, amount: (day.amount ?? 0) + 800 } : day)),
+    );
+  };
+
+  const dismissConfetti = useCallback(() => {}, []);
+
+  const chooseTarget = (nextTarget: number) => {
+    setTarget(nextTarget);
+    setShowRaisePrompt(false);
+  };
 
   return (
     <AppShell
@@ -58,54 +89,53 @@ function GoalPage() {
 
         <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
 
-        <div className="mt-12">
-          <GoalBar progress={progress} truckColor={truckColor} big />
-        </div>
-        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-          <span>$0</span>
-          <span className="font-semibold text-ez-amber">{money(WEEK_GOAL.target)}</span>
+        <div className="relative mt-2">
+          {showCelebration ? <GoalConfetti onDone={dismissConfetti} /> : null}
+          <WeeklyGoalChart days={days} target={target} truckColor={truckColor} />
         </div>
 
-        {reached ? (
-          <div className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4">
-            <div className="flex items-center gap-3">
-              <TruckGlyph color={truckColor} className="h-9 w-16" />
-              <div>
-                <p className="font-semibold text-primary">You hit the goal 🎉</p>
-                <p className="text-sm text-muted-foreground">Every mile after this is gravy.</p>
-              </div>
-            </div>
-            {!bumpAnswered ? (
-              <div className="mt-4 rounded-lg border border-ez-amber/40 bg-ez-amber/10 p-3">
-                <p className="text-sm">
-                  <span className="font-semibold text-ez-amber">EZ asks:</span> Bump next week's
-                  goal to $6,500?
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setBumpAnswered(true)}
-                    className="ez-btn-secondary min-h-12"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBumpAnswered(true)}
-                    className="ez-btn-secondary min-h-12"
-                  >
-                    Not now
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-6 text-sm text-muted-foreground">
-            {money(WEEK_GOAL.target - earned)} to go — the loads below get you there.
-          </p>
-        )}
+        <p className="mt-2 text-sm text-muted-foreground">
+          {earned >= target ? `${money(earned - target)} over goal.` : `${money(target - earned)} to go.`}
+        </p>
+
+        <button
+          type="button"
+          onClick={simulateDelivery}
+          disabled={days.some((day) => day.day === "Sat" && day.amount !== null)}
+          className="ez-btn-secondary mt-4 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Simulate delivery +$800
+        </button>
       </section>
+
+      {showCelebration ? (
+        <section className="mt-5 rounded-2xl border border-ez-green/40 bg-card p-5">
+          <p className="ez-num text-4xl">You did it.</p>
+          <p className="mt-2 text-lg text-muted-foreground">Congratulations — that's the week.</p>
+        </section>
+      ) : null}
+
+      {showRaisePrompt ? (
+        <section className="mt-4 rounded-2xl border border-ez-amber/40 bg-card p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-ez-amber font-bold text-ez-amber">
+              E
+            </span>
+            <div>
+              <p className="font-semibold">Want to raise next week's goal? I'd go +$500.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Suggested from your ledger — your call.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => chooseTarget(6500)} className="ez-btn-amber min-h-12">
+              Raise to $6,500
+            </button>
+            <button type="button" onClick={() => chooseTarget(6000)} className="ez-btn-secondary">
+              Keep $6,000
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
