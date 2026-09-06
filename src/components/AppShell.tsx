@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { LayoutList, Search, FileText, Wallet, Truck as TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { EZPresence } from "@/components/EZPresence";
 
 const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
@@ -36,6 +37,8 @@ export function AppShell({
       <main className={cn("mx-auto max-w-3xl px-4 pt-4", bottomSticky ? "pb-36" : "pb-28")}>
         {children}
       </main>
+
+      <EZPresence />
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
         <div className="mx-auto flex max-w-3xl flex-col">
