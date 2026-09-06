@@ -232,28 +232,58 @@
   }
 }
 
-@keyframes ez-intro-approach {
+/* Cold-open splash: truck grows out of the distance toward the viewer. */
+@keyframes ez-splash-drive {
   0% {
-    transform: translate3d(0, 32px, 0) scale(0.12);
+    transform: translate3d(0, -18px, 0) scale(0.08);
     opacity: 0;
   }
-  72% {
-    transform: translate3d(0, 0, 0) scale(1.2);
+  20% {
     opacity: 1;
   }
+  80% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
   100% {
-    transform: translate3d(-76px, 34px, 0) scale(0.72) rotate(-13deg);
+    transform: translate3d(0, 14px, 0) scale(1.6);
     opacity: 1;
   }
 }
 
-.ez-intro-approach {
-  animation: ez-intro-approach 1.2s cubic-bezier(0.2, 0.72, 0.25, 1) both;
+.ez-splash-drive {
+  animation: ez-splash-drive 1.4s cubic-bezier(0.16, 0.6, 0.35, 1) both;
   transform-origin: center;
+  will-change: transform, opacity;
+}
+
+/* Headlight bloom that swells as the truck approaches. */
+@keyframes ez-splash-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  60% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+.ez-splash-glow {
+  background: radial-gradient(
+    closest-side,
+    hsl(38 92% 60% / 0.55),
+    hsl(38 92% 55% / 0.18) 45%,
+    transparent 70%
+  );
+  animation: ez-splash-glow 1.4s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ez-intro-approach {
+  .ez-splash-drive,
+  .ez-splash-glow {
     animation: none;
   }
 }
