@@ -40,6 +40,7 @@ function GoalPage() {
   const [target, setTarget] = useState(WEEK_GOAL.target);
   const [days, setDays] = useState<WeekDayEarning[]>([...WEEK_DAY_EARNINGS]);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [showRaisePrompt, setShowRaisePrompt] = useState(false);
   const previousEarned = useRef(WEEK_GOAL.earned);
   const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
@@ -59,6 +60,7 @@ function GoalPage() {
       // The demo still celebrates when storage is unavailable.
     }
     setShowCelebration(true);
+    setShowConfetti(true);
     setShowRaisePrompt(true);
   }, [celebrationKey, earned, target]);
 
@@ -68,7 +70,7 @@ function GoalPage() {
     );
   };
 
-  const dismissConfetti = useCallback(() => {}, []);
+  const dismissConfetti = useCallback(() => setShowConfetti(false), []);
 
   const chooseTarget = (nextTarget: number) => {
     setTarget(nextTarget);
@@ -95,7 +97,7 @@ function GoalPage() {
         <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
 
         <div className="relative mt-2">
-          {showCelebration ? <GoalConfetti onDone={dismissConfetti} /> : null}
+          {showConfetti ? <GoalConfetti onDone={dismissConfetti} /> : null}
           <WeeklyGoalChart days={days} target={target} truckColor={truckColor} />
         </div>
 
