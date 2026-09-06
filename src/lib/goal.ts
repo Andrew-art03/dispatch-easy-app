@@ -5,6 +5,16 @@ export const WEEK_GOAL = {
   weekLabel: "Week of Sep 1",
 };
 
+export const WEEK_DAY_EARNINGS = [
+  { day: "Mon", amount: 500 },
+  { day: "Tue", amount: 1200 },
+  { day: "Wed", amount: 700 },
+  { day: "Thu", amount: 1000 },
+  { day: "Fri", amount: 2000 },
+  { day: "Sat", amount: null },
+  { day: "Sun", amount: null },
+] as const;
+
 export function money(value: number) {
   return `$${value.toLocaleString()}`;
 }
