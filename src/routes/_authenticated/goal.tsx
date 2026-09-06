@@ -3,7 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Receipt } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { GoalConfetti } from "@/components/GoalConfetti";
-import { ColorPickerButton, WeeklyGoalChart, useTruckColor } from "@/components/GoalProgress";
+import {
+  ColorPickerButton,
+  WeeklyGoalChart,
+  useTruckColor,
+  type WeekDayEarning,
+} from "@/components/GoalProgress";
 import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
 
 export const Route = createFileRoute("/_authenticated/goal")({
@@ -33,7 +38,7 @@ const MOCK = {
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [target, setTarget] = useState(WEEK_GOAL.target);
-  const [days, setDays] = useState<(typeof WEEK_DAY_EARNINGS[number])[]>([...WEEK_DAY_EARNINGS]);
+  const [days, setDays] = useState<WeekDayEarning[]>([...WEEK_DAY_EARNINGS]);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showRaisePrompt, setShowRaisePrompt] = useState(false);
   const previousEarned = useRef(WEEK_GOAL.earned);

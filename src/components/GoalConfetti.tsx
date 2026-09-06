@@ -42,7 +42,7 @@ export function GoalConfetti({ onDone }: { onDone?: () => void }) {
       vx: (Math.random() - 0.5) * 8,
       vy: -5 - Math.random() * 7,
       size: 4 + Math.random() * 5,
-      color: COLORS[index % COLORS.length] ?? COLORS[0],
+      color: COLORS[index % COLORS.length] ?? "#FFB020",
       rotation: Math.random() * Math.PI,
       spin: (Math.random() - 0.5) * 0.25,
     }));
