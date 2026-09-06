@@ -17,7 +17,8 @@ export const Route = createFileRoute("/_authenticated/goal")({
       { title: "Week goal — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Your weekly pay target, this week's true net so far, and the loads that get you there.",
+        content:
+          "Your weekly pay target, this week's true net so far, and the loads that get you there.",
       },
       { property: "og:title", content: "Week goal — EZ Trucking Auto Dispatching" },
       { property: "og:description", content: "Track this week's true net against your pay goal." },
@@ -44,10 +45,7 @@ function GoalPage() {
   const [showRaisePrompt, setShowRaisePrompt] = useState(false);
   const previousEarned = useRef(WEEK_GOAL.earned);
   const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
-  const earned = useMemo(
-    () => days.reduce((sum, day) => sum + (day.amount ?? 0), 0),
-    [days],
-  );
+  const earned = useMemo(() => days.reduce((sum, day) => sum + (day.amount ?? 0), 0), [days]);
 
   useEffect(() => {
     const crossed = previousEarned.current < target && earned >= target;
@@ -102,7 +100,9 @@ function GoalPage() {
         </div>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          {earned >= target ? `${money(earned - target)} over goal.` : `${money(target - earned)} to go.`}
+          {earned >= target
+            ? `${money(earned - target)} over goal.`
+            : `${money(target - earned)} to go.`}
         </p>
 
         <button
@@ -130,11 +130,17 @@ function GoalPage() {
             </span>
             <div>
               <p className="font-semibold">Want to raise next week's goal? I'd go +$500.</p>
-              <p className="mt-1 text-sm text-muted-foreground">Suggested from your ledger — your call.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Suggested from your ledger — your call.
+              </p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button type="button" onClick={() => chooseTarget(6500)} className="ez-btn-amber min-h-12">
+            <button
+              type="button"
+              onClick={() => chooseTarget(6500)}
+              className="ez-btn-amber min-h-12"
+            >
               Raise to $6,500
             </button>
             <button type="button" onClick={() => chooseTarget(6000)} className="ez-btn-secondary">

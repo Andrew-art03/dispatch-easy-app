@@ -54,7 +54,8 @@ export function GoalBar({
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{
             width: `${pct * 100}%`,
-            background: "linear-gradient(90deg, #7A4A05 0%, #C98515 45%, #FFB020 85%, #FFD37A 100%)",
+            background:
+              "linear-gradient(90deg, #7A4A05 0%, #C98515 45%, #FFB020 85%, #FFD37A 100%)",
             boxShadow: "0 0 18px rgba(255,176,32,0.45)",
           }}
         />
@@ -124,7 +125,10 @@ export function WeeklyGoalChart({
   };
   const linePoints = activePoints.map((point) => `${point.x},${point.y}`).join(" ");
   const fillPoints = `${left},${bottom} ${linePoints} ${activePoints.at(-1)?.x ?? left},${bottom}`;
-  const futurePoints = points.slice(Math.max(activeCount - 1, 0)).map((point) => `${point.x},${point.y}`).join(" ");
+  const futurePoints = points
+    .slice(Math.max(activeCount - 1, 0))
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
 
   return (
     <div className={`relative w-full ${compact ? "h-44" : "h-64"}`}>
@@ -135,27 +139,64 @@ export function WeeklyGoalChart({
         aria-label={`Weekly earnings: ${activeDays.map((day) => `${day.day} ${moneyLabel(day.amount ?? 0)}`).join(", ")}`}
       >
         <defs>
-          <linearGradient id={`week-fill-${compact ? "compact" : "full"}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            id={`week-fill-${compact ? "compact" : "full"}`}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor="var(--color-ez-amber)" stopOpacity="0.42" />
             <stop offset="100%" stopColor="var(--color-ez-amber)" stopOpacity="0.03" />
           </linearGradient>
-          <filter id={`week-glow-${compact ? "compact" : "full"}`} x="-30%" y="-30%" width="160%" height="160%">
+          <filter
+            id={`week-glow-${compact ? "compact" : "full"}`}
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="160%"
+          >
             <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
           <clipPath id={`week-reveal-${compact ? "compact" : "full"}`}>
             <rect x="0" y="0" width={width * clampedReveal} height={height} />
           </clipPath>
         </defs>
 
-        <line x1={left} y1={top} x2={right} y2={top} stroke="var(--color-ez-amber)" strokeOpacity="0.5" strokeDasharray="7 7" />
+        <line
+          x1={left}
+          y1={top}
+          x2={right}
+          y2={top}
+          stroke="var(--color-ez-amber)"
+          strokeOpacity="0.5"
+          strokeDasharray="7 7"
+        />
         {!compact ? (
-          <text x={right} y={top - 14} textAnchor="end" fill="var(--color-ez-amber)" fontSize="24" fontWeight="700">
+          <text
+            x={right}
+            y={top - 14}
+            textAnchor="end"
+            fill="var(--color-ez-amber)"
+            fontSize="24"
+            fontWeight="700"
+          >
             Goal {moneyLabel(target)}
           </text>
         ) : null}
 
-        <polyline points={futurePoints} fill="none" stroke="var(--color-border)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline
+          points={futurePoints}
+          fill="none"
+          stroke="var(--color-border)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <g clipPath={`url(#week-reveal-${compact ? "compact" : "full"})`}>
           <polygon points={fillPoints} fill={`url(#week-fill-${compact ? "compact" : "full"})`} />
           <polyline
@@ -175,13 +216,34 @@ export function WeeklyGoalChart({
           const active = day.amount !== null;
           return (
             <g key={day.day} opacity={active ? 1 : 0.35}>
-              <circle cx={point.x} cy={point.y} r={active ? 8 : 6} fill={active ? "var(--color-ez-amber)" : "var(--color-surface-2)"} stroke="var(--color-background)" strokeWidth="4" />
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={active ? 8 : 6}
+                fill={active ? "var(--color-ez-amber)" : "var(--color-surface-2)"}
+                stroke="var(--color-background)"
+                strokeWidth="4"
+              />
               {!compact && active ? (
-                <text x={point.x} y={point.y - 22} textAnchor="middle" fill="var(--color-foreground)" fontSize="21" fontWeight="700">
+                <text
+                  x={point.x}
+                  y={point.y - 22}
+                  textAnchor="middle"
+                  fill="var(--color-foreground)"
+                  fontSize="21"
+                  fontWeight="700"
+                >
                   {moneyLabel(day.amount ?? 0)}
                 </text>
               ) : null}
-              <text x={point.x} y={bottom + 34} textAnchor="middle" fill={active ? "var(--color-muted-foreground)" : "var(--color-muted-foreground)"} fontSize="20" fontWeight="600">
+              <text
+                x={point.x}
+                y={bottom + 34}
+                textAnchor="middle"
+                fill={active ? "var(--color-muted-foreground)" : "var(--color-muted-foreground)"}
+                fontSize="20"
+                fontWeight="600"
+              >
                 {day.day}
               </text>
             </g>
