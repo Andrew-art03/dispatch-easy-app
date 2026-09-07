@@ -148,20 +148,16 @@ function BoardPage() {
 
   return (
     <AppShell
-      title={
-        <span className="flex items-center gap-3">
+      title="Board"
+      action={
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Link
             to="/home"
             aria-label="Home"
             className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
           >
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-5 text-muted-foreground" />
           </Link>
-          Board
-        </span>
-      }
-      action={
-        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={openBoardVoice}
             className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
