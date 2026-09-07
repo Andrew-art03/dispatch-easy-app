@@ -247,6 +247,47 @@ function LoadCard() {
 
         <section className="rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            What's left
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {checklist.map((item) => (
+              <li
+                key={item.label}
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+                  !item.done && item.easy
+                    ? "border border-ez-amber/50 bg-ez-amber/10 text-ez-amber"
+                    : "bg-surface-2"
+                }`}
+              >
+                <span
+                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                    item.done
+                      ? "border-ez-green bg-ez-green/20 text-ez-green"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {item.done ? "✓" : ""}
+                </span>
+                <span className={item.done ? "text-muted-foreground line-through" : "font-medium"}>
+                  {item.label}
+                </span>
+                {!item.done && item.easy ? (
+                  <span className="ml-auto rounded-full bg-ez-amber px-2 py-0.5 text-xs font-semibold text-accent-foreground">
+                    The Easy Part
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {docsQuery.isError ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Paperwork status couldn't load right now.
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Stops
           </h2>
           <ol className="mt-2 space-y-3">
