@@ -4,7 +4,7 @@ import { Settings, Radar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
-import { GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { GoalBar, TruckAvatar, useTruckBody, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
 
 export const Route = createFileRoute("/_authenticated/board")({
@@ -115,6 +115,7 @@ const SECTIONS: { title: string; count: number; cards: MockCard[] }[] = [
 function BoardPage() {
   const voice = useEZVoice();
   const [truckColor] = useTruckColor();
+  const [truckBody] = useTruckBody();
 
   const openBoardVoice = () =>
     voice.openWith({
