@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
 import type { Deal, LoadWithRelations } from "@/lib/types";
-import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
+import { EZStatusLine, useEZVoice } from "@/components/EZVoice";
 import { TrustCue } from "@/components/TrustCue";
 import {
   latestScore,
@@ -42,7 +42,7 @@ function LoadCard() {
   const [showMath, setShowMath] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voice = useEZVoice();
 
   const query = useQuery({
     queryKey: ["load", id],
@@ -100,6 +100,24 @@ function LoadCard() {
 
   const keep = money(score?.true_net ?? null);
   const verdictWord = score ? VERDICT_LABEL[score.verdict] : "No call yet";
+
+  const openLoadVoice = () =>
+    voice.openWith({
+      transcript: "Book the Amarillo load",
+      heard: [
+        { label: "Load", value: load.reference ?? "this load", sure: true },
+        { label: "Action", value: "Confirm load", sure: true },
+        { label: "Pay terms", value: deal?.payment_terms ?? "not read yet", sure: false },
+      ],
+      keepAmount: keep,
+      rpmLabel: rpm(score?.all_in_rpm ?? null),
+      verdictWord,
+      confirmDisabled: !canConfirm || callEndpoint.isPending,
+      onConfirm: () => {
+        callEndpoint.mutate("confirm");
+        voice.close();
+      },
+    });
   const gross = Number(load.gross_rate ?? 0);
   const net = Number(score?.true_net ?? 0);
   const tripCost = score?.true_net != null && load.gross_rate != null ? gross - net : null;
@@ -261,7 +279,7 @@ function LoadCard() {
         </button>
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setVoiceOpen(true)} className="ez-btn-secondary text-ez-amber">
+          <button onClick={openLoadVoice} className="ez-btn-secondary text-ez-amber">
             Ask EZ why
           </button>
           <button
@@ -293,25 +311,6 @@ function LoadCard() {
             You can confirm once the rate con is in.
           </p>
         ) : null}
-
-        <EZVoiceSheet
-          open={voiceOpen}
-          onClose={() => setVoiceOpen(false)}
-          transcript="Book the Amarillo load"
-          heard={[
-            { label: "Load", value: load.reference ?? "this load", sure: true },
-            { label: "Action", value: "Confirm load", sure: true },
-            { label: "Pay terms", value: deal?.payment_terms ?? "not read yet", sure: false },
-          ]}
-          keepAmount={keep}
-          rpmLabel={rpm(score?.all_in_rpm ?? null)}
-          verdictWord={verdictWord}
-          confirmDisabled={!canConfirm || callEndpoint.isPending}
-          onConfirm={() => {
-            callEndpoint.mutate("confirm");
-            setVoiceOpen(false);
-          }}
-        />
       </div>
     </AppShell>
   );
