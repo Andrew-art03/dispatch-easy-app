@@ -249,6 +249,8 @@ function CopilotPage() {
           </p>
         </section>
       ) : null}
+        </>
+      ) : null}
     </AppShell>
   );
 }
