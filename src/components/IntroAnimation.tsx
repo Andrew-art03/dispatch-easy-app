@@ -121,7 +121,7 @@ export function IntroAnimation() {
               aria-label="Loading"
             />
             <div className="mt-4 h-1 w-40 overflow-hidden rounded-full bg-secondary">
-              <div className="ez-splash-progress h-full rounded-full bg-primary" />
+              <div className="ez-splash-progress h-full rounded-full bg-accent" />
             </div>
           </>
         ) : null}

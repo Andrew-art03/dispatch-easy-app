@@ -94,7 +94,7 @@
   --destructive-foreground: oklch(0.98 0.005 250);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.81 0.19 155);
+  --ring: oklch(0.8 0.16 75);
   --chart-1: oklch(0.81 0.19 155);
   --chart-2: oklch(0.8 0.16 75);
   --chart-3: oklch(0.7 0.15 150);
@@ -137,8 +137,8 @@
   }
 
   .ez-input:focus-visible {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 30%, transparent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 30%, transparent);
   }
 
   .ez-btn-primary {
@@ -148,8 +148,8 @@
     width: 100%;
     min-height: 60px;
     border-radius: var(--radius);
-    background-color: var(--color-primary);
-    color: var(--color-primary-foreground);
+    background-color: var(--color-accent);
+    color: var(--color-accent-foreground);
     padding: 0.75rem 1.25rem;
     font-size: 1.0625rem;
     font-weight: 700;
