@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
+import { AddExpenseSheet } from "@/components/AddExpense";
 import type { LedgerLine } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
