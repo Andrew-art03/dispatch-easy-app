@@ -232,66 +232,45 @@
   }
 }
 
-/* Cold-open splash: truck grows out of the distance toward the viewer. */
-@keyframes ez-splash-drive {
+/* Cold-open splash: truck enters from the left and climbs the amber ramp. */
+@keyframes ez-splash-climb {
   0% {
-    transform: translate3d(0, -18px, 0) scale(0.08);
+    transform: translate3d(-120%, 26px, 0) rotate(-2deg) scale(0.7);
     opacity: 0;
   }
-  20% {
+  25% {
     opacity: 1;
   }
-  80% {
-    transform: translate3d(0, 0, 0) scale(0.9);
-  }
   100% {
-    transform: translate3d(0, 14px, 0) scale(1.6);
+    transform: translate3d(140%, -84px, 0) rotate(-9deg) scale(1);
     opacity: 1;
   }
 }
 
-.ez-splash-drive {
-  animation: ez-splash-drive 1.4s cubic-bezier(0.16, 0.6, 0.35, 1) both;
-  transform-origin: center;
+.ez-splash-climb {
+  animation: ez-splash-climb 1.5s cubic-bezier(0.22, 0.7, 0.3, 1) both;
   will-change: transform, opacity;
 }
 
-/* Headlight bloom that swells as the truck approaches. */
-@keyframes ez-splash-glow {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  60% {
-    opacity: 0.35;
-  }
-  100% {
-    opacity: 0.5;
-    transform: scale(1.15);
-  }
-}
-
-.ez-splash-glow {
-  background: radial-gradient(
-    closest-side,
-    hsl(38 92% 60% / 0.55),
-    hsl(38 92% 55% / 0.18) 45%,
-    transparent 70%
-  );
-  animation: ez-splash-glow 1.4s ease-out both;
-}
-
-/* Held state after the drive-in: truck parked at its final size, glow steady. */
-.ez-splash-settled {
-  animation: none;
-}
-img.ez-splash-settled {
-  transform: translate3d(0, 14px, 0) scale(1.6);
+.ez-splash-parked {
+  transform: translate3d(140%, -84px, 0) rotate(-9deg) scale(1);
   opacity: 1;
 }
-div.ez-splash-settled {
-  transform: scale(1.15);
-  opacity: 0.5;
+
+@keyframes ez-splash-bar {
+  from {
+    transform: scaleY(0.1);
+    opacity: 0.2;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 0.85;
+  }
+}
+
+.ez-splash-bar {
+  transform-origin: bottom center;
+  animation: ez-splash-bar 0.6s ease-out both;
 }
 
 /* Loading bar that fills while the splash holds. */
