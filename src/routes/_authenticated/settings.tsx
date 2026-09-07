@@ -3,6 +3,8 @@ import { useState } from "react";
 import { ArrowLeft, Truck as TruckIcon, Container, Caravan } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TRUCK_COLORS, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
+import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
+import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -27,6 +29,8 @@ const BODY_TYPES = [
   { id: "bobtail", label: "Bobtail", icon: TruckIcon },
   { id: "semi", label: "18-Wheeler", icon: Container },
   { id: "van", label: "Van", icon: Caravan },
+  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url },
+  { id: "gooseneck", label: "Gooseneck Trailer", image: gooseneckAsset.url },
 ];
 
 function SettingsPage() {
@@ -56,7 +60,7 @@ function SettingsPage() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            {BODY_TYPES.map(({ id, label, icon: Icon }) => {
+            {BODY_TYPES.map(({ id, label, icon: Icon, image }) => {
               const active = bodyType === id;
               return (
                 <button
@@ -64,14 +68,26 @@ function SettingsPage() {
                   type="button"
                   onClick={() => setBodyType(id)}
                   aria-pressed={active}
-                  className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-sm ${
+                  className={`flex min-h-24 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-2 text-sm ${
                     active
                       ? "border-ez-amber bg-ez-amber/10 font-semibold text-ez-amber"
                       : "border-border bg-surface-2 text-muted-foreground"
                   }`}
                 >
-                  <Icon className="size-7" />
-                  {label}
+                  {image ? (
+                    <img
+                      src={image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      width={1280}
+                      height={768}
+                      className="h-14 w-full rounded-lg object-cover"
+                    />
+                  ) : Icon ? (
+                    <Icon className="size-7" />
+                  ) : null}
+                  <span className="min-h-10 content-center text-center leading-tight">{label}</span>
                 </button>
               );
             })}
