@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Truck as TruckIcon, Container, Caravan } from "lucide-react";
 import { supabase } from "@/lib/supabase";
