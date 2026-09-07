@@ -267,6 +267,10 @@ function HuntPage() {
           </button>
         </form>
       )}
+
+      <div className="mt-6">
+        <TripDirection />
+      </div>
     </AppShell>
   );
 }
