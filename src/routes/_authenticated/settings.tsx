@@ -104,13 +104,16 @@ function SettingsPage() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            {BODY_TYPES.map(({ id, label, icon: Icon, image }) => {
+            {BODY_TYPES.map(({ id, label, icon: Icon, image, equipment }) => {
               const active = bodyType === id;
               return (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setBodyType(id)}
+                  onClick={() => {
+                    setBodyType(id);
+                    saveEquipment.mutate(equipment);
+                  }}
                   aria-pressed={active}
                   className={`flex min-h-24 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-2 text-sm ${
                     active
