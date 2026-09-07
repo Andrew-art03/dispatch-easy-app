@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBoardRouteImport } from './routes/_authenticated/board'
+import { Route as AuthenticatedCopilotRouteImport } from './routes/_authenticated/copilot'
 import { Route as AuthenticatedGoalRouteImport } from './routes/_authenticated/goal'
 import { Route as AuthenticatedHuntRouteImport } from './routes/_authenticated/hunt'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
@@ -44,6 +45,11 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedBoardRoute = AuthenticatedBoardRouteImport.update({
   id: '/board',
   path: '/board',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCopilotRoute = AuthenticatedCopilotRouteImport.update({
+  id: '/copilot',
+  path: '/copilot',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGoalRoute = AuthenticatedGoalRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/board': typeof AuthenticatedBoardRoute
+  '/copilot': typeof AuthenticatedCopilotRoute
   '/goal': typeof AuthenticatedGoalRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/board': typeof AuthenticatedBoardRoute
+  '/copilot': typeof AuthenticatedCopilotRoute
   '/goal': typeof AuthenticatedGoalRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/board': typeof AuthenticatedBoardRoute
+  '/_authenticated/copilot': typeof AuthenticatedCopilotRoute
   '/_authenticated/goal': typeof AuthenticatedGoalRoute
   '/_authenticated/hunt': typeof AuthenticatedHuntRoute
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/board'
+    | '/copilot'
     | '/goal'
     | '/hunt'
     | '/ledger'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/board'
+    | '/copilot'
     | '/goal'
     | '/hunt'
     | '/ledger'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/board'
+    | '/_authenticated/copilot'
     | '/_authenticated/goal'
     | '/_authenticated/hunt'
     | '/_authenticated/ledger'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/board'
       fullPath: '/board'
       preLoaderRoute: typeof AuthenticatedBoardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/copilot': {
+      id: '/_authenticated/copilot'
+      path: '/copilot'
+      fullPath: '/copilot'
+      preLoaderRoute: typeof AuthenticatedCopilotRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/goal': {
@@ -359,6 +378,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBoardRoute: typeof AuthenticatedBoardRoute
+  AuthenticatedCopilotRoute: typeof AuthenticatedCopilotRoute
   AuthenticatedGoalRoute: typeof AuthenticatedGoalRoute
   AuthenticatedHuntRoute: typeof AuthenticatedHuntRoute
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
@@ -371,6 +391,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBoardRoute: AuthenticatedBoardRoute,
+  AuthenticatedCopilotRoute: AuthenticatedCopilotRoute,
   AuthenticatedGoalRoute: AuthenticatedGoalRoute,
   AuthenticatedHuntRoute: AuthenticatedHuntRoute,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,

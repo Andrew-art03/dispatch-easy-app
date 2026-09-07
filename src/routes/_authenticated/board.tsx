@@ -150,13 +150,21 @@ function BoardPage() {
     <AppShell
       title="Board"
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={openBoardVoice}
-            className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
-            Talk to EZ
+            <TruckAvatar body={truckBody} color={truckColor} className="size-6" />
+            <span className="whitespace-nowrap">Talk to EZ Copilot</span>
           </button>
+          <Link
+            to="/copilot"
+            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+          >
+            <TruckAvatar body={truckBody} color={truckColor} className="size-6" />
+            <span className="whitespace-nowrap">Work with EZ Copilot</span>
+          </Link>
           <Link
             to="/settings"
             aria-label="Settings"
