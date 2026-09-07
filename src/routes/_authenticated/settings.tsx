@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Truck as TruckIcon, Container, Caravan } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { TruckProfile } from "@/components/TruckProfile";
 import { TRUCK_COLORS, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
 import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
 import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
@@ -12,12 +13,12 @@ export const Route = createFileRoute("/_authenticated/settings")({
       { title: "Settings — EZ Trucking Auto Dispatching" },
       {
         name: "description",
-        content: "Pick how your truck looks in the app: body type and the glow color under it.",
+        content: "Set your truck's real numbers and pick how it looks in the app.",
       },
       { property: "og:title", content: "Settings — EZ Trucking Auto Dispatching" },
       {
         property: "og:description",
-        content: "Personalize your truck's look inside EZ Trucking Auto Dispatching.",
+        content: "Set your truck's real numbers and pick how it looks in the app.",
       },
     ],
   }),
@@ -52,7 +53,7 @@ function SettingsPage() {
         </span>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         <section className="rounded-2xl border border-border bg-card p-5">
           <h2 className="text-base font-semibold">Truck appearance</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -113,6 +114,16 @@ function SettingsPage() {
               />
             ))}
           </div>
+        </section>
+
+        <section className="space-y-5">
+          <div className="px-1">
+            <h2 className="text-base font-semibold">Truck profile</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              These real numbers make every load score sharper.
+            </p>
+          </div>
+          <TruckProfile />
         </section>
       </div>
     </AppShell>

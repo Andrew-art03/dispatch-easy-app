@@ -7,7 +7,7 @@ import { EZPresence } from "@/components/EZPresence";
 const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/board", label: "Board", icon: LayoutList },
   { to: "/hunt", label: "Hunt", icon: Search, amber: true },
-  { to: "/truck", label: "Truck", icon: TruckIcon },
+  { to: "/settings", label: "Truck", icon: TruckIcon },
   { to: "/docs", label: "Docs", icon: FileText },
   { to: "/goal", label: "Week $", icon: Wallet },
 ];

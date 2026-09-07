@@ -191,12 +191,9 @@ function BoardPage() {
             <li>· Fuel, upkeep and daily costs</li>
             <li>· Hours you have left to drive</li>
           </ul>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Link to="/truck" className="ez-btn-amber text-center">
+          <div className="mt-4">
+            <Link to="/settings" className="ez-btn-amber text-center">
               Set up my truck
-            </Link>
-            <Link to="/settings" className="ez-btn-secondary text-center">
-              Settings
             </Link>
           </div>
         </section>
