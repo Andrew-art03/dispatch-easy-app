@@ -57,6 +57,19 @@ function LoadCard() {
     },
   });
 
+  // Read-only: used by the "What's left" checklist. Never writes.
+  const docsQuery = useQuery({
+    queryKey: ["load-docs", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document")
+        .select("id, type")
+        .eq("load_id", id);
+      if (error) throw error;
+      return (data ?? []) as { id: string; type: string }[];
+    },
+  });
+
   const callEndpoint = useMutation({
     mutationFn: async (action: "pursue" | "skip" | "confirm") => {
       const res = await authedFetch(`/api/loads/${id}/${action}`, { method: "POST" });
