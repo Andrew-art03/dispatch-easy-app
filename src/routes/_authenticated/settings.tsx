@@ -178,6 +178,11 @@ function SettingsPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               These real numbers make every load score sharper.
             </p>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              <li>· Unit, size and hazmat</li>
+              <li>· Fuel, upkeep and daily costs</li>
+              <li>· Hours you have left to drive</li>
+            </ul>
           </div>
           <TruckProfile />
         </section>
