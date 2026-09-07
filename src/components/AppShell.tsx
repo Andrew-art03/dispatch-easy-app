@@ -3,6 +3,7 @@ import { LayoutList, Search, FileText, Wallet, Truck as TruckIcon } from "lucide
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
+import { EZVoiceSheetHost } from "@/components/EZVoice";
 
 const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/settings", label: "Truck", icon: TruckIcon },
@@ -37,6 +38,7 @@ export function AppShell({
       </main>
 
       <EZPresence />
+      <EZVoiceSheetHost />
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
         <div className="mx-auto flex max-w-3xl flex-col">
