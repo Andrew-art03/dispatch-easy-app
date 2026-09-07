@@ -290,6 +290,70 @@ function moneyLabel(value: number) {
 const COLOR_KEY = "ez-truck-color";
 const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
 
+/** Picture picker selection — visual only, persisted in the browser. */
+const BODY_KEY = "ez-truck-body";
+export const DEFAULT_BODY = "semi";
+
+export const TRUCK_BODY_IMAGES: Record<string, string> = {
+  lowboy: lowboyAsset.url,
+  gooseneck: gooseneckAsset.url,
+};
+
+export function truckBodyImage(body: string) {
+  return TRUCK_BODY_IMAGES[body] ?? goalTruckAsset.url;
+}
+
+export function useTruckBody() {
+  const [body, setBodyState] = useState(DEFAULT_BODY);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(BODY_KEY);
+      if (stored) setBodyState(stored);
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, []);
+
+  const setBody = useCallback((value: string) => {
+    setBodyState(value);
+    try {
+      localStorage.setItem(BODY_KEY, value);
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, []);
+
+  return [body, setBody] as const;
+}
+
+/** Small round portrait of the driver's picked truck — used as EZ Copilot's avatar. */
+export function TruckAvatar({
+  body,
+  color,
+  className = "size-10",
+}: {
+  body: string;
+  color: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2 ${className}`}
+      style={{ boxShadow: `0 0 12px ${color}55` }}
+    >
+      <img
+        src={truckBodyImage(body)}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="h-full w-full select-none object-cover"
+      />
+    </span>
+  );
+}
+
+
 export function useTruckColor() {
   const [color, setColorState] = useState(DEFAULT_COLOR);
 
