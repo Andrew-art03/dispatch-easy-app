@@ -281,6 +281,34 @@
   animation: ez-splash-glow 1.4s ease-out both;
 }
 
+/* Held state after the drive-in: truck parked at its final size, glow steady. */
+.ez-splash-settled {
+  animation: none;
+}
+img.ez-splash-settled {
+  transform: translate3d(0, 14px, 0) scale(1.6);
+  opacity: 1;
+}
+div.ez-splash-settled {
+  transform: scale(1.15);
+  opacity: 0.5;
+}
+
+/* Loading bar that fills while the splash holds. */
+@keyframes ez-splash-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.ez-splash-progress {
+  transform-origin: left center;
+  animation: ez-splash-progress 2.2s ease-in-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ez-splash-drive,
   .ez-splash-glow {
