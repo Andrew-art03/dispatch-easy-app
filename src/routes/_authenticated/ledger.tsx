@@ -68,7 +68,17 @@ function LedgerPage() {
   }
 
   return (
-    <AppShell title="Money">
+    <AppShell
+      title="Money"
+      bottomSticky={
+        <button onClick={() => setAddOpen(true)} className="ez-btn-amber w-full">
+          <span className="inline-flex items-center justify-center gap-2">
+            <Plus className="size-5" /> Add expense
+          </span>
+        </button>
+      }
+    >
+      {addOpen ? <AddExpenseSheet onClose={() => setAddOpen(false)} /> : null}
       {query.isPending ? <Loading label="Loading your money…" /> : null}
       {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
       {query.data ? (
