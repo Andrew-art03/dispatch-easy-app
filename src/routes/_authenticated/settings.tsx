@@ -28,18 +28,58 @@ export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
 });
 
-// Visual-only: picks which silhouette shows in illustrations. Not the truck profile.
-const BODY_TYPES = [
-  { id: "bobtail", label: "Bobtail", icon: TruckIcon },
-  { id: "semi", label: "18-Wheeler", icon: Container },
-  { id: "van", label: "Van", icon: Caravan },
-  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url },
-  { id: "gooseneck", label: "Gooseneck Trailer", image: gooseneckAsset.url },
+// Picture picker. Each tile also maps to the closest frozen equipment enum value.
+const BODY_TYPES: {
+  id: string;
+  label: string;
+  icon?: typeof TruckIcon;
+  image?: string;
+  equipment: EquipmentType;
+}[] = [
+  { id: "bobtail", label: "Bobtail", icon: TruckIcon, equipment: "other" },
+  { id: "semi", label: "18-Wheeler", icon: Container, equipment: "flatbed" },
+  { id: "van", label: "Van", icon: Caravan, equipment: "van" },
+  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url, equipment: "stepdeck" },
+  {
+    id: "gooseneck",
+    label: "Gooseneck Trailer",
+    image: gooseneckAsset.url,
+    equipment: "hotshot",
+  },
 ];
 
 function SettingsPage() {
   const [bodyType, setBodyType] = useState("semi");
   const [truckColor, setTruckColor] = useTruckColor();
+  const queryClient = useQueryClient();
+
+  const truckQuery = useQuery({
+    queryKey: ["truck"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("truck")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { id: string; equipment: EquipmentType } | null) ?? null;
+    },
+  });
+
+  const saveEquipment = useMutation({
+    mutationFn: async (equipment: EquipmentType) => {
+      const truck = truckQuery.data;
+      if (!truck) return; // no truck row yet — the profile form below creates it
+      const { error } = await supabase.from("truck").update({ equipment }).eq("id", truck.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["truck"] }),
+  });
+
+  const mappedEquipment =
+    BODY_TYPES.find((b) => b.id === bodyType)?.equipment ?? ("other" as EquipmentType);
+
 
   return (
     <AppShell
