@@ -140,6 +140,16 @@ function SettingsPage() {
             })}
           </div>
 
+          <p className="mt-3 text-xs text-muted-foreground">
+            {saveEquipment.isPending ? "Saving…" : `Saved as: ${mappedEquipment}`}
+          </p>
+          {saveEquipment.isError ? (
+            <div className="mt-3">
+              <ErrorBox error={saveEquipment.error} />
+            </div>
+          ) : null}
+
+
           <div className="mt-6 flex items-center justify-center rounded-xl border border-border bg-surface-2 py-6">
             <TruckGlyph color={truckColor} className="h-16 w-28" />
           </div>
