@@ -6,7 +6,6 @@ import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
-import boardTruckAsset from "@/assets/board-truck-side-profile.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
