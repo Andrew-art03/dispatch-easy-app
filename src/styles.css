@@ -289,8 +289,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ez-splash-drive,
-  .ez-splash-glow {
+  .ez-splash-climb,
+  .ez-splash-bar,
+  .ez-splash-progress {
     animation: none;
   }
 }
