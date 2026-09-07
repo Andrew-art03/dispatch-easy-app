@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Mic, X } from "lucide-react";
+import { CopilotAvatar, useTruckColor } from "@/components/GoalProgress";
 
 export type VoiceHeard = {
   label: string;
@@ -62,6 +63,7 @@ export function EZVoiceSheetHost() {
 export function EZVoiceSheet({ open, props }: { open: boolean; props: VoiceProps | null }) {
   const transcript = props?.transcript ?? "";
   const [typed, setTyped] = useState(transcript);
+  const [truckColor] = useTruckColor();
 
   useEffect(() => {
     if (!open) return;
