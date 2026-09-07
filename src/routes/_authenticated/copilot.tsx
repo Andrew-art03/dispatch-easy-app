@@ -87,15 +87,16 @@ const ACTIONS: { id: string; label: string; hint: string; result: Result }[] = [
 ];
 
 function CopilotPage() {
-  const [truckColor] = useTruckColor();
-  const [truckBody] = useTruckBody();
+  const [truckColor, setTruckColor] = useTruckColor();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const active = ACTIONS.find((a) => a.id === activeId)?.result ?? null;
+  const showActions = asking || activeId !== null;
 
   return (
     <AppShell
       title={
-        <span className="flex items-center gap-3">
+        <span className="flex min-w-0 items-center gap-2">
           <Link
             to="/board"
             aria-label="Back"
@@ -103,22 +104,86 @@ function CopilotPage() {
           >
             <ArrowLeft className="size-5" />
           </Link>
-          EZ Copilot
+          <span className="truncate">EZ 18-Wheeler Copilot</span>
         </span>
       }
-    >
-      <section className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-3">
-          <TruckAvatar body={truckBody} color={truckColor} className="size-14" />
-          <div className="min-w-0">
-            <p className="text-base font-semibold">EZ Copilot</p>
-            <p className="truncate text-sm text-muted-foreground">
-              Unit 12 · empty in Amarillo · hunting ON
-            </p>
-          </div>
+      action={
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => openCopilotVoice()}
+            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+          >
+            <CopilotAvatar color={truckColor} className="size-6" />
+            <span className="hidden whitespace-nowrap sm:inline">Talk to EZ Copilot</span>
+            <span className="whitespace-nowrap sm:hidden">Talk</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+          >
+            <CopilotAvatar color={truckColor} className="size-6" />
+            <span className="hidden whitespace-nowrap sm:inline">Work with EZ Copilot</span>
+            <span className="whitespace-nowrap sm:hidden">Work</span>
+          </button>
         </div>
+      }
+    >
+      {/* Avatar stage — neon frame lit in the driver's chosen glow color. */}
+      <section
+        className="relative overflow-hidden rounded-3xl bg-background"
+        style={{
+          border: `2px solid ${truckColor}`,
+          boxShadow: `0 0 28px ${truckColor}66, inset 0 0 40px ${truckColor}22`,
+        }}
+      >
+        <img
+          src={copilotAvatarAsset.url}
+          alt="EZ Copilot, your 18-wheeler"
+          draggable={false}
+          className="mx-auto block h-56 w-full select-none object-cover sm:h-[26rem]"
+          style={{ filter: `drop-shadow(0 0 24px ${truckColor}88)` }}
+        />
       </section>
 
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Glow color</p>
+          <div className="mt-2 flex gap-3">
+            {TRUCK_COLORS.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setTruckColor(c.value)}
+                aria-label={c.name}
+                aria-pressed={truckColor === c.value}
+                className="size-11 rounded-full"
+                style={{
+                  backgroundColor: c.value,
+                  outline: truckColor === c.value ? `3px solid ${c.value}` : "none",
+                  outlineOffset: 3,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setAsking(true)}
+          className="ml-auto flex min-h-12 items-center rounded-full border border-border bg-card px-5 text-base font-medium"
+        >
+          How can I help you today?
+        </button>
+      </div>
+
+      <p className="mt-5 text-sm text-muted-foreground">
+        Unit 12 · empty in Amarillo · hunting ON
+      </p>
+
+      {showActions ? (
+        <>
       <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         What do you want to do?
       </h2>
