@@ -45,11 +45,11 @@ export function IntroAnimation() {
       {/* headlight glow blooms behind the truck as it closes in */}
       <div
         aria-hidden="true"
-        className={`ez-splash-glow absolute h-72 w-72 rounded-full ${settled ? "ez-splash-settled" : ""}`}
+        className={`ez-splash-glow pointer-events-none absolute h-72 w-72 rounded-full ${settled ? "ez-splash-settled" : ""}`}
       />
       <TruckGlyph
         color={truckColor}
-        className={`h-40 w-72 ${settled ? "ez-splash-settled" : "ez-splash-drive"}`}
+        className={`pointer-events-none h-40 w-72 ${settled ? "ez-splash-settled" : "ez-splash-drive"}`}
       />
 
       <p className="mt-10 font-condensed text-xl font-bold uppercase tracking-[0.2em] text-foreground">
