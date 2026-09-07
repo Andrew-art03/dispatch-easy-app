@@ -37,32 +37,37 @@ const MOCK = {
 };
 
 /**
- * Drives the chart reveal from 0..1 so the line draws day by day and the truck
- * glides to the newest marker. Reduced motion jumps straight to the end state.
+ * Drives the truck along an ABSOLUTE day-index (0 = before the first marker,
+ * 1 = first active day's marker, 2 = second, …). It is never rescaled when a
+ * new day posts, so a new day animates exactly one marker forward from wherever
+ * the truck currently sits instead of snapping to the end. Reduced motion jumps
+ * straight to the end state.
  */
 function useDayReveal(activeCount: number) {
   const [reveal, setReveal] = useState(0);
   const current = useRef(0);
 
   useEffect(() => {
+    const targetIndex = Math.max(activeCount - 1, 0);
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      current.current = 1;
-      setReveal(1);
+      current.current = targetIndex;
+      setReveal(targetIndex);
       return;
     }
     const from = current.current;
-    const segments = Math.max(activeCount - 1, 1);
-    // ~200ms per day while drawing in, a touch quicker for a single new day.
-    const duration = Math.max(300, segments * 200 * Math.max(1 - from, 0.35));
+    const distance = Math.max(targetIndex - from, 0);
+    if (distance === 0) return;
+    // ~200ms per marker travelled; a one-day step stays a short, visible glide.
+    const duration = Math.max(300, distance * 200);
     const start = performance.now();
     let frame = 0;
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
-      const value = from + (1 - from) * eased;
+      const value = from + distance * eased;
       current.current = value;
       setReveal(value);
       if (t < 1) frame = requestAnimationFrame(step);

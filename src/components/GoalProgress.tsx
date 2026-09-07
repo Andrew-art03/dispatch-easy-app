@@ -83,12 +83,13 @@ export function WeeklyGoalChart({
   days,
   target,
   truckColor,
-  reveal = 1,
+  reveal = 99,
   compact = false,
 }: {
   days: WeekDayEarning[];
   target: number;
   truckColor: string;
+  /** Absolute animated day-index (1 = first active marker, 2 = second, …). */
   reveal?: number;
   compact?: boolean;
 }) {
@@ -112,8 +113,9 @@ export function WeeklyGoalChart({
   }));
   const activeCount = activeDays.length;
   const activePoints = points.slice(0, activeCount);
-  const clampedReveal = Math.max(0, Math.min(1, reveal));
-  const scaledIndex = Math.max(0, activeCount - 1) * clampedReveal;
+  // `reveal` is an absolute day-index, so it never rescales when activeCount
+  // changes — a newly posted day animates exactly one marker forward.
+  const scaledIndex = Math.max(0, Math.min(reveal, Math.max(activeCount - 1, 0)));
   const startIndex = Math.floor(scaledIndex);
   const endIndex = Math.min(startIndex + 1, Math.max(activeCount - 1, 0));
   const fraction = scaledIndex - startIndex;
