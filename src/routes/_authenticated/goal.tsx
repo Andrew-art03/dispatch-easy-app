@@ -153,7 +153,13 @@ function GoalPage() {
 
         <div className="relative mt-2">
           {showConfetti ? <GoalConfetti onDone={dismissConfetti} /> : null}
-          <WeeklyGoalChart days={days} target={target} truckColor={truckColor} />
+          <WeeklyGoalChart
+            days={days}
+            target={target}
+            truckColor={truckColor}
+            reveal={reveal}
+          />
+
         </div>
 
         <p className="mt-2 text-sm text-muted-foreground">
