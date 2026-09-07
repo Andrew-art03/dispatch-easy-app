@@ -4,6 +4,7 @@ import { Settings2 } from "lucide-react";
 import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
 import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
 import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
+import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
 
 export type TruckColor = { name: string; value: string };
 
