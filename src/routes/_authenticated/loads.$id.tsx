@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
 import type { Deal, LoadWithRelations } from "@/lib/types";
-import { EZStatusLine, EZVoiceSheet } from "@/components/EZVoice";
+import { EZStatusLine, useEZVoice } from "@/components/EZVoice";
 import { TrustCue } from "@/components/TrustCue";
 import {
   latestScore,
@@ -42,7 +42,7 @@ function LoadCard() {
   const [showMath, setShowMath] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voice = useEZVoice();
 
   const query = useQuery({
     queryKey: ["load", id],
