@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Radar } from "lucide-react";
+import { Settings, Radar, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
@@ -148,7 +148,18 @@ function BoardPage() {
 
   return (
     <AppShell
-      title="Board"
+      title={
+        <span className="flex items-center gap-3">
+          <Link
+            to="/home"
+            aria-label="Home"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+          >
+            <ArrowLeft className="size-5" />
+          </Link>
+          Board
+        </span>
+      }
       action={
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button

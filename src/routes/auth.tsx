@@ -34,7 +34,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/board" });
+      if (data.session) navigate({ to: "/home" });
     });
   }, [navigate]);
 
@@ -61,7 +61,7 @@ function AuthPage() {
         if (signInError) throw signInError;
       }
       await loadOrBootstrapMe();
-      navigate({ to: "/board" });
+      navigate({ to: "/home" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
     } finally {
@@ -76,7 +76,7 @@ function AuthPage() {
     try {
       const { error: linkError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/board` },
+        options: { emailRedirectTo: `${window.location.origin}/home` },
       });
       if (linkError) throw linkError;
       setNotice("We sent you a sign-in link. Check your email.");

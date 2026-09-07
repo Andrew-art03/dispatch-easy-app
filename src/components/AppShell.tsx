@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutList, Search, FileText, Wallet, Truck as TruckIcon } from "lucide-react";
+import { Home, Search, FileText, Wallet, Truck as TruckIcon, LayoutList } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
@@ -7,7 +7,7 @@ import { EZVoiceSheetHost } from "@/components/EZVoice";
 
 const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
   { to: "/settings", label: "Truck", icon: TruckIcon },
-  { to: "/board", label: "Board", icon: LayoutList },
+  { to: "/home", label: "Home", icon: Home },
   { to: "/hunt", label: "Hunt", icon: Search, amber: true },
   { to: "/docs", label: "Docs", icon: FileText },
   { to: "/goal", label: "Week $", icon: Wallet },
