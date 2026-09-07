@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
-import type { Deal, LoadWithRelations } from "@/lib/types";
+import type { Deal, LoadState, LoadWithRelations } from "@/lib/types";
 import { EZStatusLine, useEZVoice } from "@/components/EZVoice";
 import { TrustCue } from "@/components/TrustCue";
 import {
