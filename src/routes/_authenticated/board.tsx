@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Radar } from "lucide-react";
+import { Settings, Radar, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
@@ -150,20 +150,27 @@ function BoardPage() {
     <AppShell
       title="Board"
       action={
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
+          <Link
+            to="/home"
+            aria-label="Home"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+          >
+            <ArrowLeft className="size-5 shrink-0 text-muted-foreground" />
+          </Link>
           <button
             onClick={openBoardVoice}
             className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="whitespace-nowrap">Talk to EZ Copilot</span>
+            <span className="whitespace-nowrap">Talk</span>
           </button>
           <Link
             to="/copilot"
             className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="whitespace-nowrap">Work with EZ Copilot</span>
+            <span className="whitespace-nowrap">Work</span>
           </Link>
           <Link
             to="/settings"

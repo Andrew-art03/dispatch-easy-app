@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBoardRouteImport } from './routes/_authenticated/board'
 import { Route as AuthenticatedCopilotRouteImport } from './routes/_authenticated/copilot'
 import { Route as AuthenticatedGoalRouteImport } from './routes/_authenticated/goal'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedHuntRouteImport } from './routes/_authenticated/hunt'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -55,6 +56,11 @@ const AuthenticatedCopilotRoute = AuthenticatedCopilotRouteImport.update({
 const AuthenticatedGoalRoute = AuthenticatedGoalRouteImport.update({
   id: '/goal',
   path: '/goal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHuntRoute = AuthenticatedHuntRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/board': typeof AuthenticatedBoardRoute
   '/copilot': typeof AuthenticatedCopilotRoute
   '/goal': typeof AuthenticatedGoalRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/board': typeof AuthenticatedBoardRoute
   '/copilot': typeof AuthenticatedCopilotRoute
   '/goal': typeof AuthenticatedGoalRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/hunt': typeof AuthenticatedHuntRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/_authenticated/board': typeof AuthenticatedBoardRoute
   '/_authenticated/copilot': typeof AuthenticatedCopilotRoute
   '/_authenticated/goal': typeof AuthenticatedGoalRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/hunt': typeof AuthenticatedHuntRoute
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/copilot'
     | '/goal'
+    | '/home'
     | '/hunt'
     | '/ledger'
     | '/settings'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/copilot'
     | '/goal'
+    | '/home'
     | '/hunt'
     | '/ledger'
     | '/settings'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/board'
     | '/_authenticated/copilot'
     | '/_authenticated/goal'
+    | '/_authenticated/home'
     | '/_authenticated/hunt'
     | '/_authenticated/ledger'
     | '/_authenticated/settings'
@@ -287,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/goal'
       fullPath: '/goal'
       preLoaderRoute: typeof AuthenticatedGoalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/hunt': {
@@ -380,6 +399,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBoardRoute: typeof AuthenticatedBoardRoute
   AuthenticatedCopilotRoute: typeof AuthenticatedCopilotRoute
   AuthenticatedGoalRoute: typeof AuthenticatedGoalRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedHuntRoute: typeof AuthenticatedHuntRoute
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -393,6 +413,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBoardRoute: AuthenticatedBoardRoute,
   AuthenticatedCopilotRoute: AuthenticatedCopilotRoute,
   AuthenticatedGoalRoute: AuthenticatedGoalRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedHuntRoute: AuthenticatedHuntRoute,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

@@ -66,28 +66,34 @@ export function IntroAnimation() {
         phase === "out" ? "opacity-0" : "opacity-100"
       }`}
     >
-      <p className="font-condensed text-2xl font-bold uppercase tracking-[0.28em] text-foreground">
-        EZ Trucking
-      </p>
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-2xl bg-accent text-xl font-black text-accent-foreground">
+          EZ
+        </span>
+        <span className="font-condensed text-2xl font-bold uppercase tracking-[0.24em] text-foreground">
+          EZ Trucking
+        </span>
+      </div>
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Weekly payout goal
       </p>
-      <p className="ez-num mt-1 text-5xl text-foreground">
+      <p className="ez-num mt-1 text-4xl text-foreground">
         {earnedLabel} <span className="text-muted-foreground">of {targetLabel}</span>
       </p>
 
-      {/* Ramp + truck */}
-      <div className="relative mt-8 h-44 w-full max-w-sm">
-        <div className="absolute inset-x-0 bottom-0 flex h-40 items-end justify-between gap-2">
+      {/* Ramp + truck — same card language as the rest of the app */}
+      <div className="relative mt-8 h-48 w-full max-w-sm rounded-2xl border border-border bg-card p-4">
+        <div className="absolute inset-x-4 bottom-4 flex h-36 items-end justify-between gap-2">
           {bars.map((h, i) => (
             <div
               key={h}
               className="ez-splash-bar flex-1 rounded-t-md"
               style={{
                 height: `${h * 100}%`,
-                background: "linear-gradient(180deg, #FFB020 0%, #7A4A05 100%)",
-                opacity: 0.85,
+                background:
+                  "linear-gradient(180deg, var(--color-accent) 0%, color-mix(in oklab, var(--color-accent) 25%, var(--color-card)) 100%)",
+                opacity: 0.9,
                 animationDelay: settled ? "0ms" : `${i * 90}ms`,
               }}
             />
@@ -95,7 +101,7 @@ export function IntroAnimation() {
         </div>
 
         {/* goal marker, top right */}
-        <span className="absolute right-0 top-0 rounded-full border border-ez-amber px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ez-amber">
+        <span className="absolute right-4 top-4 rounded-full border border-ez-amber px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ez-amber">
           Goal
         </span>
 
@@ -104,7 +110,7 @@ export function IntroAnimation() {
           alt=""
           aria-hidden="true"
           draggable={false}
-          className={`pointer-events-none absolute bottom-6 left-0 h-16 w-28 select-none object-contain ${
+          className={`pointer-events-none absolute bottom-10 left-4 h-16 w-28 select-none object-contain ${
             settled ? "ez-splash-parked" : "ez-splash-climb"
           }`}
           style={{
@@ -121,7 +127,7 @@ export function IntroAnimation() {
               aria-label="Loading"
             />
             <div className="mt-4 h-1 w-40 overflow-hidden rounded-full bg-secondary">
-              <div className="ez-splash-progress h-full rounded-full bg-primary" />
+              <div className="ez-splash-progress h-full rounded-full bg-accent" />
             </div>
           </>
         ) : null}

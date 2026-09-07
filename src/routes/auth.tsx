@@ -34,7 +34,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/board" });
+      if (data.session) navigate({ to: "/home" });
     });
   }, [navigate]);
 
@@ -61,7 +61,7 @@ function AuthPage() {
         if (signInError) throw signInError;
       }
       await loadOrBootstrapMe();
-      navigate({ to: "/board" });
+      navigate({ to: "/home" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
     } finally {
@@ -76,7 +76,7 @@ function AuthPage() {
     try {
       const { error: linkError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/board` },
+        options: { emailRedirectTo: `${window.location.origin}/home` },
       });
       if (linkError) throw linkError;
       setNotice("We sent you a sign-in link. Check your email.");
@@ -91,7 +91,7 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-black text-primary-foreground">
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-accent text-2xl font-black text-accent-foreground">
             EZ
           </div>
           <h1 className="text-2xl font-bold">EZ Trucking</h1>
@@ -111,7 +111,7 @@ function AuthPage() {
               type="button"
               onClick={() => setMode(m)}
               className={`rounded-lg py-2 text-sm font-medium ${
-                mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                mode === m ? "bg-accent text-accent-foreground" : "text-muted-foreground"
               }`}
             >
               {m === "signin" ? "Sign in" : "Create account"}
@@ -154,7 +154,7 @@ function AuthPage() {
           </Field>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {notice ? <p className="text-sm text-primary">{notice}</p> : null}
+          {notice ? <p className="text-sm text-ez-amber">{notice}</p> : null}
 
           <button type="submit" disabled={busy} className="ez-btn-primary w-full">
             {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}

@@ -26,7 +26,6 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [at, setAt] = useState(today());
   const [loadId, setLoadId] = useState("");
-  const [note, setNote] = useState("");
 
   // Loads for this org come back RLS-scoped — no org_id filter from the client.
   const loadsQuery = useQuery({
@@ -50,7 +49,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
       if (!valid) throw new Error("Enter an amount bigger than zero.");
       // org_id is filled by the database default (current_org_id()) — never sent from here.
       const { error } = await supabase.from("ledger_line").insert({
-        category: note.trim() ? `${category} — ${note.trim()}` : category,
+        category,
         amount: -Math.abs(value),
         at: new Date(`${at}T12:00:00`).toISOString(),
         load_id: loadId || null,
@@ -138,16 +137,6 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium">Note (optional)</span>
-            <input
-              className="ez-input mt-2"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Pilot, exit 214"
-            />
           </label>
 
           {loadsQuery.isError ? <ErrorBox error={loadsQuery.error} /> : null}
