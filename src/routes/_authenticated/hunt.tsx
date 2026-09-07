@@ -6,6 +6,7 @@ import { WEEK_GOAL, money } from "@/lib/goal";
 import { supabase } from "@/lib/supabase";
 import { authedFetch, useMe } from "@/lib/session";
 import { AppShell, ErrorBox } from "@/components/AppShell";
+import { TripDirection } from "@/components/TripDirection";
 import type { EquipmentType } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/hunt")({
