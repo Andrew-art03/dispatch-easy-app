@@ -163,8 +163,9 @@ export function WeeklyGoalChart({
             </feMerge>
           </filter>
           <clipPath id={`week-reveal-${compact ? "compact" : "full"}`}>
-            <rect x="0" y="0" width={width * clampedReveal} height={height} />
+            <rect x="0" y="0" width={truckPoint.x + 2} height={height} />
           </clipPath>
+
         </defs>
 
         <line
