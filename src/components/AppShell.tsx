@@ -59,16 +59,14 @@ export function AppShell({
                         isActive
                           ? amber
                             ? "text-ez-amber"
-                            : "text-primary"
+                            : "text-ez-amber"
                           : "text-muted-foreground",
                       )}
                     />
                     <span
                       className={cn(
                         isActive
-                          ? amber
-                            ? "font-semibold text-ez-amber"
-                            : "font-semibold text-primary"
+                          ? "font-semibold text-ez-amber"
                           : "text-muted-foreground",
                       )}
                     >
