@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Settings, Radar, Truck as TruckIcon } from "lucide-react";
+import { Settings, Radar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { EZVoiceSheet } from "@/components/EZVoice";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
+import boardTruckAsset from "@/assets/board-truck-side-profile.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -165,8 +166,16 @@ function BoardPage() {
       {!hasTruck ? (
         <section className="mb-4 rounded-2xl border border-ez-amber/40 bg-card p-5">
           <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-ez-amber/50 bg-surface-2">
-              <TruckIcon className="size-6 text-ez-amber" />
+            <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ez-amber/50 bg-surface-2">
+              <img
+                src={boardTruckAsset.url}
+                alt="Silver semi truck"
+                draggable={false}
+                className="h-11 w-16 max-w-none rotate-[-4deg] select-none object-contain"
+                style={{
+                  filter: `drop-shadow(0 3px 4px rgba(0,0,0,0.55)) drop-shadow(0 7px 7px ${truckColor})`,
+                }}
+              />
             </span>
             <div className="min-w-0">
               <h2 className="text-lg font-semibold">Add your truck to get sharper numbers</h2>
