@@ -4,7 +4,7 @@ import { Settings, Radar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
-import { GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { GoalBar, TruckAvatar, useTruckBody, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
 
 export const Route = createFileRoute("/_authenticated/board")({
@@ -115,6 +115,7 @@ const SECTIONS: { title: string; count: number; cards: MockCard[] }[] = [
 function BoardPage() {
   const voice = useEZVoice();
   const [truckColor] = useTruckColor();
+  const [truckBody] = useTruckBody();
 
   const openBoardVoice = () =>
     voice.openWith({
@@ -150,13 +151,21 @@ function BoardPage() {
     <AppShell
       title="Board"
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={openBoardVoice}
-            className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
-            Talk to EZ
+            <TruckAvatar body={truckBody} color={truckColor} className="size-6" />
+            <span className="whitespace-nowrap">Talk to EZ Copilot</span>
           </button>
+          <Link
+            to="/copilot"
+            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+          >
+            <TruckAvatar body={truckBody} color={truckColor} className="size-6" />
+            <span className="whitespace-nowrap">Work with EZ Copilot</span>
+          </Link>
           <Link
             to="/settings"
             aria-label="Settings"
