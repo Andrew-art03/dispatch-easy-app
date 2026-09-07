@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell, Empty, ErrorBox, Loading } from "@/components/AppShell";
+import { AddExpenseSheet } from "@/components/AddExpense";
 import type { LedgerLine } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
@@ -45,6 +48,7 @@ function money(v: number) {
 }
 
 function LedgerPage() {
+  const [addOpen, setAddOpen] = useState(false);
   const query = useQuery({
     queryKey: ["ledger"],
     queryFn: async (): Promise<LedgerLine[]> => {
@@ -64,7 +68,17 @@ function LedgerPage() {
   }
 
   return (
-    <AppShell title="Money">
+    <AppShell
+      title="Money"
+      bottomSticky={
+        <button onClick={() => setAddOpen(true)} className="ez-btn-amber w-full">
+          <span className="inline-flex items-center justify-center gap-2">
+            <Plus className="size-5" /> Add expense
+          </span>
+        </button>
+      }
+    >
+      {addOpen ? <AddExpenseSheet onClose={() => setAddOpen(false)} /> : null}
       {query.isPending ? <Loading label="Loading your money…" /> : null}
       {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
       {query.data ? (

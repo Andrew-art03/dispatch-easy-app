@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/session";
 import { AppShell, ErrorBox, Loading } from "@/components/AppShell";
-import type { Deal, LoadWithRelations } from "@/lib/types";
+import type { Deal, LoadState, LoadWithRelations } from "@/lib/types";
 import { EZStatusLine, useEZVoice } from "@/components/EZVoice";
 import { TrustCue } from "@/components/TrustCue";
 import {
@@ -57,6 +57,19 @@ function LoadCard() {
     },
   });
 
+  // Read-only: used by the "What's left" checklist. Never writes.
+  const docsQuery = useQuery({
+    queryKey: ["load-docs", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document")
+        .select("id, type")
+        .eq("load_id", id);
+      if (error) throw error;
+      return (data ?? []) as { id: string; type: string }[];
+    },
+  });
+
   const callEndpoint = useMutation({
     mutationFn: async (action: "pursue" | "skip" | "confirm") => {
       const res = await authedFetch(`/api/loads/${id}/${action}`, { method: "POST" });
@@ -97,6 +110,33 @@ function LoadCard() {
   const stops = [...(load.stop ?? [])].sort((a, b) => a.seq - b.seq);
   const inputs = (score?.inputs ?? {}) as Record<string, unknown>;
   const canConfirm = load.state === "rate_con_received";
+
+  // Read-only checklist derived from load.state + existing document rows.
+  const STATE_ORDER: LoadState[] = [
+    "candidate_found",
+    "qualified",
+    "pursue_approved",
+    "negotiating",
+    "terms_proposed",
+    "rate_con_received",
+    "booked",
+    "in_transit",
+    "delivered",
+    "billing_ready",
+    "paid_reconciled",
+    "learned",
+  ];
+  const stateAt = (s: LoadState) => STATE_ORDER.indexOf(s);
+  const reached = (s: LoadState) =>
+    load.state !== "rejected" && stateAt(load.state) >= stateAt(s) && stateAt(load.state) >= 0;
+  const hasPod = (docsQuery.data ?? []).some((d) => d.type === "pod");
+  const checklist: { label: string; done: boolean; easy?: boolean }[] = [
+    { label: "Found and scored this load", done: Boolean(score) },
+    { label: "You approved pursuing it", done: reached("pursue_approved") },
+    { label: "Get rate confirmation", done: reached("rate_con_received") },
+    { label: "Tap Confirm load", done: reached("booked"), easy: true },
+    { label: "Upload delivery docs", done: hasPod },
+  ];
 
   const keep = money(score?.true_net ?? null);
   const verdictWord = score ? VERDICT_LABEL[score.verdict] : "No call yet";
@@ -203,6 +243,47 @@ function LoadCard() {
               ? "Rate con is in — read the pay terms before you confirm."
               : "No rate con yet, so the terms can still change."}
           </p>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            What's left
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {checklist.map((item) => (
+              <li
+                key={item.label}
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+                  !item.done && item.easy
+                    ? "border border-ez-amber/50 bg-ez-amber/10 text-ez-amber"
+                    : "bg-surface-2"
+                }`}
+              >
+                <span
+                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                    item.done
+                      ? "border-ez-green bg-ez-green/20 text-ez-green"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {item.done ? "✓" : ""}
+                </span>
+                <span className={item.done ? "text-muted-foreground line-through" : "font-medium"}>
+                  {item.label}
+                </span>
+                {!item.done && item.easy ? (
+                  <span className="ml-auto rounded-full bg-ez-amber px-2 py-0.5 text-xs font-semibold text-accent-foreground">
+                    The Easy Part
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {docsQuery.isError ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Paperwork status couldn't load right now.
+            </p>
+          ) : null}
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-5">

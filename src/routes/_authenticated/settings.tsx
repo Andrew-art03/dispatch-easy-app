@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Truck as TruckIcon, Container, Caravan } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
+import { supabase } from "@/lib/supabase";
+import { AppShell, ErrorBox } from "@/components/AppShell";
+import type { EquipmentType } from "@/lib/types";
 import { TruckProfile } from "@/components/TruckProfile";
 import { TRUCK_COLORS, TruckGlyph, useTruckColor } from "@/components/GoalProgress";
 import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
@@ -25,18 +28,58 @@ export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
 });
 
-// Visual-only: picks which silhouette shows in illustrations. Not the truck profile.
-const BODY_TYPES = [
-  { id: "bobtail", label: "Bobtail", icon: TruckIcon },
-  { id: "semi", label: "18-Wheeler", icon: Container },
-  { id: "van", label: "Van", icon: Caravan },
-  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url },
-  { id: "gooseneck", label: "Gooseneck Trailer", image: gooseneckAsset.url },
+// Picture picker. Each tile also maps to the closest frozen equipment enum value.
+const BODY_TYPES: {
+  id: string;
+  label: string;
+  icon?: typeof TruckIcon;
+  image?: string;
+  equipment: EquipmentType;
+}[] = [
+  { id: "bobtail", label: "Bobtail", icon: TruckIcon, equipment: "other" },
+  { id: "semi", label: "18-Wheeler", icon: Container, equipment: "flatbed" },
+  { id: "van", label: "Van", icon: Caravan, equipment: "van" },
+  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url, equipment: "stepdeck" },
+  {
+    id: "gooseneck",
+    label: "Gooseneck Trailer",
+    image: gooseneckAsset.url,
+    equipment: "hotshot",
+  },
 ];
 
 function SettingsPage() {
   const [bodyType, setBodyType] = useState("semi");
   const [truckColor, setTruckColor] = useTruckColor();
+  const queryClient = useQueryClient();
+
+  const truckQuery = useQuery({
+    queryKey: ["truck"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("truck")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { id: string; equipment: EquipmentType } | null) ?? null;
+    },
+  });
+
+  const saveEquipment = useMutation({
+    mutationFn: async (equipment: EquipmentType) => {
+      const truck = truckQuery.data;
+      if (!truck) return; // no truck row yet — the profile form below creates it
+      const { error } = await supabase.from("truck").update({ equipment }).eq("id", truck.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["truck"] }),
+  });
+
+  const mappedEquipment =
+    BODY_TYPES.find((b) => b.id === bodyType)?.equipment ?? ("other" as EquipmentType);
+
 
   return (
     <AppShell
@@ -61,13 +104,16 @@ function SettingsPage() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            {BODY_TYPES.map(({ id, label, icon: Icon, image }) => {
+            {BODY_TYPES.map(({ id, label, icon: Icon, image, equipment }) => {
               const active = bodyType === id;
               return (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setBodyType(id)}
+                  onClick={() => {
+                    setBodyType(id);
+                    saveEquipment.mutate(equipment);
+                  }}
                   aria-pressed={active}
                   className={`flex min-h-24 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-2 text-sm ${
                     active
@@ -93,6 +139,16 @@ function SettingsPage() {
               );
             })}
           </div>
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            {saveEquipment.isPending ? "Saving…" : `Saved as: ${mappedEquipment}`}
+          </p>
+          {saveEquipment.isError ? (
+            <div className="mt-3">
+              <ErrorBox error={saveEquipment.error} />
+            </div>
+          ) : null}
+
 
           <div className="mt-6 flex items-center justify-center rounded-xl border border-border bg-surface-2 py-6">
             <TruckGlyph color={truckColor} className="h-16 w-28" />
