@@ -48,6 +48,7 @@ function money(v: number) {
 }
 
 function LedgerPage() {
+  const [addOpen, setAddOpen] = useState(false);
   const query = useQuery({
     queryKey: ["ledger"],
     queryFn: async (): Promise<LedgerLine[]> => {
