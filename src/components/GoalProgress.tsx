@@ -83,12 +83,13 @@ export function WeeklyGoalChart({
   days,
   target,
   truckColor,
-  reveal = 1,
+  reveal = 99,
   compact = false,
 }: {
   days: WeekDayEarning[];
   target: number;
   truckColor: string;
+  /** Absolute animated day-index (1 = first active marker, 2 = second, …). */
   reveal?: number;
   compact?: boolean;
 }) {
