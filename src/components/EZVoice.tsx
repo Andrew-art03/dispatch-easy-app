@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Mic, X } from "lucide-react";
 
 export type VoiceHeard = {
@@ -7,25 +7,7 @@ export type VoiceHeard = {
   sure: boolean;
 };
 
-/**
- * Voice confirm sheet — presentation only.
- * No speech recognition, no network, no AI. It shows what EZ understood and
- * hands the confirm action back to the caller (which hits the existing endpoint).
- */
-export function EZVoiceSheet({
-  open,
-  onClose,
-  transcript,
-  heard,
-  keepAmount,
-  rpmLabel,
-  verdictWord,
-  onConfirm,
-  confirmDisabled,
-  confirmLabel = "Confirm load",
-}: {
-  open: boolean;
-  onClose: () => void;
+export type VoiceProps = {
   transcript: string;
   heard: VoiceHeard[];
   keepAmount: string;
@@ -34,24 +16,78 @@ export function EZVoiceSheet({
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   confirmLabel?: string;
-}) {
-  const [typed, setTyped] = useState("");
+};
+
+/**
+ * Voice confirm sheet — presentation only.
+ * No speech recognition, no network, no AI. It shows scripted content and
+ * hands the confirm action back to the caller (which hits the existing endpoint).
+ *
+ * State lives in a module-level store so closing the sheet hides it without
+ * discarding the last exchange — reopening shows the same conversation.
+ */
+type VoiceState = {
+  open: boolean;
+  props: VoiceProps | null;
+};
+
+let state: VoiceState = { open: false, props: null };
+const listeners = new Set<() => void>();
+
+function emit(next: Partial<VoiceState>) {
+  state = { ...state, ...next };
+  listeners.forEach((l) => l());
+}
+
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+export function useEZVoice() {
+  return {
+    openWith: (props: VoiceProps) => emit({ open: true, props }),
+    close: () => emit({ open: false }),
+    reopen: () => emit({ open: true }),
+  };
+}
+
+export function EZVoiceSheetHost() {
+  const { open, props } = useSyncExternalStore(subscribe, () => state);
+  return <EZVoiceSheet open={open} props={props} />;
+}
+
+export function EZVoiceSheet({ open, props }: { open: boolean; props: VoiceProps | null }) {
+  const transcript = props?.transcript ?? "";
+  const [typed, setTyped] = useState(transcript);
 
   useEffect(() => {
-    if (!open) {
-      setTyped("");
-      return;
-    }
-    let i = 0;
+    if (!open) return;
+    // Keep whatever was typed before close; only animate fresh text forward.
+    if (typed.length >= transcript.length) return;
+    let i = typed.length;
     const timer = setInterval(() => {
       i += 1;
       setTyped(transcript.slice(0, i));
       if (i >= transcript.length) clearInterval(timer);
     }, 45);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, transcript]);
 
-  if (!open) return null;
+  if (!open || !props) return null;
+
+  const {
+    heard,
+    keepAmount,
+    rpmLabel,
+    verdictWord,
+    onConfirm,
+    confirmDisabled,
+    confirmLabel = "Confirm load",
+  } = props;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/85 backdrop-blur-sm sm:items-center">
@@ -62,7 +98,7 @@ export function EZVoiceSheet({
             <p className="text-sm text-muted-foreground">Say what you want to do.</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => emit({ open: false })}
             aria-label="Close"
             className="flex size-11 items-center justify-center rounded-full border border-border text-muted-foreground"
           >
@@ -83,39 +119,37 @@ export function EZVoiceSheet({
           <span className="ml-0.5 animate-pulse">|</span>
         </p>
 
-        <section className="mt-5 rounded-2xl border border-border bg-surface-2 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            I heard …
-          </h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {heard.map((item) => (
-              <li key={item.label} className="flex items-start gap-2">
-                <span
-                  className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                    item.sure ? "bg-ez-green" : "bg-ez-amber"
-                  }`}
-                />
-                <span className="text-muted-foreground">{item.label}</span>
-                <span className="ml-auto text-right font-medium">{item.value}</span>
-              </li>
-            ))}
-          </ul>
+        <h2 className="mt-5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          I heard …
+        </h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {heard.map((item) => (
+            <li key={item.label} className="flex items-start gap-2">
+              <span
+                className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                  item.sure ? "bg-ez-green" : "bg-ez-amber"
+                }`}
+              />
+              <span className="text-muted-foreground">{item.label}</span>
+              <span className="ml-auto text-right font-medium">{item.value}</span>
+            </li>
+          ))}
+        </ul>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
-            <div>
-              <p className="text-xs text-muted-foreground">You keep</p>
-              <p className="ez-num text-2xl">{keepAmount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">All-in / mi</p>
-              <p className="ez-num text-2xl">{rpmLabel}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">EZ's call</p>
-              <p className="ez-num text-2xl">{verdictWord}</p>
-            </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
+          <div>
+            <p className="text-xs text-muted-foreground">You keep</p>
+            <p className="ez-num text-2xl">{keepAmount}</p>
           </div>
-        </section>
+          <div>
+            <p className="text-xs text-muted-foreground">All-in / mi</p>
+            <p className="ez-num text-2xl">{rpmLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">EZ's call</p>
+            <p className="ez-num text-2xl">{verdictWord}</p>
+          </div>
+        </div>
 
         <button
           onClick={onConfirm}
@@ -127,10 +161,10 @@ export function EZVoiceSheet({
         </button>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <button onClick={onClose} className="ez-btn-secondary">
+          <button onClick={() => emit({ open: false })} className="ez-btn-secondary">
             Correct
           </button>
-          <button onClick={onClose} className="ez-btn-secondary">
+          <button onClick={() => emit({ open: false })} className="ez-btn-secondary">
             Not this
           </button>
         </div>
