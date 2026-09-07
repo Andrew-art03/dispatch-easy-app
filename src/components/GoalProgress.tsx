@@ -268,7 +268,7 @@ export function WeeklyGoalChart({
 
       </svg>
       <div
-        className="pointer-events-none absolute transition-[left,top] duration-700 ease-out"
+        className="pointer-events-none absolute"
         style={{
           left: `${(truckPoint.x / width) * 100}%`,
           top: `${(truckPoint.y / height) * 100}%`,
