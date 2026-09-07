@@ -6,7 +6,6 @@ import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
-import boardTruckAsset from "@/assets/board-truck-side-profile.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/board")({
   head: () => ({
@@ -175,40 +174,30 @@ function BoardPage() {
         <span className="rounded-full border border-border px-3 py-1 text-sm">Needs you · 4</span>
       </div>
 
+      {/* Weekly payout goal */}
+      <section className="mb-4 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Your weekly payout goal
+          </span>
+          <span className="ez-num">
+            $2,100 <span className="text-muted-foreground">of $3,000</span>
+          </span>
+        </div>
+        <div className="mt-8">
+          <GoalBar progress={progress} truckColor={truckColor} />
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">$900 to go · Memphis gets you there</p>
+      </section>
+
       {!hasTruck ? (
-        <section className="mb-4 rounded-2xl border border-ez-amber/40 bg-card p-5">
-          <div className="flex items-start gap-3">
-            <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ez-amber/50 bg-surface-2">
-              <img
-                src={boardTruckAsset.url}
-                alt="Silver semi truck"
-                draggable={false}
-                className="h-11 w-16 max-w-none select-none object-contain"
-                style={{
-                  transform: "rotate(-3deg)",
-                  filter: `drop-shadow(0 3px 4px rgba(0,0,0,0.55)) drop-shadow(0 7px 7px ${truckColor})`,
-                }}
-              />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold">Add your truck to get sharper numbers</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                No loads on the board yet. Your fuel, upkeep and hours are what turn a rate into
-                what you actually keep.
-              </p>
-            </div>
-          </div>
-          <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
-            <li>· Unit, size and hazmat</li>
-            <li>· Fuel, upkeep and daily costs</li>
-            <li>· Hours you have left to drive</li>
-          </ul>
-          <div className="mt-4">
-            <Link to="/settings" className="ez-btn-amber text-center">
-              Set up my truck
-            </Link>
-          </div>
-        </section>
+        <Link
+          to="/settings"
+          className="mb-4 flex items-center justify-between rounded-xl border border-border bg-card p-4 text-sm font-semibold"
+        >
+          <span>Add your truck to get sharper numbers</span>
+          <span aria-hidden="true">→</span>
+        </Link>
       ) : null}
 
       {/* EZ's Pick */}
@@ -260,22 +249,6 @@ function BoardPage() {
           <button className="ez-btn-primary">See the load</button>
           <button className="ez-btn-secondary">Needs you 2</button>
         </div>
-      </section>
-
-      {/* Your week */}
-      <section className="mb-6 rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Your week
-          </span>
-          <span className="ez-num">
-            $2,100 <span className="text-muted-foreground">of $3,000</span>
-          </span>
-        </div>
-        <div className="mt-8">
-          <GoalBar progress={progress} truckColor={truckColor} />
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">$900 to go · Memphis gets you there</p>
       </section>
 
       <div className="space-y-6">
