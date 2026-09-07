@@ -163,8 +163,9 @@ export function WeeklyGoalChart({
             </feMerge>
           </filter>
           <clipPath id={`week-reveal-${compact ? "compact" : "full"}`}>
-            <rect x="0" y="0" width={width * clampedReveal} height={height} />
+            <rect x="0" y="0" width={truckPoint.x + 2} height={height} />
           </clipPath>
+
         </defs>
 
         <line
@@ -214,16 +215,27 @@ export function WeeklyGoalChart({
           const point = points[index];
           if (!point) return null;
           const active = day.amount !== null;
+          const reached = point.x <= truckPoint.x + 2;
           return (
             <g key={day.day} opacity={active ? 1 : 0.35}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={active ? 8 : 6}
-                fill={active ? "var(--color-ez-amber)" : "var(--color-surface-2)"}
-                stroke="var(--color-background)"
-                strokeWidth="4"
-              />
+              <g
+                style={{
+                  opacity: !active || reached ? 1 : 0,
+                  transform: !active || reached ? "scale(1)" : "scale(0.4)",
+                  transformBox: "fill-box",
+                  transformOrigin: "center",
+                  transition: "opacity 260ms ease-out, transform 260ms ease-out",
+                }}
+              >
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={active ? 8 : 6}
+                  fill={active ? "var(--color-ez-amber)" : "var(--color-surface-2)"}
+                  stroke="var(--color-background)"
+                  strokeWidth="4"
+                />
+              </g>
               {!compact && active ? (
                 <text
                   x={point.x}
@@ -232,6 +244,10 @@ export function WeeklyGoalChart({
                   fill="var(--color-foreground)"
                   fontSize="21"
                   fontWeight="700"
+                  style={{
+                    opacity: reached ? 1 : 0,
+                    transition: "opacity 300ms ease-out",
+                  }}
                 >
                   {moneyLabel(day.amount ?? 0)}
                 </text>
@@ -249,9 +265,10 @@ export function WeeklyGoalChart({
             </g>
           );
         })}
+
       </svg>
       <div
-        className="pointer-events-none absolute transition-[left,top] duration-700 ease-out"
+        className="pointer-events-none absolute"
         style={{
           left: `${(truckPoint.x / width) * 100}%`,
           top: `${(truckPoint.y / height) * 100}%`,
