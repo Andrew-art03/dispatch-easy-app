@@ -33,11 +33,13 @@ const BODY_TYPES: {
   label: string;
   icon?: typeof TruckIcon;
   image?: string;
-  equipment: EquipmentType;
+  // Only the trailer tiles map to a frozen equipment value. Bobtail / 18-Wheeler /
+  // Van are pictures only — the truck profile form owns equipment for those.
+  equipment?: EquipmentType;
 }[] = [
-  { id: "bobtail", label: "Bobtail", icon: TruckIcon, equipment: "other" },
-  { id: "semi", label: "18-Wheeler", icon: Container, equipment: "flatbed" },
-  { id: "van", label: "Van", icon: Caravan, equipment: "van" },
+  { id: "bobtail", label: "Bobtail", icon: TruckIcon },
+  { id: "semi", label: "18-Wheeler", icon: Container },
+  { id: "van", label: "Van", icon: Caravan },
   { id: "lowboy", label: "Lowboy", image: lowboyAsset.url, equipment: "stepdeck" },
   {
     id: "gooseneck",
@@ -76,8 +78,7 @@ function SettingsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["truck"] }),
   });
 
-  const mappedEquipment =
-    BODY_TYPES.find((b) => b.id === bodyType)?.equipment ?? ("other" as EquipmentType);
+  const mappedEquipment = BODY_TYPES.find((b) => b.id === bodyType)?.equipment;
 
 
   return (
@@ -111,7 +112,7 @@ function SettingsPage() {
                   type="button"
                   onClick={() => {
                     setBodyType(id);
-                    saveEquipment.mutate(equipment);
+                    if (equipment) saveEquipment.mutate(equipment);
                   }}
                   aria-pressed={active}
                   className={`flex min-h-24 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-2 text-sm ${
@@ -139,9 +140,11 @@ function SettingsPage() {
             })}
           </div>
 
-          <p className="mt-3 text-xs text-muted-foreground">
-            {saveEquipment.isPending ? "Saving…" : `Saved as: ${mappedEquipment}`}
-          </p>
+          {mappedEquipment ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {saveEquipment.isPending ? "Saving…" : `Saved as: ${mappedEquipment}`}
+            </p>
+          ) : null}
           {saveEquipment.isError ? (
             <div className="mt-3">
               <ErrorBox error={saveEquipment.error} />
