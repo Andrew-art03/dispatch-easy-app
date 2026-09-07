@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Mic } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { TruckAvatar, useTruckBody, useTruckColor } from "@/components/GoalProgress";
+import { CopilotAvatar, TRUCK_COLORS, useTruckColor } from "@/components/GoalProgress";
+import { useEZVoice } from "@/components/EZVoice";
+import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/copilot")({
   head: () => ({
