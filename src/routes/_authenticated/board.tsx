@@ -171,8 +171,9 @@ function BoardPage() {
                 src={boardTruckAsset.url}
                 alt="Silver semi truck"
                 draggable={false}
-                className="h-11 w-16 max-w-none -rotate-3 select-none object-contain"
+                className="h-11 w-16 max-w-none select-none object-contain"
                 style={{
+                  transform: "rotate(-3deg)",
                   filter: `drop-shadow(0 3px 4px rgba(0,0,0,0.55)) drop-shadow(0 7px 7px ${truckColor})`,
                 }}
               />
