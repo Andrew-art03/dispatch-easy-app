@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
 import { EZVoiceSheetHost } from "@/components/EZVoice";
 
-const NAV: { to: string; label: string; icon: typeof LayoutList; amber?: boolean }[] = [
+const NAV: { to: string; label: string; icon: typeof LayoutList }[] = [
   { to: "/settings", label: "Truck", icon: TruckIcon },
   { to: "/home", label: "Home", icon: Home },
-  { to: "/hunt", label: "Hunt", icon: Search, amber: true },
+  { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/docs", label: "Docs", icon: FileText },
   { to: "/goal", label: "Week $", icon: Wallet },
 ];
@@ -44,7 +44,7 @@ export function AppShell({
         <div className="mx-auto flex max-w-3xl flex-col">
           {bottomSticky ? <div className="px-4 pb-2 pt-3">{bottomSticky}</div> : null}
           <div className="grid grid-cols-5">
-            {NAV.map(({ to, label, icon: Icon, amber }) => (
+            {NAV.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -56,11 +56,7 @@ export function AppShell({
                     <Icon
                       className={cn(
                         "size-6",
-                        isActive
-                          ? amber
-                            ? "text-ez-amber"
-                            : "text-ez-amber"
-                          : "text-muted-foreground",
+                        isActive ? "text-ez-amber" : "text-muted-foreground",
                       )}
                     />
                     <span
