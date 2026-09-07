@@ -36,6 +36,44 @@ const MOCK = {
   ],
 };
 
+/**
+ * Drives the chart reveal from 0..1 so the line draws day by day and the truck
+ * glides to the newest marker. Reduced motion jumps straight to the end state.
+ */
+function useDayReveal(activeCount: number) {
+  const [reveal, setReveal] = useState(0);
+  const current = useRef(0);
+
+  useEffect(() => {
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      current.current = 1;
+      setReveal(1);
+      return;
+    }
+    const from = current.current;
+    const segments = Math.max(activeCount - 1, 1);
+    // ~200ms per day while drawing in, a touch quicker for a single new day.
+    const duration = Math.max(300, segments * 200 * Math.max(1 - from, 0.35));
+    const start = performance.now();
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const value = from + (1 - from) * eased;
+      current.current = value;
+      setReveal(value);
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [activeCount]);
+
+  return reveal;
+}
+
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [target, setTarget] = useState(WEEK_GOAL.target);
@@ -46,6 +84,9 @@ function GoalPage() {
   const previousEarned = useRef(WEEK_GOAL.earned);
   const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
   const earned = useMemo(() => days.reduce((sum, day) => sum + (day.amount ?? 0), 0), [days]);
+  const activeCount = useMemo(() => days.filter((day) => day.amount !== null).length, [days]);
+  const reveal = useDayReveal(activeCount);
+
 
   useEffect(() => {
     const crossed = previousEarned.current < target && earned >= target;
