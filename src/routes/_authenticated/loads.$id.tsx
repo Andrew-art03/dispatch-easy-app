@@ -311,25 +311,6 @@ function LoadCard() {
             You can confirm once the rate con is in.
           </p>
         ) : null}
-
-        <EZVoiceSheet
-          open={voiceOpen}
-          onClose={() => setVoiceOpen(false)}
-          transcript="Book the Amarillo load"
-          heard={[
-            { label: "Load", value: load.reference ?? "this load", sure: true },
-            { label: "Action", value: "Confirm load", sure: true },
-            { label: "Pay terms", value: deal?.payment_terms ?? "not read yet", sure: false },
-          ]}
-          keepAmount={keep}
-          rpmLabel={rpm(score?.all_in_rpm ?? null)}
-          verdictWord={verdictWord}
-          confirmDisabled={!canConfirm || callEndpoint.isPending}
-          onConfirm={() => {
-            callEndpoint.mutate("confirm");
-            setVoiceOpen(false);
-          }}
-        />
       </div>
     </AppShell>
   );
