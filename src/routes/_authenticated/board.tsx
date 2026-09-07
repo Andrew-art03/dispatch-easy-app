@@ -153,7 +153,7 @@ function BoardPage() {
       action={
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setVoiceOpen(true)}
+            onClick={openBoardVoice}
             className="min-h-11 rounded-xl border border-ez-amber px-4 text-sm font-semibold text-ez-amber"
           >
             Talk to EZ
@@ -343,19 +343,6 @@ function BoardPage() {
         EZ is watching your lane · say "find me a load out of Amarillo" · MC 1234567
       </p>
 
-      <EZVoiceSheet
-        open={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        transcript="What's my best move today?"
-        heard={[
-          { label: "Truck", value: "Unit 12", sure: true },
-          { label: "Load", value: "#4471", sure: true },
-          { label: "Action", value: "Review this load", sure: false },
-        ]}
-        keepAmount="$1,412"
-        rpmLabel="$2.41"
-        verdictWord="Take it"
-      />
     </AppShell>
   );
 }
