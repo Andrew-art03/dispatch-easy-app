@@ -111,6 +111,33 @@ function LoadCard() {
   const inputs = (score?.inputs ?? {}) as Record<string, unknown>;
   const canConfirm = load.state === "rate_con_received";
 
+  // Read-only checklist derived from load.state + existing document rows.
+  const STATE_ORDER: LoadState[] = [
+    "candidate_found",
+    "qualified",
+    "pursue_approved",
+    "negotiating",
+    "terms_proposed",
+    "rate_con_received",
+    "booked",
+    "in_transit",
+    "delivered",
+    "billing_ready",
+    "paid_reconciled",
+    "learned",
+  ];
+  const stateAt = (s: LoadState) => STATE_ORDER.indexOf(s);
+  const reached = (s: LoadState) =>
+    load.state !== "rejected" && stateAt(load.state) >= stateAt(s) && stateAt(load.state) >= 0;
+  const hasPod = (docsQuery.data ?? []).some((d) => d.type === "pod");
+  const checklist: { label: string; done: boolean; easy?: boolean }[] = [
+    { label: "Found and scored this load", done: Boolean(score) },
+    { label: "You approved pursuing it", done: reached("pursue_approved") },
+    { label: "Get rate confirmation", done: reached("rate_con_received") },
+    { label: "Tap Confirm load", done: reached("booked"), easy: true },
+    { label: "Upload delivery docs", done: hasPod },
+  ];
+
   const keep = money(score?.true_net ?? null);
   const verdictWord = score ? VERDICT_LABEL[score.verdict] : "No call yet";
 
