@@ -4,6 +4,7 @@ import { Settings2 } from "lucide-react";
 import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
 import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
 import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
+import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
 
 export type TruckColor = { name: string; value: string };
 
@@ -355,6 +356,32 @@ export function TruckAvatar({
   );
 }
 
+/**
+ * EZ Copilot's face — the same picture everywhere Copilot speaks.
+ * The picked color only lights the ring/glow; the picture is never recolored.
+ */
+export function CopilotAvatar({
+  color,
+  className = "size-10",
+}: {
+  color: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
+      style={{ border: `1px solid ${color}80`, boxShadow: `0 0 12px ${color}66` }}
+    >
+      <img
+        src={copilotAvatarAsset.url}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="h-full w-full select-none object-cover"
+      />
+    </span>
+  );
+}
 
 export function useTruckColor() {
   const [color, setColorState] = useState(DEFAULT_COLOR);

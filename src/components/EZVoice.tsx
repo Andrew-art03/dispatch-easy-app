@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Mic, X } from "lucide-react";
+import { CopilotAvatar, useTruckColor } from "@/components/GoalProgress";
 
 export type VoiceHeard = {
   label: string;
@@ -62,6 +63,7 @@ export function EZVoiceSheetHost() {
 export function EZVoiceSheet({ open, props }: { open: boolean; props: VoiceProps | null }) {
   const transcript = props?.transcript ?? "";
   const [typed, setTyped] = useState(transcript);
+  const [truckColor] = useTruckColor();
 
   useEffect(() => {
     if (!open) return;
@@ -92,10 +94,13 @@ export function EZVoiceSheet({ open, props }: { open: boolean; props: VoiceProps
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/85 backdrop-blur-sm sm:items-center">
       <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-card p-5 sm:rounded-3xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-lg font-semibold">EZ is listening</p>
-            <p className="text-sm text-muted-foreground">Say what you want to do.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <CopilotAvatar color={truckColor} className="size-11" />
+            <div>
+              <p className="text-lg font-semibold">EZ is listening</p>
+              <p className="text-sm text-muted-foreground">Say what you want to do.</p>
+            </div>
           </div>
           <button
             onClick={() => emit({ open: false })}
