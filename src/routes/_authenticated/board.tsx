@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { Settings, Radar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
-import { EZVoiceSheet } from "@/components/EZVoice";
+import { useEZVoice } from "@/components/EZVoice";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
 import boardTruckAsset from "@/assets/board-truck-side-profile.png.asset.json";
@@ -115,8 +114,21 @@ const SECTIONS: { title: string; count: number; cards: MockCard[] }[] = [
 ];
 
 function BoardPage() {
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voice = useEZVoice();
   const [truckColor] = useTruckColor();
+
+  const openBoardVoice = () =>
+    voice.openWith({
+      transcript: "What's my best move today?",
+      heard: [
+        { label: "Truck", value: "Unit 12", sure: true },
+        { label: "Load", value: "#4471", sure: true },
+        { label: "Action", value: "Review this load", sure: false },
+      ],
+      keepAmount: "$1,412",
+      rpmLabel: "$2.41",
+      verdictWord: "Take it",
+    });
 
   const truckQuery = useQuery({
     queryKey: ["board-truck"],
