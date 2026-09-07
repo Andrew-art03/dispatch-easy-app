@@ -90,7 +90,7 @@ function CopilotPage() {
   const [truckColor] = useTruckColor();
   const [truckBody] = useTruckBody();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const active = ACTIONS.find((a) => a.id === activeId) ?? null;
+  const active = ACTIONS.find((a) => a.id === activeId)?.result ?? null;
 
   return (
     <AppShell
