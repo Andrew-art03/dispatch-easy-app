@@ -158,7 +158,6 @@ function CopilotPage() {
       >
         <TruckImage
           glow={truckColor}
-          alt="EZ Copilot, your selected truck"
           className="mx-auto block h-56 w-full select-none object-contain sm:h-[26rem]"
         />
       </section>
