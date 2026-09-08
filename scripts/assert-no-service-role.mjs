@@ -3,21 +3,13 @@
 // Fails the build if a Supabase SERVICE-ROLE credential reaches the build output.
 // Added 2026-09-07 by Claude Code, ticket EZ-002.
 //
-// WHY THIS MATCHES VALUES, NOT WORDS.
-// A first version banned the literal strings "service_role"/"sb_secret". It fired on
-// five files -- all of them Supabase SDK code, e.g. the client's own key-type detector
-// `e.startsWith("sb_publishable_") || e.startsWith("sb_secret_")`. Zero real keys. A
-// rail that cries wolf gets switched off, so this one matches credential SHAPES:
-//   1. sb_secret_ followed by actual key characters  (new-format secret key)
-//   2. a JWT whose decoded payload carries role=service_role  (legacy service key)
-//   3. SUPABASE_SERVICE_ROLE_KEY assigned a non-empty literal
-//
-// NOT flagged, deliberately: the anon/publishable key. VITE_* values are inlined into
-// the browser bundle by design and tenant isolation rests on RLS, not on hiding it.
-// service_role bypasses RLS entirely, which is why only it is a stop condition.
+// This is the AFTER-build half of the rail. assert-no-secret-source.mjs (check:env)
+// is the before-build half; the credential patterns both use live in one shared
+// module so tightening one cannot leave the other behind.
 
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { findCredentialValues, isBinary } from "./credential-shapes.mjs";
 
 const TARGET = process.argv[2] ?? ".output";
 
@@ -26,18 +18,9 @@ if (!existsSync(TARGET)) {
   process.exit(1);
 }
 
-const isServiceRoleJwt = (jwt) => {
-  const payload = jwt.split(".")[1];
-  if (!payload) return false;
-  try {
-    const json = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-    return JSON.parse(json).role === "service_role";
-  } catch {
-    return false;
-  }
-};
-
 const hits = [];
+let scanned = 0;
+
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -45,21 +28,21 @@ const walk = (dir) => {
       walk(p);
       continue;
     }
-    let text;
+
+    let buf;
     try {
-      text = readFileSync(p, "utf8");
+      buf = readFileSync(p);
     } catch {
-      continue; // binary
+      continue; // unreadable (permissions, race with a concurrent build)
     }
+    // Skip images/fonts/wasm by content. The previous version tried to skip them
+    // with `catch { continue; // binary }`, but readFileSync(p,"utf8") does not
+    // throw on binary input -- it returns replacement characters -- so that arm
+    // never ran and every asset was scanned as text.
+    if (isBinary(buf)) continue;
 
-    if (/sb_secret_[A-Za-z0-9_-]{8,}/.test(text)) hits.push({ file: p, why: "sb_secret_ key value" });
-
-    for (const jwt of text.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) ?? []) {
-      if (isServiceRoleJwt(jwt)) hits.push({ file: p, why: "JWT with role=service_role" });
-    }
-
-    if (/SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*["'`][^"'`\s]{8,}/.test(text))
-      hits.push({ file: p, why: "SUPABASE_SERVICE_ROLE_KEY assigned a literal" });
+    scanned++;
+    for (const why of findCredentialValues(buf.toString("utf8"))) hits.push({ file: p, why });
   }
 };
 walk(TARGET);
@@ -71,4 +54,4 @@ if (hits.length > 0) {
   process.exit(1);
 }
 
-console.log(`assert-no-service-role: OK -- scanned ${TARGET}, no service-role credential present.`);
+console.log(`assert-no-service-role: OK -- scanned ${scanned} text files under ${TARGET}, no service-role credential present.`);
