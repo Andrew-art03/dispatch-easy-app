@@ -20,24 +20,24 @@ export const TRUCK_COLORS: TruckColor[] = [
   { name: "Sky", value: "#7CC4FF" },
 ];
 
-/**
- * Chrome truck photo riding the goal bar. The body always stays chrome;
- * the picked color only tints the glow beneath it via a colored drop-shadow.
- */
-export function TruckGlyph({ color, className }: { color: string; className?: string }) {
-  const [body] = useTruckBody();
+/** The one 18-wheeler used everywhere outside the Settings picker. */
+export function TruckImage({ glow, className }: { glow: string; className?: string }) {
   return (
     <img
-      src={truckBodyImage(body)}
+      src={copilotAvatarAsset.url}
       alt=""
       aria-hidden="true"
       draggable={false}
       className={`select-none object-contain ${className ?? ""}`}
       style={{
-        filter: `drop-shadow(0 6px 10px rgba(0,0,0,0.55)) drop-shadow(0 14px 22px ${color})`,
+        filter: `drop-shadow(0 6px 10px rgba(0,0,0,0.55)) drop-shadow(0 10px 16px ${glow})`,
       }}
     />
   );
+}
+
+export function TruckGlyph({ color, className }: { color: string; className?: string }) {
+  return <TruckImage glow={color} className={className ?? ""} />;
 }
 
 export function GoalBar({
@@ -345,11 +345,10 @@ export function useTruckBody() {
 
 /** Small round portrait of the driver's picked truck — used as EZ Copilot's avatar. */
 export function TruckAvatar({
-  body,
   color,
   className = "size-10",
 }: {
-  body: string;
+  body?: string;
   color: string;
   className?: string;
 }) {
@@ -358,13 +357,7 @@ export function TruckAvatar({
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2 ${className}`}
       style={{ boxShadow: `0 0 12px ${color}55` }}
     >
-      <img
-        src={truckBodyImage(body)}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="h-full w-full select-none object-cover"
-      />
+      <TruckImage glow={color} className="h-full w-full object-cover" />
     </span>
   );
 }
@@ -380,19 +373,12 @@ export function CopilotAvatar({
   color: string;
   className?: string;
 }) {
-  const [body] = useTruckBody();
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
       style={{ border: `1px solid ${color}80`, boxShadow: `0 0 12px ${color}66` }}
     >
-      <img
-        src={truckBodyImage(body)}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="h-full w-full select-none object-cover"
-      />
+      <TruckImage glow={color} className="h-full w-full object-cover" />
     </span>
   );
 }

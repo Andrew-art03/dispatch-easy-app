@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
 import { EZVoiceSheetHost } from "@/components/EZVoice";
-import { truckBodyImage, useTruckBody, useTruckColor } from "@/components/GoalProgress";
+import { TruckImage, useTruckColor } from "@/components/GoalProgress";
 
 const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolean }[] = [
   { to: "/settings", label: "Truck", truck: true },
@@ -25,7 +25,6 @@ export function AppShell({
   bottomSticky?: ReactNode;
   children: ReactNode;
 }) {
-  const [truckBody] = useTruckBody();
   const [truckColor] = useTruckColor();
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,12 +57,9 @@ export function AppShell({
                   <>
                     {truck ? (
                       <span className="flex size-6 items-center justify-center overflow-hidden">
-                        <img
-                          src={truckBodyImage(truckBody)}
-                          alt=""
-                          aria-hidden="true"
+                        <TruckImage
+                          glow={isActive ? truckColor : "transparent"}
                           className={cn("h-6 w-6 object-cover", !isActive && "opacity-60 grayscale")}
-                          style={{ filter: isActive ? `drop-shadow(0 0 4px ${truckColor})` : undefined }}
                         />
                       </span>
                     ) : Icon ? (

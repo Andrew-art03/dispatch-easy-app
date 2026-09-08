@@ -4,9 +4,8 @@ import { ArrowLeft, Mic } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
   CopilotAvatar,
+  TruckImage,
   TRUCK_COLORS,
-  truckBodyImage,
-  useTruckBody,
   useTruckColor,
 } from "@/components/GoalProgress";
 import { useEZVoice } from "@/components/EZVoice";
@@ -95,7 +94,6 @@ const ACTIONS: { id: string; label: string; hint: string; result: Result }[] = [
 
 function CopilotPage() {
   const [truckColor, setTruckColor] = useTruckColor();
-  const [truckBody] = useTruckBody();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const voice = useEZVoice();
@@ -158,12 +156,9 @@ function CopilotPage() {
           boxShadow: `0 0 28px ${truckColor}66, inset 0 0 40px ${truckColor}22`,
         }}
       >
-        <img
-          src={truckBodyImage(truckBody)}
-          alt="EZ Copilot, your selected truck"
-          draggable={false}
+        <TruckImage
+          glow={truckColor}
           className="mx-auto block h-56 w-full select-none object-contain sm:h-[26rem]"
-          style={{ filter: `drop-shadow(0 0 24px ${truckColor}88)` }}
         />
       </section>
 
