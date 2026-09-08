@@ -276,7 +276,7 @@ function moneyLabel(value: number) {
 }
 
 const COLOR_KEY = "ez-truck-color";
-const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
+const DEFAULT_COLOR = TRUCK_COLORS[1]!.value;
 
 /** Equipment picture-choice selection — visual only, persisted in the browser. */
 const BODY_KEY = "ez-truck-body";
