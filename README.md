@@ -24,6 +24,25 @@ npm run dev            # http://localhost:8080
 
 `npm run build` produces the production build.
 
+## Scripts
+
+Run with `bun run <name>` (the lockfile is `bun.lock`; npm works too).
+
+| Script | What it does |
+| --- | --- |
+| `dev` | Vite dev server on http://localhost:8080 |
+| `build` | Production build into `.output` |
+| `lint` | ESLint over the repo |
+| `format` | Prettier, writing in place |
+| `typecheck` | `tsc --noEmit` — types only, no emit |
+| `test` | Vitest, single run (CI mode) |
+| `check:env` | Fails if a service/secret/role value is committed to tracked source or a tracked `.env*` |
+| `check:bundle` | Fails if a service-role credential reached `.output` — run after `build` |
+
+`check:env` and `check:bundle` are the two halves of the same rail: the first catches a
+secret before it is built, the second catches one that got in anyway. Both are hard
+failures, not warnings (CLAUDE.md rule 6).
+
 ## Environment
 
 | Variable | Purpose |
