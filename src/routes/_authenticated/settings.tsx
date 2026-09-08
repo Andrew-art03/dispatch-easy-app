@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Truck as TruckIcon, Container, Caravan } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell, ErrorBox } from "@/components/AppShell";
 import type { EquipmentType } from "@/lib/types";
 import { TruckProfile } from "@/components/TruckProfile";
 import { TRUCK_COLORS, TruckGlyph, useTruckBody, useTruckColor } from "@/components/GoalProgress";
-import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
-import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
+import { TRUCK_BODY_IMAGES } from "@/components/GoalProgress";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -31,20 +30,21 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const BODY_TYPES: {
   id: string;
   label: string;
-  icon?: typeof TruckIcon;
-  image?: string;
+  image: string;
   // Only the trailer tiles map to a frozen equipment value. Bobtail / 18-Wheeler /
   // Van are pictures only — the truck profile form owns equipment for those.
   equipment?: EquipmentType;
 }[] = [
-  { id: "bobtail", label: "Bobtail", icon: TruckIcon },
-  { id: "semi", label: "18-Wheeler", icon: Container },
-  { id: "van", label: "Van", icon: Caravan },
-  { id: "lowboy", label: "Lowboy", image: lowboyAsset.url, equipment: "stepdeck" },
+  { id: "bobtail", label: "Bobtail", image: TRUCK_BODY_IMAGES.bobtail },
+  { id: "semi", label: "18-Wheeler", image: TRUCK_BODY_IMAGES.semi },
+  { id: "van", label: "Van", image: TRUCK_BODY_IMAGES.van },
+  { id: "flatbedSemi", label: "Flatbed 18-Wheeler", image: TRUCK_BODY_IMAGES.flatbedSemi },
+  { id: "flatbed", label: "Flatbed Truck", image: TRUCK_BODY_IMAGES.flatbed },
+  { id: "lowboy", label: "Lowboy", image: TRUCK_BODY_IMAGES.lowboy, equipment: "stepdeck" },
   {
     id: "gooseneck",
     label: "Gooseneck Trailer",
-    image: gooseneckAsset.url,
+    image: TRUCK_BODY_IMAGES.gooseneck,
     equipment: "hotshot",
   },
 ];
@@ -104,7 +104,7 @@ function SettingsPage() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            {BODY_TYPES.map(({ id, label, icon: Icon, image, equipment }) => {
+            {BODY_TYPES.map(({ id, label, image, equipment }) => {
               const active = bodyType === id;
               return (
                 <button
@@ -121,19 +121,16 @@ function SettingsPage() {
                       : "border-border bg-surface-2 text-muted-foreground"
                   }`}
                 >
-                  {image ? (
-                    <img
-                      src={image}
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      width={1280}
-                      height={768}
-                      className="h-14 w-full rounded-lg object-cover"
-                    />
-                  ) : Icon ? (
-                    <Icon className="size-7" />
-                  ) : null}
+                  <img
+                    src={image}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    width={1280}
+                    height={768}
+                    className="h-14 w-full rounded-lg object-cover"
+                    style={{ filter: `drop-shadow(0 5px 8px ${truckColor}88)` }}
+                  />
                   <span className="min-h-10 content-center text-center leading-tight">{label}</span>
                 </button>
               );

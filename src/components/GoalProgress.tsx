@@ -5,6 +5,10 @@ import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
 import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
 import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
 import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
+import bobtailAsset from "@/assets/truck-bobtail.png.asset.json";
+import vanAsset from "@/assets/truck-van.png.asset.json";
+import flatbedSemiAsset from "@/assets/truck-flatbed-semi.png.asset.json";
+import flatbedAsset from "@/assets/truck-flatbed.png.asset.json";
 
 export type TruckColor = { name: string; value: string };
 
@@ -21,9 +25,10 @@ export const TRUCK_COLORS: TruckColor[] = [
  * the picked color only tints the glow beneath it via a colored drop-shadow.
  */
 export function TruckGlyph({ color, className }: { color: string; className?: string }) {
+  const [body] = useTruckBody();
   return (
     <img
-      src={goalTruckAsset.url}
+      src={truckBodyImage(body)}
       alt=""
       aria-hidden="true"
       draggable={false}
@@ -297,13 +302,21 @@ const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
 const BODY_KEY = "ez-truck-body";
 export const DEFAULT_BODY = "semi";
 
-export const TRUCK_BODY_IMAGES: Record<string, string> = {
+export const TRUCK_BODY_IMAGES = {
+  bobtail: bobtailAsset.url,
+  semi: copilotAvatarAsset.url,
+  van: vanAsset.url,
+  flatbedSemi: flatbedSemiAsset.url,
+  flatbed: flatbedAsset.url,
   lowboy: lowboyAsset.url,
   gooseneck: gooseneckAsset.url,
-};
+} as const;
 
 export function truckBodyImage(body: string) {
-  return TRUCK_BODY_IMAGES[body] ?? goalTruckAsset.url;
+  if (body in TRUCK_BODY_IMAGES) {
+    return TRUCK_BODY_IMAGES[body as keyof typeof TRUCK_BODY_IMAGES];
+  }
+  return goalTruckAsset.url;
 }
 
 export function useTruckBody() {
@@ -367,13 +380,14 @@ export function CopilotAvatar({
   color: string;
   className?: string;
 }) {
+  const [body] = useTruckBody();
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
       style={{ border: `1px solid ${color}80`, boxShadow: `0 0 12px ${color}66` }}
     >
       <img
-        src={copilotAvatarAsset.url}
+        src={truckBodyImage(body)}
         alt=""
         aria-hidden="true"
         draggable={false}
