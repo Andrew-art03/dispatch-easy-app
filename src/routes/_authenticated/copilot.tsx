@@ -124,7 +124,7 @@ function CopilotPage() {
           >
             <ArrowLeft className="size-5" />
           </Link>
-          <span className="truncate">EZ 18-Wheeler Copilot</span>
+           <span className="truncate">EZ Truck Copilot</span>
         </span>
       }
       action={
