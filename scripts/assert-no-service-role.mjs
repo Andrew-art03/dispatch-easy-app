@@ -54,4 +54,6 @@ if (hits.length > 0) {
   process.exit(1);
 }
 
-console.log(`assert-no-service-role: OK -- scanned ${scanned} text files under ${TARGET}, no service-role credential present.`);
+console.log(
+  `assert-no-service-role: OK -- scanned ${scanned} text files under ${TARGET}, no service-role credential present.`,
+);

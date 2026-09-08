@@ -55,4 +55,6 @@ if (hits.length > 0) {
   process.exit(1);
 }
 
-console.log(`assert-no-secret-source: OK — scanned ${tracked.length} tracked files, no credential material.`);
+console.log(
+  `assert-no-secret-source: OK — scanned ${tracked.length} tracked files, no credential material.`,
+);

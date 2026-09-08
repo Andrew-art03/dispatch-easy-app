@@ -15,7 +15,9 @@ const isServiceRoleJwt = (jwt) => {
   const payload = jwt.split(".")[1];
   if (!payload) return false;
   try {
-    const json = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    const json = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+      "utf8",
+    );
     return JSON.parse(json).role === "service_role";
   } catch {
     return false;
