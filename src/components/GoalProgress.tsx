@@ -9,11 +9,11 @@ export { TruckImage } from "@/components/TruckImage";
 export type TruckColor = { name: string; value: string };
 
 export const TRUCK_COLORS: TruckColor[] = [
-  { name: "Chrome", value: "#D6DAE0" },
-  { name: "Amber", value: "#FFB020" },
-  { name: "Green", value: "#3DDC84" },
-  { name: "Red", value: "#FF5A5F" },
-  { name: "Sky", value: "#7CC4FF" },
+  { name: "Silver", value: "#C9C6CD" },
+  { name: "Amber", value: "#E9821B" },
+  { name: "Green", value: "#33B97A" },
+  { name: "Red", value: "#F43C44" },
+  { name: "Blue", value: "#60A1F3" },
 ];
 
 export function TruckGlyph({ color, className }: { color: string; className?: string }) {
