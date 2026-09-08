@@ -37,7 +37,7 @@ export function TruckImage({ glow, className }: { glow: string; className?: stri
 }
 
 export function TruckGlyph({ color, className }: { color: string; className?: string }) {
-  return <TruckImage glow={color} className={className} />;
+  return <TruckImage glow={color} className={className ?? ""} />;
 }
 
 export function GoalBar({
