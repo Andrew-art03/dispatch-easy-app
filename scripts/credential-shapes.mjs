@@ -57,8 +57,8 @@ export const findCredentialValues = (text) => {
 // Caught here by NAME, before a build exists for check:bundle to scan.
 //
 // ANY OCCURRENCE, not just an assignment. The first cut required a trailing "=",
-// which caught `VITE_X_SECRET=v` in a .env file but sailed straight past
-// `import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY` in a .ts file -- source READS
+// which caught `VITE_X_SECRET=v` in a .env file but sailed straight past   secret-rail:allow (example in a comment)
+// `import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY` in a .ts file -- source READS   secret-rail:allow (example in a comment)
 // these names, it does not assign them, so the assignment form missed the very
 // case this rail exists for. Found by planting that exact line before trusting it.
 export const findPublishedSecretNames = (text) => {

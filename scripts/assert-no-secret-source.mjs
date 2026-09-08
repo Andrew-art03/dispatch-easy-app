@@ -15,8 +15,18 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { findCredentialValues, findPublishedSecretNames, isBinary } from "./credential-shapes.mjs";
 
+// SCOPE WIDENED IN EZ-004 (1C), deliberately.
+//
+// This started as `src`, `.env*`, `*.env` -- correct when `src/` was the only code
+// in the repo. 1B then added `packages/config/` and 1C added `agents/`, both of
+// which exist specifically to handle credentials, and neither was being scanned.
+// A secret rail that is blind to the directories where secrets are handled is not
+// a rail. So: every tracked file, minus lockfiles -- machine-generated integrity
+// hashes that look like entropy, and not somewhere a human pastes a key.
+const EXCLUDED = [":!bun.lock", ":!package-lock.json", ":!pnpm-lock.yaml", ":!yarn.lock"];
+
 // Structured args, never a shell string (CLAUDE.md rule 26).
-const tracked = execFileSync("git", ["ls-files", "-z", "--", "src", ".env*", "*.env"], {
+const tracked = execFileSync("git", ["ls-files", "-z", "--", ".", ...EXCLUDED], {
   encoding: "utf8",
   maxBuffer: 32 * 1024 * 1024,
 })
@@ -38,7 +48,20 @@ for (const file of tracked) {
   }
   if (isBinary(buf)) continue;
 
-  const text = buf.toString("utf8");
+  // PER-LINE EXEMPTION, not a per-file one (EZ-004).
+  //
+  // Widening the scan to every tracked file immediately flagged this rail's own
+  // detector source, whose comments necessarily quote the names it detects --
+  // exactly the self-flagging bug 1B's check:db-boundary hit. The obvious fix,
+  // excluding those files, would make the files that handle credentials the only
+  // ones nobody scans. So a line may opt out by naming the pragma, which keeps
+  // the rest of the file scanned and makes every exemption a visible diff line.
+  const text = buf
+    .toString("utf8")
+    .split("\n")
+    .filter((line) => !line.includes("secret-rail:allow"))
+    .join("\n");
+
   for (const why of [...findPublishedSecretNames(text), ...findCredentialValues(text)]) {
     hits.push({ file, why });
   }
