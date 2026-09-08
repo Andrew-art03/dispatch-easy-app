@@ -2,9 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Mic } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { CopilotAvatar, TRUCK_COLORS, useTruckColor } from "@/components/GoalProgress";
+import {
+  CopilotAvatar,
+  TRUCK_COLORS,
+  truckBodyImage,
+  useTruckBody,
+  useTruckColor,
+} from "@/components/GoalProgress";
 import { useEZVoice } from "@/components/EZVoice";
-import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/copilot")({
   head: () => ({
@@ -90,6 +95,7 @@ const ACTIONS: { id: string; label: string; hint: string; result: Result }[] = [
 
 function CopilotPage() {
   const [truckColor, setTruckColor] = useTruckColor();
+  const [truckBody] = useTruckBody();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const voice = useEZVoice();
@@ -153,10 +159,10 @@ function CopilotPage() {
         }}
       >
         <img
-          src={copilotAvatarAsset.url}
-          alt="EZ Copilot, your 18-wheeler"
+          src={truckBodyImage(truckBody)}
+          alt="EZ Copilot, your selected truck"
           draggable={false}
-          className="mx-auto block h-56 w-full select-none object-cover sm:h-[26rem]"
+          className="mx-auto block h-56 w-full select-none object-contain sm:h-[26rem]"
           style={{ filter: `drop-shadow(0 0 24px ${truckColor}88)` }}
         />
       </section>

@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Search, FileText, Wallet, Truck as TruckIcon, LayoutList } from "lucide-react";
+import { Home, Search, FileText, Wallet, LayoutList } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
 import { EZVoiceSheetHost } from "@/components/EZVoice";
+import { truckBodyImage, useTruckBody, useTruckColor } from "@/components/GoalProgress";
 
-const NAV: { to: string; label: string; icon: typeof LayoutList }[] = [
-  { to: "/settings", label: "Truck", icon: TruckIcon },
+const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolean }[] = [
+  { to: "/settings", label: "Truck", truck: true },
   { to: "/home", label: "Home", icon: Home },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/docs", label: "Docs", icon: FileText },
@@ -24,6 +25,8 @@ export function AppShell({
   bottomSticky?: ReactNode;
   children: ReactNode;
 }) {
+  const [truckBody] = useTruckBody();
+  const [truckColor] = useTruckColor();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
@@ -40,25 +43,37 @@ export function AppShell({
       <EZPresence />
       <EZVoiceSheetHost />
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card pb-[max(0.35rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-3xl flex-col">
           {bottomSticky ? <div className="px-4 pb-2 pt-3">{bottomSticky}</div> : null}
           <div className="grid grid-cols-5">
-            {NAV.map(({ to, label, icon: Icon }) => (
+            {NAV.map(({ to, label, icon: Icon, truck }) => (
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-1 py-3 text-xs transition-colors"
+                className="flex flex-col items-center gap-1 py-3.5 text-xs transition-colors"
                 activeOptions={{ exact: false }}
               >
                 {({ isActive }) => (
                   <>
-                    <Icon
-                      className={cn(
-                        "size-6",
-                        isActive ? "text-ez-amber" : "text-muted-foreground",
-                      )}
-                    />
+                    {truck ? (
+                      <span className="flex size-6 items-center justify-center overflow-hidden">
+                        <img
+                          src={truckBodyImage(truckBody)}
+                          alt=""
+                          aria-hidden="true"
+                          className={cn("h-6 w-6 object-cover", !isActive && "opacity-60 grayscale")}
+                          style={{ filter: isActive ? `drop-shadow(0 0 4px ${truckColor})` : undefined }}
+                        />
+                      </span>
+                    ) : Icon ? (
+                      <Icon
+                        className={cn(
+                          "size-6",
+                          isActive ? "text-ez-amber" : "text-muted-foreground",
+                        )}
+                      />
+                    ) : null}
                     <span
                       className={cn(
                         isActive
