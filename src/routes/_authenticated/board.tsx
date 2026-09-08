@@ -4,7 +4,7 @@ import { Settings, Radar, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell } from "@/components/AppShell";
 import { useEZVoice } from "@/components/EZVoice";
-import { CopilotAvatar, GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { TrustCue } from "@/components/TrustCue";
 
 export const Route = createFileRoute("/_authenticated/board")({
@@ -162,14 +162,12 @@ function BoardPage() {
             onClick={openBoardVoice}
             className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
-            <CopilotAvatar color={truckColor} className="size-6" />
             <span className="whitespace-nowrap">Talk</span>
           </button>
           <Link
             to="/copilot"
             className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
-            <CopilotAvatar color={truckColor} className="size-6" />
             <span className="whitespace-nowrap">Work</span>
           </Link>
           <Link

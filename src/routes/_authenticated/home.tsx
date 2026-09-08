@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AppShell, ErrorBox } from "@/components/AppShell";
-import { CopilotAvatar, GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { GoalBar, useTruckColor } from "@/components/GoalProgress";
 import { useEZVoice } from "@/components/EZVoice";
 import type { LoadState } from "@/lib/types";
 
@@ -249,7 +249,6 @@ function HomePage() {
         {/* 6 — EZ Copilot */}
         <section className="rounded-2xl border border-ez-amber/50 bg-card p-4">
           <div className="flex items-center gap-3">
-            <CopilotAvatar color={truckColor} className="size-12" />
             <div className="min-w-0">
               <p className="font-semibold">EZ Copilot</p>
               <p className="truncate text-sm text-muted-foreground">

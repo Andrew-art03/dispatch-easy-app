@@ -90,6 +90,7 @@ function SettingsPage() {
           >
             <ArrowLeft className="size-5" />
           </Link>
+          <TruckImage size="sm" glowColor={truckColor} />
           Settings
         </span>
       }
