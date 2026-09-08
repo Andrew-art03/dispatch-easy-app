@@ -1,0 +1,79 @@
+# gitleaks config — SPEC 1C. CI is the gate; the pre-commit hook is convenience.
+#
+# Run with `--no-git` (see package.json check:secrets) so the scan does not depend
+# on git.exe being reachable — a real constraint on this project's build machine,
+# and the reason Gemini's review flagged the flag.
+#
+# On the FIRST CI run this must also scan full history (`gitleaks detect` without
+# --no-git, on a full-depth checkout). The repo began as a Lovable export; nothing
+# has proven its history clean.
+
+title = "EZ Trucking"
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Project-specific rules. The defaults do not know Supabase's newer key formats.
+# ---------------------------------------------------------------------------
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret key (sb_secret_…) — bypasses RLS"
+regex = '''\bsb_secret_[A-Za-z0-9_-]{8,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase service_role JWT — bypasses RLS entirely"
+# The role claim base64url-encodes to this fragment in the payload segment.
+regex = '''eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*(cm9sZSI6InNlcnZpY2Vfcm9sZ|InJvbGUiOiJzZXJ2aWNlX3JvbGUi)[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+'''
+keywords = ["eyJ"]
+
+[[rules]]
+id = "supabase-connection-string-password"
+description = "Postgres connection string with an inline password"
+regex = '''postgres(?:ql)?://[^:/\s]+:(?!PASSWORD\b)[^@\s]{6,}@'''
+keywords = ["postgres://", "postgresql://"]
+
+[[rules]]
+id = "vite-published-secret-name"
+description = "A VITE_ name containing SERVICE/SECRET/ROLE is published to the browser"
+regex = '''\bVITE_[A-Z0-9_]*(?:SERVICE|SECRET|ROLE)[A-Z0-9_]*\b'''
+keywords = ["VITE_"]
+
+# ---------------------------------------------------------------------------
+# Allowlist
+#
+# Narrow on purpose. There is deliberately NO blanket exemption for tests: a
+# "but not in tests" rule is how real keys end up in test files. Instead
+# tests/secrets.test.ts assembles every credential-shaped fixture at runtime, so
+# the shape exists in memory and never in a tracked file. See the note at the top
+# of that file.
+# ---------------------------------------------------------------------------
+
+[[allowlists]]
+description = "Placeholders in .env.example — names and PLACEHOLDER values only"
+paths = ['''^\.env\.example$''']
+regexes = [
+  '''sb_publishable_x+''',
+  '''PASSWORD@''',
+]
+
+[[allowlists]]
+description = "Detector source: these files must contain the patterns they detect"
+paths = [
+  '''^scripts/credential-shapes\.mjs$''',
+  '''^agents/secrets\.ts$''',
+  '''^\.gitleaks\.toml$''',
+]
+
+[[allowlists]]
+description = "Lockfiles and build output carry integrity hashes that look like entropy"
+paths = [
+  '''^bun\.lock$''',
+  '''^package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''^\.output/''',
+  '''^dist/''',
+]
