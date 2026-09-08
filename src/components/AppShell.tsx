@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZPresence } from "@/components/EZPresence";
 import { EZVoiceSheetHost } from "@/components/EZVoice";
-import { TruckImage, useTruckColor } from "@/components/GoalProgress";
+import { useTruckColor } from "@/components/GoalProgress";
+import { TruckImage } from "@/components/TruckImage";
 
 const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolean }[] = [
   { to: "/settings", label: "Truck", truck: true },
@@ -58,8 +59,10 @@ export function AppShell({
                     {truck ? (
                       <span className="flex size-6 items-center justify-center overflow-hidden">
                         <TruckImage
-                          glow={isActive ? truckColor : "transparent"}
-                          className={cn("h-6 w-6 object-cover", !isActive && "opacity-60 grayscale")}
+                          size="nav"
+                          glowColor={isActive ? truckColor : "transparent"}
+                          monochrome={!isActive}
+                          className={cn(!isActive && "opacity-60")}
                         />
                       </span>
                     ) : Icon ? (

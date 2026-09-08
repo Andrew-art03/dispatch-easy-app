@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Settings2 } from "lucide-react";
-import goalTruckAsset from "@/assets/goal-truck.png.asset.json";
-import lowboyAsset from "@/assets/truck-lowboy.jpg.asset.json";
-import gooseneckAsset from "@/assets/truck-gooseneck.jpg.asset.json";
 import copilotAvatarAsset from "@/assets/ez-copilot-avatar.png.asset.json";
-import bobtailAsset from "@/assets/truck-bobtail.png.asset.json";
-import vanAsset from "@/assets/truck-van.png.asset.json";
-import flatbedSemiAsset from "@/assets/truck-flatbed-semi.png.asset.json";
-import flatbedAsset from "@/assets/truck-flatbed.png.asset.json";
+import { TruckImage } from "@/components/TruckImage";
+
+export { TruckImage } from "@/components/TruckImage";
 
 export type TruckColor = { name: string; value: string };
 
@@ -20,24 +16,8 @@ export const TRUCK_COLORS: TruckColor[] = [
   { name: "Sky", value: "#7CC4FF" },
 ];
 
-/** The one 18-wheeler used everywhere outside the Settings picker. */
-export function TruckImage({ glow, className }: { glow: string; className?: string }) {
-  return (
-    <img
-      src={copilotAvatarAsset.url}
-      alt=""
-      aria-hidden="true"
-      draggable={false}
-      className={`select-none object-contain ${className ?? ""}`}
-      style={{
-        filter: `drop-shadow(0 6px 10px rgba(0,0,0,0.55)) drop-shadow(0 10px 16px ${glow})`,
-      }}
-    />
-  );
-}
-
 export function TruckGlyph({ color, className }: { color: string; className?: string }) {
-  return <TruckImage glow={color} className={className ?? ""} />;
+  return <TruckImage glowColor={color} className={className ?? ""} />;
 }
 
 export function GoalBar({
@@ -296,28 +276,11 @@ function moneyLabel(value: number) {
 }
 
 const COLOR_KEY = "ez-truck-color";
-const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
+const DEFAULT_COLOR = TRUCK_COLORS[1]!.value;
 
-/** Picture picker selection — visual only, persisted in the browser. */
+/** Equipment picture-choice selection — visual only, persisted in the browser. */
 const BODY_KEY = "ez-truck-body";
 export const DEFAULT_BODY = "semi";
-
-export const TRUCK_BODY_IMAGES = {
-  bobtail: bobtailAsset.url,
-  semi: copilotAvatarAsset.url,
-  van: vanAsset.url,
-  flatbedSemi: flatbedSemiAsset.url,
-  flatbed: flatbedAsset.url,
-  lowboy: lowboyAsset.url,
-  gooseneck: gooseneckAsset.url,
-} as const;
-
-export function truckBodyImage(body: string) {
-  if (body in TRUCK_BODY_IMAGES) {
-    return TRUCK_BODY_IMAGES[body as keyof typeof TRUCK_BODY_IMAGES];
-  }
-  return goalTruckAsset.url;
-}
 
 export function useTruckBody() {
   const [body, setBodyState] = useState(DEFAULT_BODY);
@@ -343,27 +306,8 @@ export function useTruckBody() {
   return [body, setBody] as const;
 }
 
-/** Small round portrait of the driver's picked truck — used as EZ Copilot's avatar. */
-export function TruckAvatar({
-  color,
-  className = "size-10",
-}: {
-  body?: string;
-  color: string;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2 ${className}`}
-      style={{ boxShadow: `0 0 12px ${color}55` }}
-    >
-      <TruckImage glow={color} className="h-full w-full object-cover" />
-    </span>
-  );
-}
-
 /**
- * EZ Copilot's face — the same picture everywhere Copilot speaks.
+ * EZ Copilot's face — reserved for the dedicated Copilot screen.
  * The picked color only lights the ring/glow; the picture is never recolored.
  */
 export function CopilotAvatar({
@@ -378,7 +322,13 @@ export function CopilotAvatar({
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
       style={{ border: `1px solid ${color}80`, boxShadow: `0 0 12px ${color}66` }}
     >
-      <TruckImage glow={color} className="h-full w-full object-cover" />
+      <img
+        src={copilotAvatarAsset.url}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="h-full w-full select-none object-cover"
+      />
     </span>
   );
 }

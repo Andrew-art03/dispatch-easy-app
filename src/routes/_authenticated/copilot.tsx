@@ -4,7 +4,6 @@ import { ArrowLeft, Mic } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
   CopilotAvatar,
-  TruckImage,
   TRUCK_COLORS,
   useTruckColor,
 } from "@/components/GoalProgress";
@@ -156,10 +155,7 @@ function CopilotPage() {
           boxShadow: `0 0 28px ${truckColor}66, inset 0 0 40px ${truckColor}22`,
         }}
       >
-        <TruckImage
-          glow={truckColor}
-          className="mx-auto block h-56 w-full select-none object-contain sm:h-[26rem]"
-        />
+        <CopilotAvatar color={truckColor} className="mx-auto size-56 sm:size-80" />
       </section>
 
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">

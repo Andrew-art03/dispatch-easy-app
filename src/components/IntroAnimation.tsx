@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { TruckImage, useTruckColor } from "@/components/GoalProgress";
+import { useTruckColor } from "@/components/GoalProgress";
+import { TruckImage } from "@/components/TruckImage";
 import { WEEK_GOAL, money } from "@/lib/goal";
 import { supabase } from "@/lib/supabase";
 
@@ -105,7 +106,7 @@ export function IntroAnimation() {
         </span>
 
         <TruckImage
-          glow={truckColor}
+          glowColor={truckColor}
           className={`pointer-events-none absolute bottom-10 left-4 h-16 w-28 select-none object-contain ${
             settled ? "ez-splash-parked" : "ez-splash-climb"
           }`}

@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { AppShell, ErrorBox } from "@/components/AppShell";
 import type { EquipmentType } from "@/lib/types";
 import { TruckProfile } from "@/components/TruckProfile";
-import { TRUCK_COLORS, TruckGlyph, useTruckBody, useTruckColor } from "@/components/GoalProgress";
-import { TRUCK_BODY_IMAGES } from "@/components/GoalProgress";
+import { TRUCK_COLORS, useTruckBody, useTruckColor } from "@/components/GoalProgress";
+import { TruckImage } from "@/components/TruckImage";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -30,21 +30,19 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const BODY_TYPES: {
   id: string;
   label: string;
-  image: string;
   // Only the trailer tiles map to a frozen equipment value. Bobtail / 18-Wheeler /
   // Van are pictures only — the truck profile form owns equipment for those.
   equipment?: EquipmentType;
 }[] = [
-  { id: "bobtail", label: "Bobtail", image: TRUCK_BODY_IMAGES.bobtail },
-  { id: "semi", label: "18-Wheeler", image: TRUCK_BODY_IMAGES.semi },
-  { id: "van", label: "Van", image: TRUCK_BODY_IMAGES.van },
-  { id: "flatbedSemi", label: "Flatbed 18-Wheeler", image: TRUCK_BODY_IMAGES.flatbedSemi },
-  { id: "flatbed", label: "Flatbed Truck", image: TRUCK_BODY_IMAGES.flatbed },
-  { id: "lowboy", label: "Lowboy", image: TRUCK_BODY_IMAGES.lowboy, equipment: "stepdeck" },
+  { id: "bobtail", label: "Bobtail" },
+  { id: "semi", label: "18-Wheeler" },
+  { id: "van", label: "Van" },
+  { id: "flatbedSemi", label: "Flatbed 18-Wheeler" },
+  { id: "flatbed", label: "Flatbed Truck" },
+  { id: "lowboy", label: "Lowboy", equipment: "stepdeck" },
   {
     id: "gooseneck",
     label: "Gooseneck Trailer",
-    image: TRUCK_BODY_IMAGES.gooseneck,
     equipment: "hotshot",
   },
 ];
@@ -92,6 +90,7 @@ function SettingsPage() {
           >
             <ArrowLeft className="size-5" />
           </Link>
+          <TruckImage size="sm" glowColor={truckColor} />
           Settings
         </span>
       }
@@ -104,7 +103,7 @@ function SettingsPage() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            {BODY_TYPES.map(({ id, label, image, equipment }) => {
+            {BODY_TYPES.map(({ id, label, equipment }) => {
               const active = bodyType === id;
               return (
                 <button
@@ -115,23 +114,13 @@ function SettingsPage() {
                     if (equipment) saveEquipment.mutate(equipment);
                   }}
                   aria-pressed={active}
-                  className={`flex min-h-24 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border p-2 text-sm ${
+                  className={`flex min-h-16 items-center justify-center overflow-hidden rounded-xl border p-3 text-sm ${
                     active
                       ? "border-ez-amber bg-ez-amber/10 font-semibold text-ez-amber"
                       : "border-border bg-surface-2 text-muted-foreground"
                   }`}
                 >
-                  <img
-                    src={image}
-                    alt=""
-                    aria-hidden="true"
-                    loading="lazy"
-                    width={1280}
-                    height={768}
-                    className="h-14 w-full rounded-lg object-cover"
-                    style={{ filter: `drop-shadow(0 5px 8px ${truckColor}88)` }}
-                  />
-                  <span className="min-h-10 content-center text-center leading-tight">{label}</span>
+                  <span className="text-center leading-tight">{label}</span>
                 </button>
               );
             })}
@@ -150,7 +139,7 @@ function SettingsPage() {
 
 
           <div className="mt-6 flex items-center justify-center rounded-xl border border-border bg-surface-2 py-6">
-            <TruckGlyph color={truckColor} className="h-16 w-28" />
+            <TruckImage size="lg" glowColor={truckColor} />
           </div>
 
           <p className="mt-5 text-sm font-semibold">Glow color</p>
