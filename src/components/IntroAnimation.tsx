@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTruckBody, useTruckColor, truckBodyImage } from "@/components/GoalProgress";
+import { TruckImage, useTruckColor } from "@/components/GoalProgress";
 import { WEEK_GOAL, money } from "@/lib/goal";
 import { supabase } from "@/lib/supabase";
 
@@ -15,7 +15,6 @@ const SESSION_KEY = "ez-intro-played";
 export function IntroAnimation() {
   const [phase, setPhase] = useState<"off" | "drive" | "loading" | "ready" | "out">("off");
   const [truckColor] = useTruckColor();
-  const [truckBody] = useTruckBody();
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -105,17 +104,11 @@ export function IntroAnimation() {
           Goal
         </span>
 
-        <img
-          src={truckBodyImage(truckBody)}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
+        <TruckImage
+          glow={truckColor}
           className={`pointer-events-none absolute bottom-10 left-4 h-16 w-28 select-none object-contain ${
             settled ? "ez-splash-parked" : "ez-splash-climb"
           }`}
-          style={{
-            filter: `drop-shadow(0 8px 12px rgba(0,0,0,0.6)) drop-shadow(0 14px 22px ${truckColor})`,
-          }}
         />
       </div>
 
