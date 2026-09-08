@@ -1,4 +1,4 @@
-import truckAsset from "@/assets/ez-18wheeler-side.jpg.asset.json";
+import truckAsset from "@/assets/ez-18wheeler-side.png.asset.json";
 
 const SIZE_CLASSES = {
   nav: "h-6 w-7",
