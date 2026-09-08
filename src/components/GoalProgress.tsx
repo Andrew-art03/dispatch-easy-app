@@ -302,7 +302,7 @@ const DEFAULT_COLOR = TRUCK_COLORS[0]!.value;
 const BODY_KEY = "ez-truck-body";
 export const DEFAULT_BODY = "semi";
 
-export const TRUCK_BODY_IMAGES: Record<string, string> = {
+export const TRUCK_BODY_IMAGES = {
   bobtail: bobtailAsset.url,
   semi: copilotAvatarAsset.url,
   van: vanAsset.url,
@@ -310,10 +310,13 @@ export const TRUCK_BODY_IMAGES: Record<string, string> = {
   flatbed: flatbedAsset.url,
   lowboy: lowboyAsset.url,
   gooseneck: gooseneckAsset.url,
-};
+} as const;
 
 export function truckBodyImage(body: string) {
-  return TRUCK_BODY_IMAGES[body] ?? goalTruckAsset.url;
+  if (body in TRUCK_BODY_IMAGES) {
+    return TRUCK_BODY_IMAGES[body as keyof typeof TRUCK_BODY_IMAGES];
+  }
+  return goalTruckAsset.url;
 }
 
 export function useTruckBody() {
