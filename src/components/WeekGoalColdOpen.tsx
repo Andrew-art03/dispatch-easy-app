@@ -63,7 +63,7 @@ function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
   ];
   cum.forEach((v, i) => pts.push({ x: L + (i + 1) * stepX, y: Y(v) }));
 
-  let d = `M ${pts[0].x} ${pts[0].y}`;
+  let d = `M ${pts[0]!.x} ${pts[0]!.y}`;
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1]!;
     const b = pts[i]!;
@@ -71,7 +71,7 @@ function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
     d += ` C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`;
   }
   const last = pts[pts.length - 1]!;
-  const areaD = `${d} L ${last.x} ${base + 40} L ${pts[0].x} ${base + 40} Z`;
+  const areaD = `${d} L ${last.x} ${base + 40} L ${pts[0]!.x} ${base + 40} Z`;
 
   let lastIdx = 0;
   days.forEach((day, i) => {
