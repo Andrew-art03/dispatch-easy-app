@@ -49,7 +49,7 @@ type Road = {
 function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
   const cum: number[] = [];
   days.reduce((a, day, i) => (cum[i] = a + Math.max(0, day.amountCents)), 0);
-  const earned = cum.length ? cum[cum.length - 1] : 0;
+  const earned = cum.length ? cum[cum.length - 1]! : 0;
   const ceiling = Math.max(goalCents, earned, 1) * 1.06;
   const L = 34;
   const R = VB.w - 26;
@@ -57,7 +57,7 @@ function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
   const top = 42;
   const stepX = (R - L) / Math.max(days.length, 1);
   const Y = (v: number) => base - (v / ceiling) * (base - top);
-  const pts = [
+  const pts: { x: number; y: number }[] = [
     { x: L - 30, y: base },
     { x: L, y: base },
   ];
@@ -65,12 +65,12 @@ function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
 
   let d = `M ${pts[0].x} ${pts[0].y}`;
   for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
+    const a = pts[i - 1]!;
+    const b = pts[i]!;
     const mx = (a.x + b.x) / 2;
     d += ` C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`;
   }
-  const last = pts[pts.length - 1];
+  const last = pts[pts.length - 1]!;
   const areaD = `${d} L ${last.x} ${base + 40} L ${pts[0].x} ${base + 40} Z`;
 
   let lastIdx = 0;
@@ -169,9 +169,9 @@ export function WeekGoalColdOpen({
     const settle = () => {
       if (graphRef.current) graphRef.current.style.opacity = "1";
       if (approachRef.current) approachRef.current.style.opacity = "0";
-      revealRef.current?.setAttribute("width", String(road.pts[road.lastIdx + 2].x + 3));
+      revealRef.current?.setAttribute("width", String(road.pts[road.lastIdx + 2]!.x + 3));
       cumRefs.current.forEach((t, i) => {
-        if (t && days[i] && days[i].amountCents > 0) t.style.opacity = "1";
+        if (t && days[i] && days[i]!.amountCents > 0) t.style.opacity = "1";
       });
       counterValue = road.earned;
       setCount(road.earned);
@@ -197,7 +197,7 @@ export function WeekGoalColdOpen({
     const cx = stage.clientWidth / 2;
 
     if (reduce) {
-      put(road.pts[road.lastIdx + 2].x * sx() - 78 * 0.6, road.pts[road.lastIdx + 2].y * sy() + 6, 78, 0);
+      put(road.pts[road.lastIdx + 2]!.x * sx() - 78 * 0.6, road.pts[road.lastIdx + 2]!.y * sy() + 6, 78, 0);
       settle();
       return;
     }
@@ -272,7 +272,7 @@ export function WeekGoalColdOpen({
       rig.style.transition = "none";
       const W = 78;
       const len = roadBed.getTotalLength();
-      const targetX = road.pts[road.lastIdx + 2].x;
+      const targetX = road.pts[road.lastIdx + 2]!.x;
       let lo = 0;
       let hi = len;
       for (let i = 0; i < 26; i++) {
@@ -308,13 +308,13 @@ export function WeekGoalColdOpen({
           glowRef.current.style.opacity = (0.4 + Math.abs(Math.sin(p * Math.PI * 3)) * 0.35).toFixed(2);
 
         for (let i = lit + 1; i < days.length; i++) {
-          if (days[i].amountCents > 0 && pt.x >= road.pts[i + 2].x + 30) {
+          if (days[i]!.amountCents > 0 && pt.x >= road.pts[i + 2]!.x + 30) {
             const t = cumRefs.current[i];
             if (t) {
               t.style.transition = "opacity .2s";
               t.style.opacity = "1";
             }
-            countTo(road.cum[i]);
+            countTo(road.cum[i]!);
             lit = i;
           } else break;
         }
@@ -497,7 +497,7 @@ export function WeekGoalColdOpen({
                     className="font-mono"
                     style={{ fill: "#F4F5F7", fontSize: 9, opacity: 0 }}
                   >
-                    {day.amountCents > 0 ? usd(road.cum[i]) : ""}
+                    {day.amountCents > 0 ? usd(road.cum[i]!) : ""}
                   </text>
                 ))}
               </g>

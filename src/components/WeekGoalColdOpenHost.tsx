@@ -58,11 +58,11 @@ export function WeekGoalColdOpenHost() {
         if (!row.at || cents <= 0) continue;
         const index = (new Date(row.at).getDay() + 6) % 7;
         if (index > 4) continue;
-        totals[index] += cents;
+        totals[index] = (totals[index] ?? 0) + cents;
         any = true;
       }
       if (!any) return;
-      setDays(LABELS.map((label, i) => ({ label, amountCents: totals[i] })));
+      setDays(LABELS.map((label, i) => ({ label, amountCents: totals[i] ?? 0 })));
       setIsFixture(false);
     })();
     return () => {
