@@ -295,3 +295,104 @@
     animation: none;
   }
 }
+
+/* ── F-09 Week Goal cold open ─────────────────────────────────────────────
+   Ported from the reference file: perspective stage, one 3D-rotated truck
+   photo, headlight glare and streaming road dashes. Transform/opacity only. */
+.ez-coldopen-stage {
+  perspective: 900px;
+}
+.ez-coldopen-layer {
+  transition: opacity 0.22s linear;
+}
+.ez-coldopen-rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 50% 0;
+  width: 150px;
+  transform-style: preserve-3d;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 4;
+}
+.ez-coldopen-truck {
+  display: block;
+  width: 100%;
+  backface-visibility: hidden;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+.ez-coldopen-glow {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -4px;
+  height: 12px;
+  border-radius: 50%;
+  filter: blur(3px);
+  opacity: 0;
+}
+.ez-coldopen-flare {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: screen;
+}
+.ez-coldopen-lamp {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 240, 0.95) 0%,
+    rgba(255, 226, 160, 0.55) 32%,
+    rgba(233, 130, 27, 0) 72%
+  );
+  filter: blur(1px);
+  transform: translate(-50%, -50%);
+}
+.ez-coldopen-streak {
+  position: absolute;
+  height: 2px;
+  width: 190px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 240, 200, 0),
+    rgba(255, 240, 200, 0.55),
+    rgba(255, 240, 200, 0)
+  );
+  filter: blur(1.5px);
+}
+.ez-coldopen-dust {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(233, 130, 27, 0.38), transparent 72%);
+  filter: blur(5px);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.rolling .ez-coldopen-dashes line {
+  animation: ez-coldopen-rush 0.5s linear infinite;
+}
+@keyframes ez-coldopen-rush {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rolling .ez-coldopen-dashes line {
+    animation: none;
+  }
+}
