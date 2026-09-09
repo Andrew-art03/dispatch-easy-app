@@ -137,7 +137,6 @@ export function WeekGoalColdOpen({
     const roadBed = roadBedRef.current;
     if (!stage || !rig || !roadBed) return;
 
-    console.log('COLDOPEN effect run');
     const timers: ReturnType<typeof setTimeout>[] = [];
     const frames: number[] = [];
     const after = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
@@ -282,14 +281,12 @@ export function WeekGoalColdOpen({
         else hi = m;
       }
       const at = (lo + hi) / 2;
-      console.log('COLDOPEN climb', { len, targetX, at, lastIdx: road.lastIdx });
       const start = len * 0.012;
       const s0 = performance.now();
       let lit = -1;
 
       const roll = (now: number) => {
         const p = Math.min(1, (now - s0) / CLIMB);
-        console.log('COLDOPEN frame', (now - s0).toFixed(0), p.toFixed(3));
         const e = ease(p);
         const l = start + (at - start) * e;
         const a = roadBed.getPointAtLength(Math.max(0, l - 7));
@@ -323,7 +320,6 @@ export function WeekGoalColdOpen({
         }
 
         if (p < 1) return raf(roll);
-        console.log('COLDOPEN roll done', pt.x, l);
         settle();
         return undefined;
       };
@@ -331,7 +327,6 @@ export function WeekGoalColdOpen({
     });
 
     return () => {
-      console.log('COLDOPEN cleanup');
       timers.forEach(clearTimeout);
       frames.forEach(cancelAnimationFrame);
     };
