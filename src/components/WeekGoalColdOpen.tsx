@@ -289,7 +289,7 @@ export function WeekGoalColdOpen({
 
       const roll = (now: number) => {
         const p = Math.min(1, (now - s0) / CLIMB);
-        if (Math.random() < 0.05) console.log('COLDOPEN frame', p.toFixed(2));
+        console.log('COLDOPEN frame', (now - s0).toFixed(0), p.toFixed(3));
         const e = ease(p);
         const l = start + (at - start) * e;
         const a = roadBed.getPointAtLength(Math.max(0, l - 7));
