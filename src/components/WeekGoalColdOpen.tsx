@@ -289,6 +289,7 @@ export function WeekGoalColdOpen({
 
       const roll = (now: number) => {
         const p = Math.min(1, (now - s0) / CLIMB);
+        if (Math.random() < 0.05) console.log('COLDOPEN frame', p.toFixed(2));
         const e = ease(p);
         const l = start + (at - start) * e;
         const a = roadBed.getPointAtLength(Math.max(0, l - 7));
@@ -322,6 +323,7 @@ export function WeekGoalColdOpen({
         }
 
         if (p < 1) return raf(roll);
+        console.log('COLDOPEN roll done', pt.x, l);
         settle();
         return undefined;
       };
