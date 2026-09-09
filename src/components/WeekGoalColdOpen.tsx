@@ -537,6 +537,14 @@ export function WeekGoalColdOpen({
         <DevPanel
           goalCents={goalCents}
           days={days}
+          onGoal={setDevGoal}
+          onDay={(i, cents) =>
+            setDevDays((current) => {
+              const next = current ? [...current] : days.map((d) => d.amountCents);
+              next[i] = cents;
+              return next;
+            })
+          }
           onReplay={() => setReplayKey((k) => k + 1)}
         />
       ) : null}
@@ -544,33 +552,61 @@ export function WeekGoalColdOpen({
   );
 }
 
-/** Dev-only harness. Never rendered in a production build. */
+/** Dev-only harness (goal + day inputs + Replay). Never rendered for drivers. */
 function DevPanel({
   goalCents,
   days,
+  onGoal,
+  onDay,
   onReplay,
 }: {
   goalCents: number;
   days: ColdOpenDay[];
+  onGoal: (cents: number) => void;
+  onDay: (index: number, cents: number) => void;
   onReplay: () => void;
 }) {
+  const field =
+    "w-[72px] rounded-[4px] border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground";
+  const label = "flex flex-col gap-1 font-mono text-[10px] text-muted-foreground";
   return (
     <div className="mx-auto mt-4 w-full max-w-[420px] rounded-lg border border-border bg-card p-4">
       <h2 className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-        Dev only — props in cents
+        Dev only — real numbers drive it
       </h2>
-      <p className="font-mono text-[11px] text-muted-foreground">
-        GOAL {usd(goalCents)} ·{" "}
-        {days.map((d) => `${d.label} ${usd(d.amountCents)}`).join(" · ")}
-      </p>
-      <button
-        type="button"
-        onClick={onReplay}
-        className="mt-3 rounded-[6px] border px-3.5 py-2 font-mono text-[10.5px] uppercase tracking-[0.12em]"
-        style={{ borderColor: "var(--ez-amber)", color: "var(--ez-amber)" }}
-      >
-        Replay
-      </button>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className={label}>
+          GOAL $
+          <input
+            className={field}
+            type="number"
+            step={100}
+            defaultValue={Math.round(goalCents / 100)}
+            onChange={(e) => onGoal(Math.max(100, Math.round(Number(e.target.value) || 0) * 100))}
+          />
+        </label>
+        {days.map((day, i) => (
+          <label key={day.label} className={label}>
+            {day.label}
+            <input
+              className={field}
+              type="number"
+              step={50}
+              defaultValue={Math.round(day.amountCents / 100)}
+              onChange={(e) => onDay(i, Math.max(0, Math.round(Number(e.target.value) || 0) * 100))}
+            />
+          </label>
+        ))}
+        <button
+          type="button"
+          onClick={onReplay}
+          className="rounded-[6px] border px-3.5 py-2 font-mono text-[10.5px] uppercase tracking-[0.12em]"
+          style={{ borderColor: "var(--ez-amber)", color: "var(--ez-amber)" }}
+        >
+          Replay
+        </button>
+      </div>
     </div>
   );
 }
+
