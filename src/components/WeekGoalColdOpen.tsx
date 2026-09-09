@@ -137,6 +137,7 @@ export function WeekGoalColdOpen({
     const roadBed = roadBedRef.current;
     if (!stage || !rig || !roadBed) return;
 
+    console.log('COLDOPEN effect run');
     const timers: ReturnType<typeof setTimeout>[] = [];
     const frames: number[] = [];
     const after = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
@@ -281,6 +282,7 @@ export function WeekGoalColdOpen({
         else hi = m;
       }
       const at = (lo + hi) / 2;
+      console.log('COLDOPEN climb', { len, targetX, at, lastIdx: road.lastIdx });
       const start = len * 0.012;
       const s0 = performance.now();
       let lit = -1;
