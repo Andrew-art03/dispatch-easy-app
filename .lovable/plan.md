@@ -1,19 +1,21 @@
-# Consolidate Truck Setup in Settings
+# Marker Light visual alignment
 
 ## Scope
-Make Settings the single destination for both the existing truck profile form and the visual truck appearance controls. Preserve every current field, default, validation rule, save action, and completion calculation.
+Apply the founder’s sampled Marker Light palette globally, then strengthen visual hierarchy and semantic status colors without changing layouts, data, routes, or behavior.
 
 ## Changes
-- Extract the existing Truck Profile form into a reusable screen section and place it on `/settings` alongside Truck appearance.
-- Change the Board empty-state “Set up my truck” action to `/settings` and remove the duplicate Settings action from that card.
-- Point the bottom-nav Truck tab to `/settings`.
-- Keep `/truck` as a compatibility redirect to `/settings`, so old links cannot expose a second form.
+- Replace shared background, card, text, success, caution, danger, and supporting surface tokens with the exact sampled colors.
+- Preserve the Load Card’s strong money hierarchy while changing its status chips to outlined green, amber, and red treatments where needed.
+- Strengthen Home’s weekly-goal heading and money display; give Board, Hunt, and Hours status rows outlined semantic borders based on their live states.
+- Audit Settings/Truck, Hunt, Docs, and Week $ so green consistently means good or confirmed, amber means caution or unverified, and red means blocking or error.
+- Keep the chosen truck-glow color limited to truck underglow, active navigation, selected appearance ring, and goal-meter line/dots.
 
 ## Technical details
-- Continue reading/writing only the existing `truck` columns and `driver.hos_hours_left` through the current RLS-backed client behavior.
-- No schema, endpoint, validation, or collected-data changes.
+- Define all palette values once in `src/styles.css` as exact OKLCH conversions of the supplied hex colors.
+- Reuse semantic Tailwind tokens in screen code; do not add hard-coded colors or change business logic.
+- Keep existing RLS-backed queries, writes, validation, navigation, and frozen schema untouched.
 
 ## Verification
-- At 390px, open Board and click “Set up my truck”; confirm `/settings` contains the full profile and appearance controls.
-- Return to Board, click the Truck bottom-nav tab, and confirm it lands on the same `/settings` screen.
-- Confirm the completion indicator and form fields render, and check build/runtime errors.
+- Check the affected screens at 390px for contrast, hierarchy, and consistent status meaning.
+- Confirm the Load Card remains the visual benchmark and no status uses the wrong semantic color.
+- Check browser errors and the automated build result.
