@@ -331,6 +331,7 @@ export function WeekGoalColdOpen({
     });
 
     return () => {
+      console.log('COLDOPEN cleanup');
       timers.forEach(clearTimeout);
       frames.forEach(cancelAnimationFrame);
     };
