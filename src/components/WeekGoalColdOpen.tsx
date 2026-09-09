@@ -93,12 +93,23 @@ function buildRoad(goalCents: number, days: ColdOpenDay[]): Road {
 }
 
 export function WeekGoalColdOpen({
-  goalCents,
-  days,
+  goalCents: goalProp,
+  days: daysProp,
   isFixture = false,
   onContinue,
   ctaLabel = "Continue",
 }: WeekGoalColdOpenProps) {
+  // Dev-only overrides drive the harness below; drivers never see them.
+  const [devGoal, setDevGoal] = useState<number | null>(null);
+  const [devDays, setDevDays] = useState<number[] | null>(null);
+  const goalCents = import.meta.env.DEV && devGoal !== null ? devGoal : goalProp;
+  const days = useMemo(
+    () =>
+      import.meta.env.DEV && devDays
+        ? daysProp.map((d, i) => ({ ...d, amountCents: devDays[i] ?? d.amountCents }))
+        : daysProp,
+    [daysProp, devDays],
+  );
   const road = useMemo(() => buildRoad(goalCents, days), [goalCents, days]);
   const cleared = road.earned >= goalCents;
   const remaining = goalCents - road.earned;
