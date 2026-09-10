@@ -7,7 +7,7 @@ import {
   TRUCK_COLORS,
   useTruckColor,
 } from "@/components/GoalProgress";
-import { useEZVoice } from "@/components/EZVoice";
+
 
 export const Route = createFileRoute("/_authenticated/copilot")({
   head: () => ({
@@ -95,18 +95,8 @@ function CopilotPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const voice = useEZVoice();
-  const openCopilotVoice = () => {
-    const demo = ACTIONS[0]!.result;
-    voice.openWith({
-      transcript: demo.transcript,
-      heard: demo.heard,
-      keepAmount: demo.keepAmount,
-      rpmLabel: demo.rpmLabel,
-      verdictWord: demo.verdictWord,
-      confirmLabel: "Confirm load",
-    });
-  };
+
+
   const active = ACTIONS.find((a) => a.id === activeId)?.result ?? null;
   const showActions = asking || activeId !== null;
 
@@ -124,29 +114,8 @@ function CopilotPage() {
            <span className="truncate">EZ Truck Copilot</span>
         </span>
       }
-      action={
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openCopilotVoice()}
-            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
-          >
-            <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="hidden whitespace-nowrap sm:inline">Talk to EZ Copilot</span>
-            <span className="whitespace-nowrap sm:hidden">Talk</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setAsking(true)}
-            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
-          >
-            <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="hidden whitespace-nowrap sm:inline">Work with EZ Copilot</span>
-            <span className="whitespace-nowrap sm:hidden">Work</span>
-          </button>
-        </div>
-      }
     >
+
       {/* Avatar stage — neon frame lit in the driver's chosen glow color. */}
       <section
         className="relative overflow-hidden rounded-3xl bg-background"
