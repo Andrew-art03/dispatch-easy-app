@@ -350,30 +350,37 @@ function LoadCard() {
           </p>
         ) : null}
 
-        <p className="text-center text-xs text-muted-foreground">
-          Your approval required — EZ never books a load on its own.
-        </p>
+        <section className="my-4 w-full rounded-md border border-border bg-card p-4">
+          <p className="ez-section-title text-muted-foreground">
+            Your call — Pursue / Negotiate / Skip
+          </p>
 
-        <button
-          onClick={() => callEndpoint.mutate("pursue")}
-          disabled={callEndpoint.isPending}
-          className="ez-btn-amber my-4 disabled:opacity-40"
-        >
-          {callEndpoint.isPending ? "Working…" : "Pursue this load"}
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={openLoadVoice} className="ez-btn-secondary text-ez-amber">
-            Ask EZ why
-          </button>
           <button
-            onClick={() => callEndpoint.mutate("skip")}
+            onClick={() => callEndpoint.mutate("pursue")}
             disabled={callEndpoint.isPending}
-            className="ez-btn-secondary text-muted-foreground"
+            className="ez-btn-amber mt-4 disabled:opacity-40"
           >
-            Skip
+            {callEndpoint.isPending ? "Working…" : "Pursue this load"}
           </button>
-        </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button onClick={openLoadVoice} className="ez-btn-secondary text-ez-amber">
+              Negotiate
+            </button>
+            <button
+              onClick={() => callEndpoint.mutate("skip")}
+              disabled={callEndpoint.isPending}
+              className="ez-btn-secondary text-muted-foreground"
+            >
+              Skip
+            </button>
+          </div>
+
+          <p className="mt-4 text-sm text-muted-foreground">You approve. EZ never books.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Never auto-book. You approve the deal.
+          </p>
+        </section>
 
         <p className="pt-1 text-center text-sm text-muted-foreground">
           Show alternatives · Ask {money(score?.recommended_bid ?? null)} (soon)
