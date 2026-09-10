@@ -1,21 +1,23 @@
-# Marker Light visual alignment
+# F-40 Marker Light treatment pass
 
 ## Scope
-Apply the founder’s sampled Marker Light palette globally, then strengthen visual hierarchy and semantic status colors without changing layouts, data, routes, or behavior.
+Apply one consistent typography, shape, spacing, and action-hierarchy treatment across Home, Board, Hunt, Load Card, Docs, Ledger, and Settings. Preserve every existing color, data flow, route, and behavior.
 
 ## Changes
-- Replace shared background, card, text, success, caution, danger, and supporting surface tokens with the exact sampled colors.
-- Preserve the Load Card’s strong money hierarchy while changing its status chips to outlined green, amber, and red treatments where needed.
-- Strengthen Home’s weekly-goal heading and money display; give Board, Hunt, and Hours status rows outlined semantic borders based on their live states.
-- Audit Settings/Truck, Hunt, Docs, and Week $ so green consistently means good or confirmed, amber means caution or unverified, and red means blocking or error.
-- Keep the chosen truck-glow color limited to truck underglow, active navigation, selected appearance ring, and goal-meter line/dots.
+- Standardize display text on Barlow Condensed 700, body copy on Barlow, and small uppercase labels on tracked JetBrains Mono.
+- Normalize the requested type scale: 96px hero figures, 36px section headings, 20px card titles, and 10.5px labels where those roles appear.
+- Replace oversized card and chip rounding with 2–6px instrument-panel corners and subtle 1px hairlines; retain stronger borders only for genuinely active or highlighted states.
+- Convert state and fit badges from filled pills to bordered outlines.
+- Clarify one primary action per screen, cap primary controls at 56px, and keep at least 16px clear space around commit actions.
+- Align section content left and normalize major gaps and padding to the 8px spacing rhythm.
+- Make bottom navigation labels small, uppercase, tracked mono utility signage while keeping them centered under icons.
 
 ## Technical details
-- Define all palette values once in `src/styles.css` as exact OKLCH conversions of the supplied hex colors.
-- Reuse semantic Tailwind tokens in screen code; do not add hard-coded colors or change business logic.
-- Keep existing RLS-backed queries, writes, validation, navigation, and frozen schema untouched.
+- Add reusable treatment utilities and shared control sizing in `src/styles.css`, then apply semantic classes in the requested routes and their existing shared screen components.
+- Do not modify color variables, introduce new components, change the frozen schema, or alter queries and mutations.
+- Leave already-compliant body typography, left alignment, and action behavior untouched.
 
 ## Verification
-- Check the affected screens at 390px for contrast, hierarchy, and consistent status meaning.
-- Confirm the Load Card remains the visual benchmark and no status uses the wrong semantic color.
+- Inspect every requested screen at 390px and a wider desktop viewport for clipping, hierarchy, spacing, and action isolation.
+- Confirm cards and chips use the sharper treatment and that existing colors remain unchanged.
 - Check browser errors and the automated build result.

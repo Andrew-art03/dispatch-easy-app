@@ -7,3 +7,4 @@
 - [x] Verify mobile/desktop behavior, reduced motion, one-time persistence, and list changed files.
 - [ ] Marker Light theme pass: exact palette tokens, Home hierarchy, semantic status audit.
 - [ ] F-41 cold-open motion fix: scene/rig/art node split so the truck stays on the road stroke.
+- [ ] F-40 Marker Light treatment pass across Home, Board, Hunt, Load Card, Docs, Ledger, and Settings.
