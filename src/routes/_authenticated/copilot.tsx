@@ -95,18 +95,8 @@ function CopilotPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const voice = useEZVoice();
-  const openCopilotVoice = () => {
-    const demo = ACTIONS[0]!.result;
-    voice.openWith({
-      transcript: demo.transcript,
-      heard: demo.heard,
-      keepAmount: demo.keepAmount,
-      rpmLabel: demo.rpmLabel,
-      verdictWord: demo.verdictWord,
-      confirmLabel: "Confirm load",
-    });
-  };
+
+
   const active = ACTIONS.find((a) => a.id === activeId)?.result ?? null;
   const showActions = asking || activeId !== null;
 
