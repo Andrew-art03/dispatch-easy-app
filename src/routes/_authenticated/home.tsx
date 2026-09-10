@@ -12,7 +12,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { AppShell, ErrorBox } from "@/components/AppShell";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
-import { useEZVoice } from "@/components/EZVoice";
+
 import type { LoadState } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/home")({
