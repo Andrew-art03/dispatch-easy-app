@@ -32,6 +32,7 @@ const ANGLE = 58;
 const TRUCK_W = 78;
 const AXLE_X = 0.28;
 const AXLE_Y = 0.86;
+const AXLE_OFFSET = `translate(${-AXLE_X * 100}%, ${-AXLE_Y * 100}%)`;
 
 
 const usd = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-US")}`;
@@ -164,7 +165,9 @@ export function WeekGoalColdOpen({
     };
     /** #truck-art: 3D yaw only, and only during acts 1-2. */
     const putYaw = (deg: number | null) => {
-      art.style.transform = deg === null ? "none" : `rotateY(${deg}deg)`;
+      // The constant axle-alignment offset is never animated; only the yaw is.
+      art.style.transform =
+        deg === null ? AXLE_OFFSET : `${AXLE_OFFSET} rotateY(${deg}deg)`;
     };
 
     const len = roadBed.getTotalLength();

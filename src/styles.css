@@ -319,11 +319,9 @@
   position: absolute;
   left: 0;
   top: 0;
-  /* Rear-axle tire patch on the asset — tangent rotation pivots here. */
-  transform-origin: 28% 86%;
+  /* The art offsets its own axle onto this point, so the rig pivots at 0 0. */
+  transform-origin: 0 0;
   width: 150px;
-  margin-left: -28%;
-  margin-top: -86%;
   will-change: transform;
   pointer-events: none;
 }
