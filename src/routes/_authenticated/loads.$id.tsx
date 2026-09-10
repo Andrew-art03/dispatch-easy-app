@@ -388,6 +388,12 @@ function LoadCard() {
         </p>
 
         {canConfirm ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Never auto-book. You approve the deal.
+          </p>
+        ) : null}
+
+        {canConfirm ? (
           <button
             onClick={() => callEndpoint.mutate("confirm")}
             disabled={callEndpoint.isPending}
