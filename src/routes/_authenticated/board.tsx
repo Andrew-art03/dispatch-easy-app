@@ -154,26 +154,26 @@ function BoardPage() {
           <Link
             to="/home"
             aria-label="Home"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <ArrowLeft className="size-5 shrink-0 text-muted-foreground" />
           </Link>
           <button
             onClick={openBoardVoice}
-            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-md border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <span className="whitespace-nowrap">Talk</span>
           </button>
           <Link
             to="/copilot"
-            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-md border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <span className="whitespace-nowrap">Work</span>
           </Link>
           <Link
             to="/settings"
             aria-label="Settings"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <Settings className="size-5 text-muted-foreground" />
           </Link>

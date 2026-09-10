@@ -86,7 +86,7 @@ function SettingsPage() {
           <Link
             to="/board"
             aria-label="Back"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <ArrowLeft className="size-5" />
           </Link>

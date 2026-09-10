@@ -170,7 +170,7 @@ function HomePage() {
         <Link
           to="/settings"
           aria-label="Settings"
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
         >
           <Settings className="size-5 text-muted-foreground" />
         </Link>
