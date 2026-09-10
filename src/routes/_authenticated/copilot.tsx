@@ -158,7 +158,10 @@ function CopilotPage() {
         </button>
       </div>
 
-      <p className="mt-5 text-sm text-muted-foreground">
+      <p className="mt-5 text-base">
+        You stay in control. The app prepares the next move.
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
         Unit 12 · empty in Amarillo · hunting ON
       </p>
 

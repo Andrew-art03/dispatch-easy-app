@@ -204,13 +204,18 @@ function BoardPage() {
       </section>
 
       {!hasTruck ? (
-        <Link
-          to="/settings"
-          className="mb-4 flex items-center justify-between rounded-md border border-border bg-card p-4 text-sm font-semibold"
-        >
-          <span>Add your truck to get sharper numbers</span>
-          <span aria-hidden="true">→</span>
-        </Link>
+        <div className="mb-4">
+          <Link
+            to="/settings"
+            className="flex items-center justify-between rounded-md border border-border bg-card p-4 text-sm font-semibold"
+          >
+            <span>Add your truck to get sharper numbers</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Easy does the homework. You take the last tap.
+          </p>
+        </div>
       ) : null}
 
       {/* EZ's Pick */}
