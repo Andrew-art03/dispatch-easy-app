@@ -62,7 +62,7 @@ function money(n: number) {
 
 function HomePage() {
   const [truckColor] = useTruckColor();
-  const voice = useEZVoice();
+  
 
   const truckQuery = useQuery({
     queryKey: ["home-truck"],
