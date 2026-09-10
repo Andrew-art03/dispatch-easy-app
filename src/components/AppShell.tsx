@@ -73,7 +73,7 @@ export function AppShell({
         <div className="mx-auto flex max-w-3xl flex-col">
           {bottomSticky ? <div className="px-4 pb-2 pt-3">{bottomSticky}</div> : null}
           <div className="grid grid-cols-5">
-            {NAV.map(({ to, label, icon: Icon, truck }) => (
+            {NAV.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -82,23 +82,13 @@ export function AppShell({
               >
                 {({ isActive }) => (
                   <>
-                    {truck ? (
-                      <span className="flex size-6 items-center justify-center overflow-hidden">
-                        <TruckImage
-                          size="nav"
-                          glowColor={isActive ? truckColor : "transparent"}
-                          monochrome={!isActive}
-                          className={cn(!isActive && "opacity-60")}
-                        />
-                      </span>
-                    ) : Icon ? (
-                      <Icon
-                        className={cn(
-                          "size-6",
-                          isActive ? "text-ez-amber" : "text-muted-foreground",
-                        )}
-                      />
-                    ) : null}
+                    <Icon
+                      className={cn(
+                        "size-6",
+                        isActive ? "text-ez-amber" : "text-muted-foreground",
+                      )}
+                      strokeWidth={1.75}
+                    />
                     <span
                       className={cn(
                         "font-mono uppercase tracking-[0.08em]",
