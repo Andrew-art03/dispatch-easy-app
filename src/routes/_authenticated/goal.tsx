@@ -167,7 +167,7 @@ function GoalPage() {
 
         </div>
 
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className={`mt-2 text-sm ${earned >= target ? "text-ez-green" : "text-muted-foreground"}`}>
           {earned >= target
             ? `${money(earned - target)} over goal.`
             : `${money(target - earned)} to go.`}

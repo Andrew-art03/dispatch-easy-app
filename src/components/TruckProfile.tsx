@@ -480,7 +480,7 @@ export function TruckProfile() {
         </Group>
 
         {save.isError ? <ErrorBox error={save.error} /> : null}
-        {saved ? <p className="text-sm text-primary">Saved.</p> : null}
+        {saved ? <p className="text-sm text-ez-green">Saved.</p> : null}
 
         <button type="submit" disabled={save.isPending} className="ez-btn-amber w-full">
           {save.isPending ? "Saving…" : "Save truck"}

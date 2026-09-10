@@ -169,7 +169,7 @@ function DocsPage() {
 
         {packError ? <ErrorBox error={new Error(packError)} /> : null}
         {packNote ? (
-          <p className="rounded-xl border border-border bg-card p-3 text-sm text-primary">{packNote}</p>
+          <p className="rounded-xl border border-border bg-card p-3 text-sm text-ez-green">{packNote}</p>
         ) : null}
 
         <button
