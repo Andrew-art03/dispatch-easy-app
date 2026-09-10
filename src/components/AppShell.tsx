@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Search, FileText, Wallet, LayoutList } from "lucide-react";
+import { Home, Search, FileText, Wallet, Truck, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { EZVoiceSheetHost, useEZVoice } from "@/components/EZVoice";
 import { CopilotAvatar, useTruckColor } from "@/components/GoalProgress";
-import { TruckImage } from "@/components/TruckImage";
 
-const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolean }[] = [
-  { to: "/settings", label: "Truck", truck: true },
+const NAV: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: "/settings", label: "Truck", icon: Truck },
   { to: "/home", label: "Home", icon: Home },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/docs", label: "Docs", icon: FileText },
@@ -53,7 +52,6 @@ export function AppShell({
   bottomSticky?: ReactNode;
   children: ReactNode;
 }) {
-  const [truckColor] = useTruckColor();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
