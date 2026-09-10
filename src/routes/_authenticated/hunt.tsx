@@ -173,12 +173,12 @@ function HuntPage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+            <span className="ez-label pointer-events-none absolute bottom-3 right-3 rounded border border-border bg-transparent px-3 py-1 text-muted-foreground">
               Paste
             </span>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-2 px-4 py-3 transition-colors active:bg-card">
+          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface-2 px-4 py-3 transition-colors active:bg-card">
             <Camera className="size-5 shrink-0 text-ez-amber" />
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">
@@ -202,7 +202,7 @@ function HuntPage() {
           <button
             type="submit"
             disabled={submit.isPending || !canScore}
-            className="ez-btn-primary mt-2 flex items-center justify-center gap-2 disabled:opacity-40"
+            className="ez-btn-primary mt-4 flex items-center justify-center gap-2 disabled:opacity-40"
           >
             {submit.isPending ? "Scoring…" : "Score what I keep"}
             {submit.isPending ? null : <ArrowRight className="size-5" />}
@@ -221,7 +221,7 @@ function HuntPage() {
           }}
         >
           <p className="text-sm text-muted-foreground">Check these before you save.</p>
-          <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+          <section className="space-y-3 rounded-md border border-border bg-card p-4">
             <F label="Reference"><input className="ez-input" value={parsed.reference} onChange={set("reference")} /></F>
             <F label="Rate"><input className="ez-input" inputMode="decimal" value={parsed.gross_rate} onChange={set("gross_rate")} /></F>
             <F label="Equipment">
@@ -236,8 +236,8 @@ function HuntPage() {
             <F label="Deliver by"><input className="ez-input" type="datetime-local" value={parsed.deliver_by} onChange={set("deliver_by")} /></F>
           </section>
 
-          <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Pickup</h2>
+          <section className="space-y-3 rounded-md border border-border bg-card p-4">
+            <h2 className="ez-section-title text-muted-foreground">Pickup</h2>
             <F label="Address"><input className="ez-input" value={parsed.origin_address} onChange={set("origin_address")} /></F>
             <div className="grid grid-cols-2 gap-3">
               <F label="City"><input className="ez-input" value={parsed.origin_city} onChange={set("origin_city")} /></F>
@@ -245,8 +245,8 @@ function HuntPage() {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Delivery</h2>
+          <section className="space-y-3 rounded-md border border-border bg-card p-4">
+            <h2 className="ez-section-title text-muted-foreground">Delivery</h2>
             <F label="Address"><input className="ez-input" value={parsed.dest_address} onChange={set("dest_address")} /></F>
             <div className="grid grid-cols-2 gap-3">
               <F label="City"><input className="ez-input" value={parsed.dest_city} onChange={set("dest_city")} /></F>
@@ -255,13 +255,13 @@ function HuntPage() {
           </section>
 
           {saveLoad.isError ? <ErrorBox error={saveLoad.error} /> : null}
-          <button type="submit" disabled={saveLoad.isPending} className="ez-btn-primary w-full">
+          <button type="submit" disabled={saveLoad.isPending} className="ez-btn-primary mt-4 w-full">
             {saveLoad.isPending ? "Saving…" : "Looks right"}
           </button>
           <button
             type="button"
             onClick={() => setParsed(null)}
-            className="w-full rounded-xl border border-border py-3 text-sm text-muted-foreground"
+            className="w-full rounded-md border border-border py-3 text-sm text-muted-foreground"
           >
             Start over
           </button>
@@ -282,7 +282,7 @@ function EasyTitle() {
         E
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-lg font-semibold tracking-tight">
+        <span className="ez-card-title block truncate">
           Drop a load. Easy scores it.
         </span>
         <span className="block truncate text-xs text-muted-foreground">
@@ -295,7 +295,7 @@ function EasyTitle() {
 
 function WeekChip() {
   return (
-    <div className="flex shrink-0 items-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-3 py-1.5 text-xs font-semibold text-ez-amber">
+    <div className="ez-label flex shrink-0 items-center gap-2 rounded border border-ez-amber/30 bg-transparent px-3 py-1.5 text-ez-amber">
       <Wallet className="size-4" />
       {money(WEEK_GOAL.earned)} / {money(WEEK_GOAL.target)}
     </div>
@@ -306,9 +306,9 @@ function TalkToEasyPill() {
   return (
     <button
       type="button"
-      className="flex w-full items-center justify-center gap-2 rounded-full border border-ez-amber/30 bg-ez-amber/10 px-4 py-3 text-sm font-semibold text-ez-amber transition-colors active:bg-ez-amber/20"
+      className="flex w-full items-center justify-center gap-2 rounded-md border border-ez-amber/30 bg-transparent px-4 py-3 text-sm font-semibold text-ez-amber transition-colors active:bg-ez-amber/20"
     >
-      <span className="flex size-7 items-center justify-center rounded-full border border-ez-amber/40 bg-ez-amber/10">
+      <span className="flex size-7 items-center justify-center rounded border border-ez-amber/40 bg-transparent">
         <AudioLines className="size-4" />
       </span>
       Talk to Easy
@@ -319,7 +319,7 @@ function TalkToEasyPill() {
 function F({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
+      <span className="ez-label mb-1 block text-muted-foreground">{label}</span>
       {children}
     </label>
   );

@@ -95,10 +95,10 @@ function DocsIndexPage() {
 
   return (
     <AppShell title="Paperwork">
-      <div className="space-y-5">
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+      <div className="space-y-4">
+        <section className="space-y-4 rounded-md border border-border bg-card p-4">
           <label className="block">
-            <span className="mb-1 block text-sm text-muted-foreground">What is this?</span>
+            <span className="ez-label mb-1 block text-muted-foreground">What is this?</span>
             <select
               className="ez-input"
               value={docType}
@@ -112,7 +112,7 @@ function DocsIndexPage() {
             </select>
           </label>
 
-          <label className="ez-btn-amber block w-full cursor-pointer text-center">
+          <label className="ez-btn-amber mt-4 block w-full cursor-pointer text-center">
             {upload.isPending ? "Uploading…" : "Take a photo or upload"}
             <input
               type="file"
@@ -145,9 +145,9 @@ function DocsIndexPage() {
                 return (
                   <li
                     key={doc.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                    className="flex items-center gap-3 rounded-md border border-border bg-card p-3"
                   >
-                    <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                    <div className="size-14 shrink-0 overflow-hidden rounded bg-secondary">
                       {doc.url && !doc.storage_path.toLowerCase().endsWith(".pdf") ? (
                         <img
                           src={doc.url}
@@ -162,7 +162,7 @@ function DocsIndexPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="inline-block rounded-full border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                      <span className="ez-label inline-block rounded border border-border bg-transparent px-2 py-0.5 text-muted-foreground">
                         {doc.type.replace(/_/g, " ")}
                       </span>
                       <p className="mt-1 truncate text-sm">
@@ -179,7 +179,7 @@ function DocsIndexPage() {
                         href={doc.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="min-h-11 shrink-0 rounded-lg border border-border px-3 py-2 text-sm"
+                        className="min-h-11 shrink-0 rounded-md border border-border px-3 py-2 text-sm"
                       >
                         Open
                       </a>

@@ -90,15 +90,15 @@ function LedgerPage() {
               const total = lines.reduce((sum, l) => sum + Number(l.amount), 0);
               return (
                 <section key={week}>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                   <div className="mb-4 flex items-baseline justify-between">
+                     <h2 className="ez-section-title text-muted-foreground">
                       {formatWeekLabel(week)}
                     </h2>
                     <span className={`font-bold ${total < 0 ? "text-ez-red" : "text-ez-green"}`}>
                       {money(total)}
                     </span>
                   </div>
-                  <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                   <div className="overflow-hidden rounded-md border border-border bg-card">
                     <table className="w-full text-sm">
                       <tbody>
                         {lines.map((line) => (

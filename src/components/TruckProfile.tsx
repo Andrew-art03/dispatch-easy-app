@@ -235,9 +235,9 @@ export function TruckProfile() {
         <ErrorBox error={truckQuery.error} onRetry={() => truckQuery.refetch()} />
       ) : null}
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-md border border-border bg-card p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">Profile filled in</span>
+          <span className="ez-label text-muted-foreground">Profile filled in</span>
           <span className="font-bold text-primary">{completeness}%</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
@@ -303,7 +303,7 @@ export function TruckProfile() {
               onChange={set("weight_lb")}
             />
           </Field>
-          <label className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-4">
+          <label className="flex min-h-14 items-center justify-between gap-3 rounded-md border border-border bg-surface-2 px-4">
             <span className="text-sm font-medium">Hazmat endorsed</span>
             <input
               type="checkbox"
@@ -482,7 +482,7 @@ export function TruckProfile() {
         {save.isError ? <ErrorBox error={save.error} /> : null}
         {saved ? <p className="text-sm text-ez-green">Saved.</p> : null}
 
-        <button type="submit" disabled={save.isPending} className="ez-btn-amber w-full">
+        <button type="submit" disabled={save.isPending} className="ez-btn-amber mt-4 w-full">
           {save.isPending ? "Saving…" : "Save truck"}
         </button>
       </form>
@@ -492,8 +492,8 @@ export function TruckProfile() {
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+    <section className="space-y-4 rounded-md border border-border bg-card p-4">
+      <h2 className="ez-section-title text-muted-foreground">
         {title}
       </h2>
       {children}
@@ -512,7 +512,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-muted-foreground">{label}</span>
+      <span className="ez-label mb-1 block text-muted-foreground">{label}</span>
       {children}
       {hint ? (
         <span className="mt-1.5 block text-xs leading-snug text-muted-foreground/80">{hint}</span>
