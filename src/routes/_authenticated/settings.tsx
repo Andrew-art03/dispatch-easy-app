@@ -86,7 +86,7 @@ function SettingsPage() {
           <Link
             to="/board"
             aria-label="Back"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <ArrowLeft className="size-5" />
           </Link>
@@ -95,9 +95,9 @@ function SettingsPage() {
         </span>
       }
     >
-      <div className="space-y-5">
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-base font-semibold">Truck appearance</h2>
+      <div className="space-y-4">
+        <section className="rounded-md border border-border bg-card p-4">
+          <h2 className="ez-section-title">Truck appearance</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Only changes the picture in the app.
           </p>
@@ -114,7 +114,7 @@ function SettingsPage() {
                     if (equipment) saveEquipment.mutate(equipment);
                   }}
                   aria-pressed={active}
-                  className={`flex min-h-16 items-center justify-center overflow-hidden rounded-xl border p-3 text-sm ${
+                  className={`flex min-h-16 items-center justify-center overflow-hidden rounded-md border p-3 text-sm ${
                     active
                       ? "border-ez-amber bg-ez-amber/10 font-semibold text-ez-amber"
                       : "border-border bg-surface-2 text-muted-foreground"
@@ -138,7 +138,7 @@ function SettingsPage() {
           ) : null}
 
 
-          <div className="mt-6 flex items-center justify-center rounded-xl border border-border bg-surface-2 py-6">
+          <div className="mt-6 flex items-center justify-center rounded-md border border-border bg-surface-2 py-6">
             <TruckImage size="lg" glowColor={truckColor} />
           </div>
 
@@ -162,7 +162,7 @@ function SettingsPage() {
 
         <section className="space-y-5">
           <div className="px-1">
-            <h2 className="text-base font-semibold">Truck profile</h2>
+            <h2 className="ez-section-title">Truck profile</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               These real numbers make every load score sharper.
             </p>

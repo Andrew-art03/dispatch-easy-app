@@ -184,9 +184,9 @@ export function TripDirection() {
   const suggested = form.homeBy ? prettyDate(form.homeBy) : null;
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+    <section className="space-y-4 rounded-md border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="ez-section-title text-muted-foreground">
           Trip &amp; direction
         </h2>
         <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
@@ -229,7 +229,7 @@ export function TripDirection() {
                 type="button"
                 onClick={() => pickTripLength(id)}
                 aria-pressed={form.tripLength === id}
-                className={`min-h-12 rounded-xl border text-sm font-semibold ${
+                className={`min-h-12 rounded-md border text-sm font-semibold ${
                   form.tripLength === id
                     ? "border-ez-amber bg-ez-amber/10 text-ez-amber"
                     : "border-border bg-surface-2 text-muted-foreground"
@@ -241,7 +241,7 @@ export function TripDirection() {
           </div>
 
           {suggested ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-ez-amber/30 bg-ez-amber/10 px-4 py-3">
+            <div className="mt-4 flex items-center gap-2 rounded-md border border-ez-amber/30 bg-transparent px-4 py-3">
               <CalendarDays className="size-5 shrink-0 text-ez-amber" />
               <span className="text-sm font-semibold text-ez-amber">
                 Start heading home by {suggested}
@@ -272,7 +272,7 @@ export function TripDirection() {
               type="button"
               onClick={() => setField("mode", "direction")}
               aria-pressed={form.mode === "direction"}
-              className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 text-left text-sm font-semibold ${
+              className={`flex min-h-14 items-center gap-3 rounded-md border px-4 text-left text-sm font-semibold ${
                 form.mode === "direction"
                   ? "border-ez-amber bg-ez-amber/10 text-ez-amber"
                   : "border-border bg-surface-2 text-muted-foreground"
@@ -285,7 +285,7 @@ export function TripDirection() {
               type="button"
               onClick={() => setField("mode", "anywhere")}
               aria-pressed={form.mode === "anywhere"}
-              className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 text-left text-sm font-semibold ${
+              className={`flex min-h-14 items-center gap-3 rounded-md border px-4 text-left text-sm font-semibold ${
                 form.mode === "anywhere"
                   ? "border-ez-amber bg-ez-amber/10 text-ez-amber"
                   : "border-border bg-surface-2 text-muted-foreground"
@@ -306,7 +306,7 @@ export function TripDirection() {
                     type="button"
                     onClick={() => toggleState(code)}
                     aria-pressed={on}
-                    className={`min-h-10 rounded-lg border text-xs font-bold ${
+                    className={`ez-label min-h-10 rounded border ${
                       on
                         ? "border-ez-amber bg-ez-amber/15 text-ez-amber"
                         : "border-border bg-surface-2 text-muted-foreground"
@@ -362,7 +362,7 @@ export function TripDirection() {
         {save.isError ? <ErrorBox error={save.error} /> : null}
         {saved ? <p className="text-sm text-primary">Saved.</p> : null}
 
-        <button type="submit" disabled={save.isPending} className="ez-btn-amber w-full">
+        <button type="submit" disabled={save.isPending} className="ez-btn-amber mt-4 w-full">
           {save.isPending ? "Saving…" : "Save trip"}
         </button>
       </form>

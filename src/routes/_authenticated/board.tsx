@@ -154,26 +154,26 @@ function BoardPage() {
           <Link
             to="/home"
             aria-label="Home"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <ArrowLeft className="size-5 shrink-0 text-muted-foreground" />
           </Link>
           <button
             onClick={openBoardVoice}
-            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-md border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <span className="whitespace-nowrap">Talk</span>
           </button>
           <Link
             to="/copilot"
-            className="flex min-h-11 items-center gap-2 rounded-xl border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
+            className="flex min-h-11 items-center gap-2 rounded-md border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
           >
             <span className="whitespace-nowrap">Work</span>
           </Link>
           <Link
             to="/settings"
             aria-label="Settings"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-card"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card"
           >
             <Settings className="size-5 text-muted-foreground" />
           </Link>
@@ -184,13 +184,13 @@ function BoardPage() {
         <p className="min-w-0 flex-1 text-base font-semibold">
           Morning, Andrew. Unit 12 is empty in Amarillo.
         </p>
-        <span className="rounded-full border border-border px-3 py-1 text-sm">Needs you · 4</span>
+        <span className="ez-label rounded border border-border px-3 py-1 text-muted-foreground">Needs you · 4</span>
       </div>
 
       {/* Weekly payout goal */}
-      <section className="mb-4 rounded-2xl border border-border bg-card p-4">
+      <section className="mb-4 rounded-md border border-border bg-card p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="ez-label text-muted-foreground">
             Your weekly payout goal
           </span>
           <span className="ez-num">
@@ -206,7 +206,7 @@ function BoardPage() {
       {!hasTruck ? (
         <Link
           to="/settings"
-          className="mb-4 flex items-center justify-between rounded-xl border border-border bg-card p-4 text-sm font-semibold"
+          className="mb-4 flex items-center justify-between rounded-md border border-border bg-card p-4 text-sm font-semibold"
         >
           <span>Add your truck to get sharper numbers</span>
           <span aria-hidden="true">→</span>
@@ -214,38 +214,35 @@ function BoardPage() {
       ) : null}
 
       {/* EZ's Pick */}
-      <section className="relative mb-4 overflow-hidden rounded-2xl border border-ez-amber/60 bg-card p-5">
+      <section className="relative mb-4 overflow-hidden rounded-md border border-ez-amber/60 bg-card p-4">
         <div className="flex items-center gap-2">
           <span className="size-2.5 rounded-full bg-ez-amber" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-ez-amber">
+          <span className="ez-label text-ez-amber">
             EZ's pick
           </span>
         </div>
-        <p className="mt-3 text-xl font-semibold">Amarillo → Dallas → Memphis</p>
+        <p className="ez-card-title mt-4">Amarillo → Dallas → Memphis</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Ready 2 PM · reposition 118 mi · #4471 Thu 6 AM · home Sat · floor $1.85
         </p>
 
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="ez-label mt-4 text-muted-foreground">
           You keep about
         </p>
-        <p className="ez-num text-5xl">
+        <p className="ez-hero-number mt-2">
           $1,412
           <TrustCue label="Estimated net" />
         </p>
         <p className="ez-num text-base text-muted-foreground">$2.41 all-in/mi · high conf.</p>
 
-        <ul className="mt-4 flex flex-wrap gap-4 text-sm">
-          <li className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-ez-green" />
+        <ul className="mt-4 flex flex-wrap gap-2 text-sm">
+          <li className="ez-label flex items-center gap-2 rounded border border-ez-green/50 px-2 py-1 text-ez-green">
             Fits
           </li>
-          <li className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-ez-green" />
+          <li className="ez-label flex items-center gap-2 rounded border border-ez-green/50 px-2 py-1 text-ez-green">
             Pays
           </li>
-          <li className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-ez-amber" />
+          <li className="ez-label flex items-center gap-2 rounded border border-ez-amber/50 px-2 py-1 text-ez-amber">
             Your floor
             <span className="text-muted-foreground">· market not verified</span>
           </li>
@@ -258,21 +255,21 @@ function BoardPage() {
           Your approval required — EZ books nothing on its own.
         </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4">
           <button className="ez-btn-primary">See the load</button>
-          <button className="ez-btn-secondary">Needs you 2</button>
+          <button className="mt-2 w-full py-2 text-sm text-muted-foreground">Needs you 2</button>
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="ez-section-title mb-4 text-muted-foreground">
               {section.title} · {section.count}
             </h2>
             <ul className="space-y-2">
               {section.cards.map((card) => (
-                <li key={card.head} className="rounded-xl border border-border bg-card p-4">
+                <li key={card.head} className="rounded-md border border-border bg-card p-4">
                   <p
                     className={`ez-ref truncate ${
                       card.headTone === "green"
@@ -285,13 +282,13 @@ function BoardPage() {
                     {card.head}
                   </p>
                   <div className="mt-1 flex items-start justify-between gap-3">
-                    <p className="min-w-0 truncate font-semibold">{card.route}</p>
+                    <p className="ez-card-title min-w-0 truncate">{card.route}</p>
                     {card.pill ? (
                       <span
-                        className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`ez-label inline-flex shrink-0 items-center rounded border bg-transparent px-3 py-1 ${
                           card.pill.tone === "take"
-                            ? "bg-ez-green text-primary-foreground"
-                            : "bg-ez-amber text-accent-foreground"
+                            ? "border-ez-green/50 text-ez-green"
+                            : "border-ez-amber/50 text-ez-amber"
                         }`}
                       >
                         {card.pill.text}
