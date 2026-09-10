@@ -124,29 +124,8 @@ function CopilotPage() {
            <span className="truncate">EZ Truck Copilot</span>
         </span>
       }
-      action={
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openCopilotVoice()}
-            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
-          >
-            <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="hidden whitespace-nowrap sm:inline">Talk to EZ Copilot</span>
-            <span className="whitespace-nowrap sm:hidden">Talk</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setAsking(true)}
-            className="flex min-h-11 items-center gap-2 rounded-full border border-ez-amber px-3 text-sm font-semibold text-ez-amber"
-          >
-            <CopilotAvatar color={truckColor} className="size-6" />
-            <span className="hidden whitespace-nowrap sm:inline">Work with EZ Copilot</span>
-            <span className="whitespace-nowrap sm:hidden">Work</span>
-          </button>
-        </div>
-      }
     >
+
       {/* Avatar stage — neon frame lit in the driver's chosen glow color. */}
       <section
         className="relative overflow-hidden rounded-3xl bg-background"
