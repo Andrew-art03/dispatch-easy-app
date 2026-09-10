@@ -24,10 +24,16 @@ export type WeekGoalColdOpenProps = {
 };
 
 const VB = { w: 400, h: 238 };
-const APPROACH = 1700;
-const TURN = 760;
-const CLIMB = 1600;
+const APPROACH = 900;
+const TURN = 1100;
+const CLIMB = 1500;
 const ANGLE = 58;
+/** Truck width on the road, in px, and the axle contact point on the asset. */
+const TRUCK_W = 78;
+const AXLE_X = 0.28;
+const AXLE_Y = 0.86;
+const AXLE_OFFSET = `translate(${-AXLE_X * 100}%, ${-AXLE_Y * 100}%)`;
+
 
 const usd = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -117,7 +123,9 @@ export function WeekGoalColdOpen({
   const [replayKey, setReplayKey] = useState(0);
 
   const stageRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const rigRef = useRef<HTMLDivElement>(null);
+  const artRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const dustRef = useRef<HTMLDivElement>(null);
   const flareRef = useRef<HTMLDivElement>(null);
@@ -133,9 +141,11 @@ export function WeekGoalColdOpen({
 
   useEffect(() => {
     const stage = stageRef.current;
+    const scene = sceneRef.current;
     const rig = rigRef.current;
+    const art = artRef.current;
     const roadBed = roadBedRef.current;
-    if (!stage || !rig || !roadBed) return;
+    if (!stage || !scene || !rig || !art || !roadBed) return;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     const frames: number[] = [];
@@ -145,10 +155,35 @@ export function WeekGoalColdOpen({
     const sy = () => stage.clientHeight / VB.h;
     let counterValue = 0;
 
-    const put = (x: number, y: number, w: number, ry = 0, extra = "") => {
-      rig.style.width = `${w}px`;
-      rig.style.transform = `translate(${x}px,${y}px) rotateY(${ry}deg) ${extra}`;
+    /** #truck-rig: 2D only. The path point IS the position. */
+    const putRig = (x: number, y: number, deg: number) => {
+      rig.style.transform = `translate(${x}px,${y}px) rotate(${deg}deg)`;
     };
+    /** #scene: camera only — never rotates. */
+    const putCamera = (tx: number, ty: number, k: number) => {
+      scene.style.transform = `translate(${tx}px,${ty}px) scale(${k})`;
+    };
+    /** #truck-art: 3D yaw only, and only during acts 1-2. */
+    const putYaw = (deg: number | null) => {
+      // The constant axle-alignment offset is never animated; only the yaw is.
+      art.style.transform =
+        deg === null ? AXLE_OFFSET : `${AXLE_OFFSET} rotateY(${deg}deg)`;
+    };
+
+    const len = roadBed.getTotalLength();
+    const tangentAt = (l: number) => {
+      const p = roadBed.getPointAtLength(l);
+      const p2 = roadBed.getPointAtLength(Math.min(l + 1, len));
+      const ax = p.x * sx();
+      const ay = p.y * sy();
+      const bx = p2.x * sx();
+      const by = p2.y * sy();
+      return { x: ax, y: ay, deg: (Math.atan2(by - ay, bx - ax) * 180) / Math.PI };
+    };
+
+    rig.style.width = `${TRUCK_W}px`;
+    const startL = len * 0.012;
+    const startPose = tangentAt(startL);
 
     const setCount = (cents: number) => {
       if (countRef.current) countRef.current.textContent = usd(cents);
@@ -187,20 +222,40 @@ export function WeekGoalColdOpen({
     setCount(0);
     revealRef.current?.setAttribute("width", "0");
     cumRefs.current.forEach((t) => t && (t.style.opacity = "0"));
-    rig.style.transition = "none";
+    scene.style.transition = "none";
+    art.style.transition = "none";
 
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    const parkPose = (() => {
+      const targetX = road.pts[road.lastIdx + 2]!.x;
+      let lo = 0;
+      let hi = len;
+      for (let i = 0; i < 26; i++) {
+        const m = (lo + hi) / 2;
+        if (roadBed.getPointAtLength(m).x < targetX) lo = m;
+        else hi = m;
+      }
+      return (lo + hi) / 2;
+    })();
+
     const floor = stage.clientHeight - 26;
     const cx = stage.clientWidth / 2;
 
     if (reduce) {
-      put(road.pts[road.lastIdx + 2]!.x * sx() - 78 * 0.6, road.pts[road.lastIdx + 2]!.y * sy() + 6, 78, 0);
+      putCamera(0, 0, 1);
+      putYaw(null);
+      const end = tangentAt(parkPose);
+      putRig(end.x, end.y, end.deg);
       settle();
       return;
     }
+
+    // The rig sits at the true path start for acts 1-2; only the camera moves.
+    putRig(startPose.x, startPose.y, startPose.deg);
+    scene.style.transformOrigin = `${startPose.x}px ${startPose.y}px`;
 
     if (graphRef.current) graphRef.current.style.opacity = "0";
     if (approachRef.current) {
@@ -209,24 +264,27 @@ export function WeekGoalColdOpen({
     }
     if (flareRef.current) flareRef.current.style.opacity = "1";
 
-    const STAGE_W = stage.clientWidth;
+    const bigK = (stage.clientWidth * 0.66) / TRUCK_W;
+    const smallK = 20 / TRUCK_W;
+    const HORIZON = 102;
     const t0 = performance.now();
-    put(cx - 11, 102, 20, ANGLE);
+    putYaw(ANGLE);
+    putCamera(cx - startPose.x, HORIZON - startPose.y, smallK);
 
-    // ACT 1 — approach out of the vanishing point.
+    // ACT 1 — approach out of the vanishing point. Camera + yaw only.
     const drive = (now: number) => {
       const p = Math.min(1, (now - t0) / APPROACH);
       const e = Math.pow(p, 2.1);
-      const w = 20 + e * (STAGE_W * 0.66 - 20);
+      const k = smallK + e * (bigK - smallK);
+      const w = TRUCK_W * k;
       const sway = Math.sin(p * Math.PI * 2.2) * (1 - p) * 12;
       const bob = Math.sin(p * Math.PI * 9) * (0.6 + e * 2.2);
-      const HORIZON = 102;
       const y = HORIZON + (floor - 8 - HORIZON) * e + bob;
-      put(cx - w * 0.34 + sway, y, w, ANGLE);
+      putCamera(cx + sway - startPose.x, y - startPose.y, k);
 
       const lampY = y - w * 0.145;
       const gap = w * 0.03;
-      const noseX = cx + sway + w * 0.55;
+      const noseX = cx + sway + w * 0.2;
       const size = 5 + e * 46;
       [
         [lampLRef.current, -1],
@@ -251,55 +309,49 @@ export function WeekGoalColdOpen({
     };
     raf(drive);
 
-    // ACT 2 — one continuous rotation of the same object, camera pulls back.
+    // ACT 2 — the handoff. One continuous unwind of the yaw while the camera
+    // pulls back to identity, so the rig ends exactly on the path start.
     after(APPROACH, () => {
       approachRef.current?.classList.remove("rolling");
-      rig.style.transition = `transform ${TURN}ms cubic-bezier(.42,.02,.24,1)`;
+      const eased = `${TURN}ms cubic-bezier(.42,.02,.24,1)`;
+      scene.style.transition = `transform ${eased}`;
+      art.style.transition = `transform ${eased}`;
+      putCamera(0, 0, 1);
+      putYaw(0);
       if (flareRef.current) {
         flareRef.current.style.transition = "opacity .34s linear";
         flareRef.current.style.opacity = "0";
       }
-      const w = 78;
-      put(-w * 0.6, floor - 4, w, 0, "rotate(-1deg)");
-      after(300, () => {
+      after(Math.round(TURN * 0.4), () => {
         if (approachRef.current) approachRef.current.style.opacity = "0";
         if (graphRef.current) graphRef.current.style.opacity = "1";
       });
     });
 
-    // ACT 3 — climb the road along the path itself.
-    after(APPROACH + TURN - 90, () => {
-      rig.style.transition = "none";
-      const W = 78;
-      const len = roadBed.getTotalLength();
-      const targetX = road.pts[road.lastIdx + 2]!.x;
-      let lo = 0;
-      let hi = len;
-      for (let i = 0; i < 26; i++) {
-        const m = (lo + hi) / 2;
-        if (roadBed.getPointAtLength(m).x < targetX) lo = m;
-        else hi = m;
-      }
-      const at = (lo + hi) / 2;
-      const start = len * 0.012;
+    // ACT 3 — climb. Only the rig moves, straight off the path geometry.
+    after(APPROACH + TURN, () => {
+      // Hard snap: kill every leftover transform and land on the path start.
+      scene.style.transition = "none";
+      art.style.transition = "none";
+      putCamera(0, 0, 1);
+      putYaw(null);
+      putRig(startPose.x, startPose.y, startPose.deg);
+
       const s0 = performance.now();
       let lit = -1;
 
       const roll = (now: number) => {
         const p = Math.min(1, (now - s0) / CLIMB);
         const e = ease(p);
-        const l = start + (at - start) * e;
-        const a = roadBed.getPointAtLength(Math.max(0, l - 7));
-        const b = roadBed.getPointAtLength(Math.min(len, l + 7));
-        const pt = roadBed.getPointAtLength(l);
-        const ang = (Math.atan2((b.y - a.y) * sy(), (b.x - a.x) * sx()) * 180) / Math.PI;
-        const bob = Math.sin(p * Math.PI * 14) * 0.9;
-        put(pt.x * sx() - W * 0.6, pt.y * sy() + 6 + bob, W, 0, `rotate(${(ang * 0.85).toFixed(2)}deg)`);
+        const l = startL + (parkPose - startL) * e;
+        const pose = tangentAt(l);
+        putRig(pose.x, pose.y, pose.deg);
 
+        const pt = roadBed.getPointAtLength(l);
         const dust = dustRef.current;
         if (dust) {
-          dust.style.left = `${pt.x * sx() - W * 0.52}px`;
-          dust.style.top = `${pt.y * sy() + 4}px`;
+          dust.style.left = `${pose.x - TRUCK_W * 0.24}px`;
+          dust.style.top = `${pose.y + 2}px`;
           dust.style.opacity = (0.1 + Math.abs(Math.sin(p * Math.PI * 5)) * 0.16).toFixed(2);
           dust.style.width = `${24 + Math.abs(Math.sin(p * Math.PI * 3)) * 22}px`;
         }
@@ -331,6 +383,7 @@ export function WeekGoalColdOpen({
       frames.forEach(cancelAnimationFrame);
     };
   }, [road, days, cleared, replayKey]);
+
 
   const accent = cleared ? "#FFC24A" : "var(--ez-amber)";
   const monoLabel = "font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground";
@@ -512,10 +565,15 @@ export function WeekGoalColdOpen({
           </div>
 
           {/* ONE truck for the whole film — the repo's side-profile photo, facing right. */}
-          <div ref={rigRef} className="ez-coldopen-rig">
-            <img src={truckAsset.url} alt="" className="ez-coldopen-truck" draggable={false} />
-            <div ref={glowRef} className="ez-coldopen-glow" style={{ background: `radial-gradient(ellipse at center, ${accent}, transparent 70%)` }} />
+          <div ref={sceneRef} className="ez-coldopen-scene">
+            <div ref={rigRef} className="ez-coldopen-rig">
+              <div ref={artRef} className="ez-coldopen-art">
+                <img src={truckAsset.url} alt="" className="ez-coldopen-truck" draggable={false} />
+                <div ref={glowRef} className="ez-coldopen-glow" style={{ background: `radial-gradient(ellipse at center, ${accent}, transparent 70%)` }} />
+              </div>
+            </div>
           </div>
+
         </div>
 
         <button

@@ -40,6 +40,22 @@ const WEEK = { earned: 2100, target: 3000 };
 const NEEDS_YOU: LoadState[] = ["qualified", "terms_proposed", "rate_con_received"];
 const LOOKING: LoadState[] = ["candidate_found", "qualified"];
 
+type Tone = "neutral" | "good" | "caution" | "blocked";
+
+const TONE_BORDER: Record<Tone, string> = {
+  neutral: "border-border",
+  good: "border-ez-green/45",
+  caution: "border-ez-amber/45",
+  blocked: "border-ez-red/50",
+};
+
+const TONE_TEXT: Record<Tone, string> = {
+  neutral: "text-muted-foreground",
+  good: "text-ez-green",
+  caution: "text-ez-amber",
+  blocked: "text-ez-red",
+};
+
 function money(n: number) {
   return `$${n.toLocaleString()}`;
 }
@@ -162,21 +178,19 @@ function HomePage() {
     >
       <div className="space-y-4">
         {/* 1 — Weekly payout goal */}
-        <Link to="/goal" className="block rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <Wallet className="size-4 text-ez-amber" />
-              Your weekly payout goal
-            </span>
-            <span className="ez-num">
-              {money(WEEK.earned)}{" "}
-              <span className="text-muted-foreground">of {money(WEEK.target)}</span>
-            </span>
-          </div>
+        <Link to="/goal" className="block rounded-2xl border border-ez-amber/40 bg-card p-5">
+          <span className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+            <Wallet className="size-4 text-ez-amber" />
+            Your weekly payout goal
+          </span>
+          <p className="ez-num mt-2 text-4xl">
+            {money(WEEK.earned)}{" "}
+            <span className="text-2xl text-muted-foreground">of {money(WEEK.target)}</span>
+          </p>
           <div className="mt-8">
             <GoalBar progress={progress} truckColor={truckColor} />
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 font-mono text-xs text-ez-amber">
             {money(WEEK.target - WEEK.earned)} to go this week
           </p>
         </Link>
@@ -194,6 +208,7 @@ function HomePage() {
                 : `${unit ? `Unit ${unit} · ` : ""}${looking} to look at · Needs you: ${needsYou}`
           }
           error={loadsQuery.error}
+          tone={loadsQuery.isPending ? "neutral" : needsYou > 0 ? "caution" : "good"}
         />
 
         {/* 3 — Hunt */}
@@ -211,6 +226,7 @@ function HomePage() {
                   }`
           }
           error={huntQuery.error}
+          tone={huntQuery.isPending ? "neutral" : hunt?.active ? "good" : "caution"}
         />
 
         {/* 4 — Hours */}
@@ -227,6 +243,7 @@ function HomePage() {
           }
           hint="Your numbers, not your log."
           error={driverQuery.error}
+          tone={driverQuery.isPending ? "neutral" : hours == null ? "caution" : "good"}
         />
 
         {/* 5 — Docs */}
@@ -244,6 +261,13 @@ function HomePage() {
                   : `${docsQuery.data!.missing} load${docsQuery.data!.missing === 1 ? "" : "s"} missing a rate con or POD`
           }
           error={docsQuery.error}
+          tone={
+            docsQuery.isPending || (docsQuery.data?.total ?? 0) === 0
+              ? "neutral"
+              : docsQuery.data!.missing === 0
+                ? "good"
+                : "caution"
+          }
         />
 
         {/* 6 — EZ Copilot */}
@@ -292,6 +316,7 @@ function HomeCard({
   status,
   hint,
   error,
+  tone = "neutral",
 }: {
   to: string;
   icon: ReactNode;
@@ -299,16 +324,17 @@ function HomeCard({
   status: string;
   hint?: string;
   error?: unknown;
+  tone?: Tone;
 }) {
   return (
-    <Link to={to} className="block rounded-2xl border border-border bg-card p-4">
+    <Link to={to} className={`block rounded-2xl border bg-card p-4 ${TONE_BORDER[tone]}`}>
       <div className="flex items-center gap-3">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2">
           {icon}
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{title}</p>
-          <p className="text-sm text-muted-foreground">{status}</p>
+          <p className={`text-sm ${TONE_TEXT[tone]}`}>{status}</p>
           {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
         </div>
         <span aria-hidden="true" className="text-muted-foreground">
