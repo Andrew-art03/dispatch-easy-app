@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Link } from "@tanstack/react-router";
 import { Mic, X } from "lucide-react";
+
 
 export type VoiceHeard = {
   label: string;
