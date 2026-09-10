@@ -173,9 +173,18 @@ export function EZVoiceSheet({ open, props }: { open: boolean; props: VoiceProps
           </button>
         </div>
 
+        <Link
+          to="/copilot"
+          onClick={() => emit({ open: false })}
+          className="ez-btn-secondary mt-3 block text-center"
+        >
+          Open EZ Copilot
+        </Link>
+
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Hold the ring to talk · Type instead
         </p>
+
       </div>
     </div>
   );
