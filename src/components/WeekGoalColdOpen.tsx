@@ -24,10 +24,15 @@ export type WeekGoalColdOpenProps = {
 };
 
 const VB = { w: 400, h: 238 };
-const APPROACH = 1700;
-const TURN = 760;
-const CLIMB = 1600;
+const APPROACH = 900;
+const TURN = 1100;
+const CLIMB = 1500;
 const ANGLE = 58;
+/** Truck width on the road, in px, and the axle contact point on the asset. */
+const TRUCK_W = 78;
+const AXLE_X = 0.28;
+const AXLE_Y = 0.86;
+
 
 const usd = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
