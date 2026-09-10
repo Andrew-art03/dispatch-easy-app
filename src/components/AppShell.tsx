@@ -2,9 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Home, Search, FileText, Wallet, LayoutList } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { EZPresence } from "@/components/EZPresence";
-import { EZVoiceSheetHost } from "@/components/EZVoice";
-import { useTruckColor } from "@/components/GoalProgress";
+import { EZVoiceSheetHost, useEZVoice } from "@/components/EZVoice";
+import { CopilotAvatar, useTruckColor } from "@/components/GoalProgress";
 import { TruckImage } from "@/components/TruckImage";
 
 const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolean }[] = [
@@ -14,6 +13,34 @@ const NAV: { to: string; label: string; icon?: typeof LayoutList; truck?: boolea
   { to: "/docs", label: "Docs", icon: FileText },
   { to: "/goal", label: "Week $", icon: Wallet },
 ];
+
+/** The one way into EZ Copilot — pinned to the top of every screen. */
+function CopilotEntry() {
+  const [truckColor] = useTruckColor();
+  const voice = useEZVoice();
+  return (
+    <button
+      type="button"
+      aria-label="EZ Copilot"
+      onClick={() =>
+        voice.openWith({
+          transcript: "How can I help you today?",
+          heard: [
+            { label: "Action", value: "Find my next load", sure: false },
+            { label: "Then", value: "Open EZ Copilot", sure: true },
+          ],
+          keepAmount: "$1,412",
+          rpmLabel: "$2.41",
+          verdictWord: "Take it",
+        })
+      }
+      className="flex min-h-11 shrink-0 items-center gap-2 rounded-md border border-ez-amber px-3"
+    >
+      <CopilotAvatar color={truckColor} className="size-6" />
+      <span className="ez-label text-ez-amber">EZ Copilot</span>
+    </button>
+  );
+}
 
 export function AppShell({
   title,
@@ -32,6 +59,7 @@ export function AppShell({
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center py-2 justify-between gap-3 px-4">
           <h1 className="ez-section-title min-w-0 flex-1 truncate">{title}</h1>
+          <CopilotEntry />
           {action}
         </div>
       </header>
@@ -40,8 +68,8 @@ export function AppShell({
         {children}
       </main>
 
-      <EZPresence />
       <EZVoiceSheetHost />
+
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card pb-[max(0.35rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-3xl flex-col">
