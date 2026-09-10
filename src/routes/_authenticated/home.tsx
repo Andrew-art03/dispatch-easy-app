@@ -270,40 +270,8 @@ function HomePage() {
           }
         />
 
-        {/* 6 — EZ Copilot */}
-        <section className="mt-4 rounded-md border border-ez-amber/50 bg-card p-4">
-          <div className="flex items-center gap-3">
-            <div className="min-w-0">
-              <p className="ez-card-title">EZ Copilot</p>
-              <p className="truncate text-sm text-muted-foreground">
-                {unit ? `Unit ${unit}` : "No truck yet"} · ask for your next move
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                voice.openWith({
-                  transcript: "How can I help you today?",
-                  heard: [
-                    { label: "Truck", value: unit ? `Unit ${unit}` : "No truck yet", sure: true },
-                    { label: "Action", value: "Find my next load", sure: false },
-                  ],
-                  keepAmount: "$1,412",
-                  rpmLabel: "$2.41",
-                  verdictWord: "Take it",
-                })
-              }
-              className="rounded-md border border-ez-amber px-4 py-3 text-sm font-semibold text-ez-amber"
-            >
-              How can I help you today?
-            </button>
-            <Link to="/copilot" className="ez-btn-secondary text-center">
-              Work with EZ Copilot
-            </Link>
-          </div>
-        </section>
+        {/* 6 — EZ Copilot lives in the pinned top entry point on every screen */}
+
       </div>
     </AppShell>
   );
