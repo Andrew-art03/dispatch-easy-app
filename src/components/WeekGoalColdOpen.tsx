@@ -562,10 +562,15 @@ export function WeekGoalColdOpen({
           </div>
 
           {/* ONE truck for the whole film — the repo's side-profile photo, facing right. */}
-          <div ref={rigRef} className="ez-coldopen-rig">
-            <img src={truckAsset.url} alt="" className="ez-coldopen-truck" draggable={false} />
-            <div ref={glowRef} className="ez-coldopen-glow" style={{ background: `radial-gradient(ellipse at center, ${accent}, transparent 70%)` }} />
+          <div ref={sceneRef} className="ez-coldopen-scene">
+            <div ref={rigRef} className="ez-coldopen-rig">
+              <div ref={artRef} className="ez-coldopen-art">
+                <img src={truckAsset.url} alt="" className="ez-coldopen-truck" draggable={false} />
+                <div ref={glowRef} className="ez-coldopen-glow" style={{ background: `radial-gradient(ellipse at center, ${accent}, transparent 70%)` }} />
+              </div>
+            </div>
           </div>
+
         </div>
 
         <button

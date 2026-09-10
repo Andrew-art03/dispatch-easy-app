@@ -307,16 +307,30 @@
 .ez-coldopen-layer {
   transition: opacity 0.22s linear;
 }
-.ez-coldopen-rig {
+.ez-coldopen-scene {
   position: absolute;
-  left: 0;
-  top: 0;
-  transform-origin: 50% 0;
-  width: 150px;
+  inset: 0;
   transform-style: preserve-3d;
   will-change: transform;
   pointer-events: none;
   z-index: 4;
+}
+.ez-coldopen-rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* Rear-axle tire patch on the asset — tangent rotation pivots here. */
+  transform-origin: 28% 86%;
+  width: 150px;
+  margin-left: -28%;
+  margin-top: -86%;
+  will-change: transform;
+  pointer-events: none;
+}
+.ez-coldopen-art {
+  transform-style: preserve-3d;
+  transform-origin: 28% 86%;
+  will-change: transform;
 }
 .ez-coldopen-truck {
   display: block;
@@ -324,6 +338,7 @@
   backface-visibility: hidden;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
 }
+
 .ez-coldopen-glow {
   position: absolute;
   left: 12%;
