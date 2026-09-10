@@ -7,7 +7,7 @@ import {
   TRUCK_COLORS,
   useTruckColor,
 } from "@/components/GoalProgress";
-import { useEZVoice } from "@/components/EZVoice";
+
 
 export const Route = createFileRoute("/_authenticated/copilot")({
   head: () => ({
