@@ -207,6 +207,9 @@ function LoadCard() {
             after estimated trip costs ·{" "}
             <span className="font-semibold text-foreground">{verdictWord}</span>
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No mystery score. See every number behind the recommendation.
+          </p>
 
           <dl className="mt-4 grid grid-cols-3 gap-2 text-left">
             <Stat label="All-in / mi" value={rpm(score?.all_in_rpm ?? null)} />
