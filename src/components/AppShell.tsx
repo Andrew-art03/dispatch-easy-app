@@ -31,7 +31,7 @@ export function AppShell({
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center py-2 justify-between gap-3 px-4">
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{title}</h1>
+          <h1 className="ez-section-title min-w-0 flex-1 truncate">{title}</h1>
           {action}
         </div>
       </header>
@@ -51,7 +51,7 @@ export function AppShell({
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-1 py-3.5 text-xs transition-colors"
+                className="flex flex-col items-center gap-1 py-3 text-[10.5px] transition-colors"
                 activeOptions={{ exact: false }}
               >
                 {({ isActive }) => (
@@ -75,6 +75,7 @@ export function AppShell({
                     ) : null}
                     <span
                       className={cn(
+                        "font-mono uppercase tracking-[0.08em]",
                         isActive
                           ? "font-semibold text-ez-amber"
                           : "text-muted-foreground",
@@ -105,13 +106,13 @@ export function Loading({ label = "Loading…" }: { label?: string }) {
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const message = error instanceof Error ? error.message : "Something went wrong.";
   return (
-    <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4">
+    <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-4">
       <p className="font-medium text-destructive">That didn't load</p>
       <p className="mt-1 text-sm text-muted-foreground">{message}</p>
       {onRetry ? (
         <button
           onClick={onRetry}
-          className="mt-3 rounded-lg border border-border px-3 py-2 text-sm font-medium"
+          className="mt-4 rounded-md border border-border px-3 py-2 text-sm font-medium"
         >
           Try again
         </button>
@@ -122,8 +123,8 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 
 export function Empty({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border p-8 text-center">
-      <p className="font-medium">{title}</p>
+    <div className="rounded-md border border-dashed border-border p-8 text-left">
+      <p className="ez-card-title">{title}</p>
       {hint ? <p className="mt-1 text-sm text-muted-foreground">{hint}</p> : null}
     </div>
   );

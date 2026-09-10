@@ -27,13 +27,13 @@
   --color-ez-amber: var(--ez-amber);
   --color-surface-2: var(--surface-2);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+  --radius-4xl: 6px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -71,7 +71,7 @@
 
 :root,
 .dark {
-  --radius: 0.875rem;
+  --radius: 4px;
   /* Marker Light palette — exact conversions of the reference hex values. */
   --ez-green: oklch(0.790506 0.178991 154.139); /* #3ddb84 */
   --ez-red: oklch(0.529674 0.196866 25.14); /* #c42029 */
@@ -148,7 +148,8 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 60px;
+    min-height: 56px;
+    max-height: 56px;
     border-radius: var(--radius);
     background-color: var(--color-accent);
     color: var(--color-accent-foreground);
@@ -177,24 +178,25 @@
     font-family: var(--font-condensed);
     font-weight: 700;
     line-height: 0.95;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   .ez-ref {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .ez-chip {
-    border-left: 3px solid transparent;
-    background-color: var(--color-surface-2);
-    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    border-radius: var(--radius);
     padding: 0.625rem 0.75rem;
   }
 
   .ez-chip-watch {
-    border-left-color: var(--color-ez-red);
+    border-color: color-mix(in oklab, var(--color-ez-red) 50%, transparent);
   }
 
   .ez-ring {
@@ -218,7 +220,8 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 60px;
+    min-height: 56px;
+    max-height: 56px;
     border-radius: var(--radius);
     background-color: var(--color-accent);
     color: var(--color-accent-foreground);
@@ -231,6 +234,39 @@
   .ez-btn-primary:active,
   .ez-btn-amber:active {
     opacity: 0.85;
+  }
+
+  .ez-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .ez-section-title {
+    font-family: var(--font-condensed);
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .ez-card-title {
+    font-family: var(--font-condensed);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+  }
+
+  .ez-hero-number {
+    font-family: var(--font-condensed);
+    font-size: 6rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 0.82;
   }
 }
 

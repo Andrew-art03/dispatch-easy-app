@@ -176,16 +176,16 @@ function HomePage() {
         </Link>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-2">
         {/* 1 — Weekly payout goal */}
-        <Link to="/goal" className="block rounded-2xl border border-ez-amber/40 bg-card p-5">
-          <span className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+        <Link to="/goal" className="mb-4 block rounded-md border border-ez-amber/40 bg-card p-4">
+          <span className="ez-label flex items-center gap-2 text-muted-foreground">
             <Wallet className="size-4 text-ez-amber" />
             Your weekly payout goal
           </span>
-          <p className="ez-num mt-2 text-4xl">
+          <p className="ez-hero-number mt-4">
             {money(WEEK.earned)}{" "}
-            <span className="text-2xl text-muted-foreground">of {money(WEEK.target)}</span>
+            <span className="block pt-3 text-xl text-muted-foreground">of {money(WEEK.target)}</span>
           </p>
           <div className="mt-8">
             <GoalBar progress={progress} truckColor={truckColor} />
@@ -271,10 +271,10 @@ function HomePage() {
         />
 
         {/* 6 — EZ Copilot */}
-        <section className="rounded-2xl border border-ez-amber/50 bg-card p-4">
+        <section className="mt-4 rounded-md border border-ez-amber/50 bg-card p-4">
           <div className="flex items-center gap-3">
             <div className="min-w-0">
-              <p className="font-semibold">EZ Copilot</p>
+              <p className="ez-card-title">EZ Copilot</p>
               <p className="truncate text-sm text-muted-foreground">
                 {unit ? `Unit ${unit}` : "No truck yet"} · ask for your next move
               </p>
@@ -295,7 +295,7 @@ function HomePage() {
                   verdictWord: "Take it",
                 })
               }
-              className="rounded-full border border-ez-amber px-4 py-3 text-sm font-semibold text-ez-amber"
+              className="rounded-md border border-ez-amber px-4 py-3 text-sm font-semibold text-ez-amber"
             >
               How can I help you today?
             </button>
@@ -327,13 +327,13 @@ function HomeCard({
   tone?: Tone;
 }) {
   return (
-    <Link to={to} className={`block rounded-2xl border bg-card p-4 ${TONE_BORDER[tone]}`}>
+    <Link to={to} className={`block rounded-md border bg-card p-4 ${TONE_BORDER[tone]}`}>
       <div className="flex items-center gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-surface-2">
           {icon}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">{title}</p>
+          <p className="ez-card-title">{title}</p>
           <p className={`text-sm ${TONE_TEXT[tone]}`}>{status}</p>
           {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
         </div>
