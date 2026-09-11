@@ -170,6 +170,33 @@ describe("readSecret", () => {
     );
   });
 
+  it("1C-1: REFUSES a secret too short to register — it would otherwise be handed out and never scrubbed", () => {
+    // 7 characters: under the registry threshold. Before 1C-1 this value was
+    // returned to the skill AND skipped by registerSecretValue, so the scrubber
+    // could never redact it — the review demonstrated it printing in cleartext.
+    process.env["ANTHROPIC_API_KEY"] = "abcdefg";
+    let err: unknown;
+    try {
+      readSecret(manifest, "ANTHROPIC_API_KEY");
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(KillSwitchTrip); // a config defect, not a policy breach
+    const msg = (err as Error).message;
+    expect(msg).toContain("ANTHROPIC_API_KEY"); // names the variable...
+    expect(msg).toContain("demo"); // ...and the skill that asked
+    expect(msg).not.toContain("abcdefg"); // ...never the value
+    // And nothing leaked into the registry on the way to the throw.
+    expect(scrub("abcdefg here")).toBe("abcdefg here");
+  });
+
+  it("1C-1: a value at or above the threshold is handed out and registered as before", () => {
+    process.env["ANTHROPIC_API_KEY"] = "abcdefgh12345"; // 13 chars, no known shape
+    expect(readSecret(manifest, "ANTHROPIC_API_KEY")).toBe("abcdefgh12345");
+    expect(scrub("key abcdefgh12345 sent")).toBe("key [redacted:ANTHROPIC_API_KEY] sent");
+  });
+
   it("reads through Deno.env when process.env has nothing (Edge Functions)", () => {
     delete process.env["ANTHROPIC_API_KEY"];
     const g = globalThis as { Deno?: unknown };
@@ -222,8 +249,10 @@ describe("scrub — registered values", () => {
   it("does not register a value shorter than 8 characters", () => {
     registerSecretValue("ANTHROPIC_API_KEY", "abc");
     // Redacting every "abc" in every log line would destroy the logs and teach
-    // people that redaction output is noise. Short values are covered by the
-    // shape patterns instead, when they have a known shape.
+    // people that redaction output is noise. This is only safe because the read
+    // path fails first: readSecret refuses a value this short (1C-1), so a
+    // too-short secret never reaches a skill unregistered. The shape patterns do
+    // NOT cover arbitrary short values — that claim was wrong and is gone.
     expect(scrub("abc appears in abcdef")).toBe("abc appears in abcdef");
   });
 
@@ -282,17 +311,53 @@ describe("scrub — shape patterns", () => {
   });
 
   it("redacts PII — email, phone, MC number (rule 22; 9A depends on this)", () => {
-    expect(scrub("driver dan@example.com")).toBe("driver [redacted:EMAIL]");
+    expect(scrub("driver dan@example.com")).toBe("driver [redacted:EMAIL]@example.com");
     expect(scrub("call (555) 123-4567 now")).toBe("call [redacted:PHONE] now");
     expect(scrub("carrier MC-123456 ok")).toBe("carrier [redacted:MC_NUMBER] ok");
     expect(scrub("carrier MC 1234567")).toBe("carrier [redacted:MC_NUMBER]");
   });
 
-  it("KNOWN GAP: a bare 10-digit phone with no separators is not matched", () => {
-    // Deliberate. Requiring a separator is what keeps the rule from redacting
-    // order IDs, epoch timestamps and load numbers, which would make logs
-    // useless. Recorded as a limit rather than left as a surprise.
-    expect(scrub("5551234567")).toBe("5551234567");
+  it("1C-3: an email keeps its domain — 4C intake failures must say WHICH broker, and the domain is not the private part", () => {
+    // Same reasoning as URL_PASSWORD keeping the host. The local part is what
+    // identifies a person; the domain is what an operator needs to debug.
+    const out = scrub("intake failed for dispatch.jenny@acmefreight.com: no rate con attached");
+    expect(out).toBe("intake failed for [redacted:EMAIL]@acmefreight.com: no rate con attached");
+    expect(out).not.toContain("jenny");
+    expect(out).toContain("acmefreight.com");
+    // Object keys go through the same rule (scrubDeep), so a log keyed by address
+    // is attributable without being identifying.
+    expect(scrub("dan@example.com,eve@example.org")).toBe(
+      "[redacted:EMAIL]@example.com,[redacted:EMAIL]@example.org",
+    );
+  });
+
+  it("1C-2: bare digits redact — a keypad produces no separators, so this is the common case", () => {
+    // The previous rule required a separator before the last four digits, so a
+    // dialled number never redacted. The review tested both bare forms: NO MATCH.
+    expect(scrub("call me at 5551234567")).toBe("call me at [redacted:PHONE]");
+    expect(scrub("15551234567")).toBe("[redacted:PHONE]");
+    expect(scrub("+15551234567")).toBe("[redacted:PHONE]");
+  });
+
+  it("1C-2: every formatted variant still redacts", () => {
+    for (const v of ["(555) 123-4567", "555-123-4567", "555.123.4567", "555 123 4567", "+1 555-123-4567", "1-555-123-4567"]) {
+      expect(scrub(`tel ${v} end`), v).toBe("tel [redacted:PHONE] end");
+    }
+  });
+
+  it("1C-2: what keeps bare digits from eating epochs and load numbers is the area-code rule + the guards", () => {
+    // The old rule protected these with a mandatory separator. That is gone, so
+    // the protection has to come from somewhere real: an area code cannot begin
+    // with 0 or 1. Every 10-digit Unix epoch for the next two centuries begins
+    // with 1, so it fails at the first digit — and treating that 1 as a country
+    // code leaves only nine digits, which cannot form a number either.
+    const epoch = "1757612345";
+    expect(scrub(`at ${epoch} delivered`)).toBe(`at ${epoch} delivered`);
+    expect(scrub("0551234567")).toBe("0551234567"); // area code starting with 0
+    expect(scrub("1551234567")).toBe("1551234567"); // area code starting with 1, no country code to absorb it
+    expect(scrub("5551234567890")).toBe("5551234567890"); // 13-digit run: lookaround guards hold
+    expect(scrub("load 20260911123456")).toBe("load 20260911123456"); // 14-digit load id
+    expect(scrub("carrier MC 1234567")).toBe("carrier [redacted:MC_NUMBER]"); // 7 digits: MC, not phone
   });
 
   it("leaves ordinary text alone — a rail that cries wolf gets switched off", () => {
@@ -316,7 +381,8 @@ describe("scrubDeep", () => {
     // A log entry keyed by a customer email leaks as much as one with the
     // address in the value.
     const out = scrubDeep({ "dan@example.com": "ok" });
-    expect(Object.keys(out)).toEqual(["[redacted:EMAIL]"]);
+    // 1C-3: the domain survives in keys too — attributable, not identifying.
+    expect(Object.keys(out)).toEqual(["[redacted:EMAIL]@example.com"]);
   });
 
   it("scrubs an Error message and stack without losing the name", () => {

@@ -126,6 +126,16 @@ export function readSecret(m: SkillManifest, name: string): string {
   const v = readEnv(name);
   if (!v) throw new Error(`missing secret ${name}`);
 
+  // 1C-1: a value too short to register would be handed to the skill and then be
+  // invisible to the scrubber for the rest of the process. Fail closed. The error
+  // names the variable and its length, never the value.
+  if (v.length < MIN_REGISTERED_LENGTH) {
+    throw new Error(
+      `secret ${name} is ${v.length} characters; the scrubber cannot register values ` +
+        `shorter than ${MIN_REGISTERED_LENGTH}, so it is not handed to skill ${m.name}`,
+    );
+  }
+
   // Registered on the way out, so anything that later logs this value is
   // scrubbed even if the leak happens somewhere that never heard of this module.
   registerSecretValue(name, v);
@@ -155,8 +165,12 @@ const registered = new Map<string, string>();
  *
  * A short value would match constantly — a two-character secret would redact
  * every occurrence of those two characters in every log line, which destroys the
- * logs and, worse, teaches people that redaction output is noise. Short values
- * are still covered by the pattern rules below when they have a known shape.
+ * logs and, worse, teaches people that redaction output is noise.
+ *
+ * That leaves a gap this threshold must not paper over: a value under the
+ * threshold is NOT covered by the pattern rules unless it happens to have a known
+ * shape, and most do not. So `readSecret` refuses to hand one out at all (1C-1).
+ * The registry skipping it here is only safe because the read path fails first.
  */
 const MIN_REGISTERED_LENGTH = 8;
 
@@ -193,8 +207,29 @@ const PATTERNS: ReadonlyArray<{ re: RegExp; label: string }> = [
   // secret. Same reasoning as 1B's error messages.
   { re: /\b([a-z+]+:\/\/[^:/\s]+):[^@\s]+@/g, label: "URL_PASSWORD" },
   // PII (rule 22; 9A depends on this)
-  { re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "EMAIL" },
-  { re: /(?<!\d)(?:\+1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]\d{4}(?!\d)/g, label: "PHONE" },
+  //
+  // EMAIL keeps the domain (1C-3), for the same reason URL_PASSWORD keeps the
+  // host: when 4C's forwarded-broker-email intake fails, an operator needs to
+  // know WHICH broker's mail it was, and the domain is not the private part.
+  // The local part is what identifies a person; that is what gets redacted.
+  { re: /\b[A-Za-z0-9._%+-]+(@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/g, label: "EMAIL" },
+  //
+  // PHONE (1C-2): bare 10/11-digit numbers must redact — a keypad produces no
+  // separators, so `5551234567` is the common case, not the edge case. Every
+  // separator is optional. What keeps this from eating epoch timestamps is not
+  // a separator requirement but one NANP rule: an area code cannot begin with
+  // 0 or 1. A 10-digit Unix epoch (`17…` for the next two centuries) fails at
+  // its first digit, and the optional leading `1` cannot rescue it — that leaves
+  // nine digits where ten are needed. The lookaround guards still stop a match
+  // inside any longer digit run (load numbers, 13-digit IDs).
+  //
+  // The exchange is deliberately NOT constrained to [2-9]: the canonical test
+  // number 555-123-4567 has a "1" exchange, and real logs are not NANP-clean.
+  // Cost accepted: a 10-digit order ID starting 2–9 will redact as a phone.
+  {
+    re: /(?<!\d)(?:\+?1[-. ]?)?\(?[2-9]\d{2}\)?[-. ]?\d{3}[-. ]?\d{4}(?!\d)/g,
+    label: "PHONE",
+  },
   { re: /\bMC[-# ]?\d{5,8}\b/gi, label: "MC_NUMBER" },
 ];
 
@@ -216,9 +251,13 @@ export function scrub(text: string): string {
   }
 
   for (const { re, label } of PATTERNS) {
-    out = out.replace(re, (_match, ...groups) =>
-      label === "URL_PASSWORD" ? `${groups[0]}:[redacted:${label}]@` : `[redacted:${label}]`,
-    );
+    out = out.replace(re, (_match, ...groups) => {
+      // Two rules keep a non-secret part so a log line stays attributable:
+      // the host of a connection string, the domain of an email (1C-3).
+      if (label === "URL_PASSWORD") return `${groups[0]}:[redacted:${label}]@`;
+      if (label === "EMAIL") return `[redacted:${label}]${groups[0]}`;
+      return `[redacted:${label}]`;
+    });
   }
 
   return out;
