@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check:env": "node scripts/assert-no-secret-source.mjs",
-    "check:bundle": "node scripts/assert-no-service-role.mjs .output"
+    "check:bundle": "node scripts/assert-no-service-role.mjs .output",
+    "check:domain": "node scripts/assert-domain-purity.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
