@@ -27,14 +27,57 @@ export const Route = createFileRoute("/_authenticated/goal")({
   component: GoalPage,
 });
 
-// Visual-only mock data — no tables touched.
+// Visual-only mock data — no tables touched. Runs are the single source of
+// truth: the day series, the week label and the earned total all derive here.
 const MOCK = {
   routes: [
-    { from: "Amarillo, TX", to: "Dallas, TX", date: "Tue Sep 8", net: 1450 },
-    { from: "Dallas, TX", to: "Atlanta, GA", date: "Thu Sep 10", net: 1890 },
-    { from: "Atlanta, GA", to: "Charlotte, NC", date: "Sat Sep 12", net: 720 },
+    { from: "Amarillo, TX", to: "Dallas, TX", date: "2026-09-08", net: 1450 },
+    { from: "Dallas, TX", to: "Atlanta, GA", date: "2026-09-10", net: 1890 },
+    { from: "Atlanta, GA", to: "Charlotte, NC", date: "2026-09-12", net: 720 },
   ],
 };
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+/** Parses a plain YYYY-MM-DD as a local calendar day (no timezone drift). */
+function parseDay(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function mondayOf(date: Date) {
+  const offset = (date.getDay() + 6) % 7;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
+}
+
+function formatRunDate(value: string) {
+  return parseDay(value).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Days already driven get a number; future or empty days stay blank. */
+function deriveDays(today: Date): WeekDayEarning[] {
+  const totals = new Map<number, number>();
+  for (const run of MOCK.routes) {
+    const runDay = parseDay(run.date);
+    if (runDay > today) continue;
+    const index = (runDay.getDay() + 6) % 7;
+    totals.set(index, (totals.get(index) ?? 0) + run.net);
+  }
+  const lastIndex = Math.max(...[...totals.keys()], -1);
+  return DAY_LABELS.map((day, index) => ({
+    day,
+    amount: index <= lastIndex ? (totals.get(index) ?? 0) : null,
+  }));
+}
+
 
 /**
  * Drives the truck along an ABSOLUTE day-index (0 = before the first marker,
