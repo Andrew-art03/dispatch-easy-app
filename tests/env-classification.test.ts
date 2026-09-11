@@ -7,6 +7,8 @@ import {
   refOfJwt,
   resolveEnv,
   type EnvSource,
+  mergeEnvSources,
+  readEnvSource,
 } from "../packages/config/env.ts";
 
 const PROD_REF = "efeaylkqgqhobookcqby";
@@ -193,5 +195,55 @@ describe("resolveEnv — the whole gate", () => {
     });
     expect(resolved.envClass).toBe("prod");
     expect(resolved.isAgentProcess).toBe(true); // → createDb trips the kill switch
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P-1B-2 (panel pass, 2026-09-11): the browser has no `process`
+//
+// Why these tests feed `mergeEnvSources` directly instead of deleting `process`:
+// under vitest `import.meta.env` is a proxy over `process.env` — the very first
+// attempt at this test proved it (delete process → "no Supabase target
+// configured", because env.ts's import.meta.env emptied with it). The two are
+// the same object in the runner, so the browser cannot be simulated there. A
+// meta object plus `undefined` for process IS the browser, with nothing faked.
+// ---------------------------------------------------------------------------
+
+describe("mergeEnvSources / getEnv — the browser bundle, where process is undefined", () => {
+  it("classifies from import.meta.env alone (no process at all) with EZ_PROCESS_KIND=app", () => {
+    const browser = mergeEnvSources(
+      { SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`, EZ_PROCESS_KIND: "app" },
+      undefined,
+    );
+    const resolved = resolveEnv(browser);
+    expect(resolved.envClass).toBe("scratch");
+    expect(resolved.kind).toBe("app");
+    expect(resolved.isAgentProcess).toBe(false);
+  });
+
+  it("still fails safe in the browser when EZ_PROCESS_KIND is not inlined — kind defaults to agent", () => {
+    const browser = mergeEnvSources({ SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co` }, undefined);
+    expect(resolveEnv(browser).isAgentProcess).toBe(true);
+  });
+
+  it("a runtime process.env value supersedes a build-time import.meta.env value", () => {
+    const merged = mergeEnvSources({ EZ_ENV_CLAIM: "scratch" }, { EZ_ENV_CLAIM: "prod" });
+    expect(merged["EZ_ENV_CLAIM"]).toBe("prod");
+  });
+
+  it("tolerates a missing or non-object import.meta.env (plain Node/Bun, no Vite) and a missing process", () => {
+    expect(mergeEnvSources(undefined, undefined)).toEqual({});
+    expect(mergeEnvSources(null, { A: "1" })["A"]).toBe("1");
+    expect(mergeEnvSources("not-an-object", { A: "1" })["A"]).toBe("1");
+    expect(mergeEnvSources({ A: "meta" }, 42)["A"]).toBe("meta");
+  });
+
+  it("readEnvSource() carries live process.env values into the merged view", () => {
+    process.env["EZ_PROCESS_KIND"] = "edge";
+    try {
+      expect(readEnvSource()["EZ_PROCESS_KIND"]).toBe("edge");
+    } finally {
+      delete process.env["EZ_PROCESS_KIND"];
+    }
   });
 });

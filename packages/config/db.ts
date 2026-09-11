@@ -12,7 +12,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { getEnv } from "./env.ts";
+import { getEnv, readEnvSource } from "./env.ts";
 import { killSwitchTrip } from "./kill-switch.ts";
 
 /**
@@ -45,21 +45,34 @@ function callerModule(explicit?: string): string {
   return frame?.trim() ?? "<unknown>";
 }
 
+/**
+ * Both readers use `readEnvSource()` — the same merged `import.meta.env` +
+ * `process.env` view the classifier resolves against (P-1B-2). Reading
+ * `process.env` directly here would leave the browser bundle unable to find
+ * its own URL and key even after `getEnv()` had classified it correctly.
+ */
 function readTarget(): { url: string; key: string } {
-  const source =
-    (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+  const source = readEnvSource();
   const url = source["SUPABASE_URL"] ?? source["VITE_SUPABASE_URL"];
   if (!url) throw new Error("no Supabase URL configured");
-  const key = source["SUPABASE_ANON_KEY"] ?? source["VITE_SUPABASE_ANON_KEY"];
+  // The app's tracked env uses the newer publishable-key name (`sb_publishable_…`),
+  // which is what the front end actually ships with. Accepted here alongside the
+  // legacy anon names. Deliberately NOT added to env.ts KEY_VARS: an `sb_*` key is
+  // not a JWT and must never go through `refOfJwt` — the URL-derived ref covers it
+  // (SPEC 1B v3.1).
+  const key =
+    source["SUPABASE_ANON_KEY"] ??
+    source["VITE_SUPABASE_ANON_KEY"] ??
+    source["SUPABASE_PUBLISHABLE_KEY"] ??
+    source["VITE_SUPABASE_PUBLISHABLE_KEY"];
   // Fail with our own message rather than letting supabase-js report a bare
   // "supabaseKey is required" from three frames down.
-  if (!key) throw new Error("no Supabase anon key configured");
+  if (!key) throw new Error("no Supabase anon/publishable key configured");
   return { url, key };
 }
 
 function readServiceKey(): string {
-  const source =
-    (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+  const source = readEnvSource();
   const key = source["SCRATCH_SERVICE_ROLE"] ?? source["SUPABASE_SERVICE_ROLE"];
   if (!key) throw new Error("no service-role key configured");
   return key;
