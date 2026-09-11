@@ -47,6 +47,29 @@ export default tseslint.config(
     // diff; the runtime rail is `readSecret` tripping the kill switch (rule 41).
     files: ["agents/skills/**/*.{ts,tsx}", "agents/runner/**/*.{ts,tsx}"],
     rules: {
+      // P-1C-1 (panel pass, 2026-09-11): the selector rules below match SHAPES,
+      // and a shape can be rewritten. Probed before this change, all of these
+      // passed the lint: `process["env"]`, `const { env } = process`, `Bun.env`,
+      // `import.meta.env`, `const p = process; p.env`. Banning the GLOBALS
+      // catches every spelling that starts from the identifier at all —
+      // computed, destructured, aliased — because the reference itself is the
+      // violation. No skill has a legitimate use for any of these three.
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "process",
+          message:
+            "`process` is banned in skills and the runner in every form (rule 41). Declare the name in this skill's manifest.ts and read it with readSecret().",
+        },
+        {
+          name: "Bun",
+          message: "`Bun` (and Bun.env) is banned in skills and the runner (rule 41). Use readSecret().",
+        },
+        {
+          name: "Deno",
+          message: "`Deno` (and Deno.env) is banned in skills and the runner (rule 41). Use readSecret().",
+        },
+      ],
       "no-restricted-syntax": [
         "error",
         {
@@ -66,6 +89,25 @@ export default tseslint.config(
           selector: "MemberExpression[object.property.name='process'][property.name='env']",
           message:
             "globalThis.process.env is banned in skills and the runner (rule 41). Use readSecret().",
+        },
+        // P-1C-1: the three shapes no-restricted-globals cannot see, because they
+        // never reference `process`/`Bun`/`Deno` as an identifier — plus two it
+        // can, kept as belt-and-braces so a future config edit that drops the
+        // globals rule does not silently reopen them.
+        {
+          selector: "MemberExpression[object.type='MetaProperty'][property.name='env']",
+          message:
+            "import.meta.env is banned in skills and the runner (rule 41). VITE_* is the browser's surface, not a skill's. Use readSecret().",
+        },
+        {
+          selector: "MemberExpression[computed=true][property.value='env']",
+          message:
+            "Computed access to `env` (process[\"env\"]) is banned in skills and the runner (rule 41). Use readSecret().",
+        },
+        {
+          selector: "VariableDeclarator[id.type='ObjectPattern'][init.name='process']",
+          message:
+            "Destructuring `process` (const { env } = process) is banned in skills and the runner (rule 41). Use readSecret().",
         },
       ],
     },
