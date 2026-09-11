@@ -17,6 +17,15 @@
  *   LLM extracts → server validates → THIS → validated result → LLM verbalizes.
  * A model never produces a dollar figure; it only reads one back out.
  *
+ * ── What the number IS (3B-R3, N-1) ─────────────────────────────────────────
+ * `trueEstimatedNet_cents` is CONTRIBUTION AFTER TRIP CASH COSTS AND CONFIGURED
+ * PER-MILE / PER-DAY RESERVES, BEFORE INCOME TAX AND BEFORE ALLOCATED FIXED
+ * COSTS (truck note, insurance, plates).
+ * This is NOT take-home, NOT weekly profit, NOT after-tax.
+ * "Keep" can mean five different dollars; this module means exactly this one,
+ * and every result says so in `assumptions.netDefinition`. A true number with
+ * the wrong label is a confident lie.
+ *
  * ── Integer cents, everywhere ────────────────────────────────────────────────
  * No floats touch the money path. Floats accumulate representation error across
  * the ~15 arithmetic steps below, so two loads with identical inputs could
@@ -43,9 +52,33 @@
  * revenue fields plus two clock fields were added. A 3B.1.0 result and a 3B.2.0
  * result are not comparable and must never be mixed silently in the ledger.
  */
-export const CALC_VERSION = "3B.2.0";
+/**
+ * 3B.3.0 — 3B-R3 (Grok pass N-1/N-2/N-3/N-5 + the F-2 amendment). Two changes can
+ * move a figure or a verdict: `settlementMode: "self_dispatch"` zeroes the dispatch
+ * haircut, and an optional carrier `hourlyFloor_cents` may turn a verdict to skip.
+ * `dieselPriceSnapshotId` is now stamped on every result so the fuel input that
+ * fed a stored verdict is pinned alongside the formula version.
+ */
+export const CALC_VERSION = "3B.3.0";
 
 export type Verdict = "take" | "negotiate" | "skip";
+
+/**
+ * 3B-R3 (N-3): who takes the dispatch cut, if anyone.
+ *   self_dispatch     — the driver books their own freight. The haircut is ZERO,
+ *                       not a default percent: deducting a fee the driver does not
+ *                       pay makes the app SKIP good freight.
+ *   third_party       — an outside dispatch service; `brokerOrDispatchHaircut_bp`
+ *                       applies to linehaul only (decision 4).
+ *   in_house_percent  — a salaried/percent in-house dispatcher; same arithmetic
+ *                       as third_party, kept distinct so the ledger can tell them
+ *                       apart.
+ * TODO(N-6): factoring / QuickPay is a settlement cost too and is NOT modelled
+ * here yet — it is out of scope for 3B-R3 and needs its own ruling (cash vs
+ * accrual flips the verdict on identical loads).
+ */
+export type SettlementMode = "self_dispatch" | "third_party" | "in_house_percent";
+const SETTLEMENT_MODES: readonly SettlementMode[] = ["self_dispatch", "third_party", "in_house_percent"];
 
 /**
  * How the driver is paid.
@@ -94,6 +127,14 @@ export interface TrueNetInput {
   /** Posted pump price, integer cents per gallon. */
   readonly regionalDieselPrice_cents_per_gal: number;
   /**
+   * 3B-R3 (N-5): an OPAQUE id for the price observation that produced
+   * `regionalDieselPrice_cents_per_gal` (e.g. a fuel-feed row id, or a
+   * "manual:<user>:<date>" tag). `CALC_VERSION` pins the formula; this pins
+   * the fuel input, so a stored verdict can be re-derived the first time a
+   * driver argues. Never parsed, never defaulted, stamped on every result.
+   */
+  readonly dieselPriceSnapshotId: string;
+  /**
    * SPEC-3B decision 1: DOLLARS OFF PER GALLON, expressed in cents off per
    * gallon — not a percentage. Fuel-card programs quote dollars off posted pump
    * price, and this matches the Settings field already shipped.
@@ -110,8 +151,14 @@ export interface TrueNetInput {
   readonly overhead_cents_per_day: number;
 
   readonly driverPay: DriverPay;
-  /** SPEC-3B decision 4: applied to LINEHAUL ONLY. Lumper and fuel surcharge are not commissionable absent an explicit agreement. */
+  /**
+   * SPEC-3B decision 4: applied to LINEHAUL ONLY. Lumper and fuel surcharge are
+   * not commissionable absent an explicit agreement. 3B-R3 (N-3): ignored —
+   * forced to zero — when `settlementMode` is `self_dispatch`.
+   */
   readonly brokerOrDispatchHaircut_bp: number;
+  /** 3B-R3 (N-3). Required; see `SettlementMode`. Absent → NEEDS_INPUT, never assumed. */
+  readonly settlementMode: SettlementMode;
 
   /**
    * SPEC-3B decision 5: the carrier's OWN break-even and target, derived from
@@ -143,11 +190,24 @@ export interface TrueNetInput {
    * decides its weight, against real data.
    */
   readonly clockMinutesConsumed?: number;
+
+  /**
+   * 3B-R3 (F-2 amendment): the CARRIER'S OWN hourly floor, integer cents per
+   * available hour, from Settings. Rev 2 banned *the app* inventing an hourly
+   * cost; it does not ban *the driver* stating one — that is the same class of
+   * input as configured MPG or overhead/day (decision 5). When set AND the clock
+   * is known, a load whose `netPerAvailableHour_cents` falls below it is SKIPPED.
+   * When unset the gate does not run — no default, no guess. When set but the
+   * clock is unknown, the gate cannot run and says so (risk flag + missing fact).
+   */
+  readonly hourlyFloor_cents?: number;
 }
 
 export interface TrueNetOk {
   readonly status: "OK";
   readonly calcVersion: string;
+  /** 3B-R3 (N-5): the fuel-price observation this result was computed from. Pinned next to calcVersion. */
+  readonly dieselPriceSnapshotId: string;
   /** The full input set, echoed so the result can be re-derived independently. */
   readonly input: TrueNetInput;
 
@@ -184,6 +244,12 @@ export interface TrueNetOk {
   readonly brokerOrDispatchHaircut_cents: number;
 
   readonly trueTripCost_cents: number;
+  /**
+   * 3B-R3 (N-1): contribution after trip cash costs and configured per-mile /
+   * per-day reserves, BEFORE income tax and BEFORE allocated fixed costs (truck
+   * note, insurance, plates). This is NOT take-home, NOT weekly profit, NOT
+   * after-tax. Built from RELIABLE revenue only (Rev 2, F-1).
+   */
   readonly trueEstimatedNet_cents: number;
 
   /** All-in revenue per mile, in THOUSANDTHS of a cent, so the verdict comparison keeps its precision. */
@@ -327,6 +393,30 @@ function collectMissing(input: Partial<TrueNetInput>): string[] {
     }
   }
 
+  // 3B-R3 (N-3): the settlement mode is a fact about the carrier, never assumed.
+  const mode = input.settlementMode;
+  if (mode === undefined || mode === null) {
+    missing.push("settlementMode");
+  } else if (!SETTLEMENT_MODES.includes(mode)) {
+    throw new TrueNetError(`settlementMode must be one of ${SETTLEMENT_MODES.join(" | ")} (got ${String(mode)})`);
+  }
+
+  // 3B-R3 (N-5): an unpinned fuel price is a missing fact — the verdict could not be re-derived.
+  const snapshot = input.dieselPriceSnapshotId;
+  if (snapshot === undefined || snapshot === null || snapshot === "") {
+    missing.push("dieselPriceSnapshotId");
+  } else if (typeof snapshot !== "string") {
+    throw new TrueNetError("dieselPriceSnapshotId must be a string");
+  }
+
+  // 3B-R3 (F-2 amendment): optional, but if the carrier set one it must be a real figure.
+  const floor = input.hourlyFloor_cents;
+  if (floor !== undefined) {
+    if (!Number.isSafeInteger(floor) || floor <= 0) {
+      throw new TrueNetError(`hourlyFloor_cents must be a positive integer number of cents (got ${String(floor)})`);
+    }
+  }
+
   const pay = input.driverPay;
   if (pay === undefined || pay === null) {
     missing.push("driverPay");
@@ -375,7 +465,25 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     i.linehaulRevenue_cents + i.passThroughRevenue_cents + i.otherAccessorialRevenue_cents,
   );
 
-  /* Distance. Deadhead and reposition are both run empty, so they share mpgEmpty. */
+  /*
+   * Distance. Deadhead and reposition are both run empty, so they share mpgEmpty.
+   *
+   * DEADHEAD ATTRIBUTION — 3B-R3 (N-2). Which empty miles belong to THIS load:
+   *   - Inbound empty (to the shipper):        THIS load, always.
+   *   - Outbound empty (after delivery):        THIS load, UNLESS a confirmed
+   *     next load exists — then it attaches to the NEXT load, never to both.
+   *   - Intentional repositioning empty:        NOT a trip cost of any load.
+   * Charging an empty leg to both loads double-counts it and SKIPs a profitable
+   * pair; charging it to neither TAKEs a desert drop. The caller assembles
+   * `deadheadMiles` under this rule; the calculator does not know about the
+   * next load and cannot check it.
+   *
+   * TODO(N-2, needs a Cowork ruling): `repositionMiles` is charged here at the
+   * empty fuel rate plus per-mile reserves (golden G18), which contradicts the
+   * third line above. SPEC-3B never mentions reposition miles at all. 3B-R3 asked
+   * for the rule as a COMMENT, not an arithmetic change, so the charge stands
+   * until the spec says which it is. Callers who follow N-2 pass 0 here.
+   */
   const emptyMiles = guard("emptyMiles", i.deadheadMiles + i.repositionMiles);
   const totalMiles = guard("totalMiles", i.loadedMiles + emptyMiles);
   if (totalMiles === 0) {
@@ -435,10 +543,27 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
   }
   const driverPay_cents = guard("driverPay_cents", driverPayRaw);
 
-  /* Decision 4: the haircut is on LINEHAUL ONLY. F-3: independent multiply, half-up. */
+  /*
+   * FEE ORDER OF OPERATIONS — 3B-R3 (N-3). There is no order. Every fee
+   * (driver percentage above, dispatch haircut here, any future percentage
+   * line) is computed INDEPENDENTLY from `linehaulRevenue_cents`. Fees are never
+   * stacked — never "haircut off (linehaul minus driver pay)" or the reverse —
+   * so the result cannot depend on which one is written first. This already
+   * followed from F-3's never-chained rule; it is stated here so nobody stacks
+   * them later.
+   *
+   * Decision 4: the haircut is on LINEHAUL ONLY. F-3: independent multiply, half-up.
+   * N-3: under `self_dispatch` the haircut is ZERO — the driver pays no dispatch
+   * fee, and deducting one anyway would SKIP good freight. The configured bp is
+   * echoed in `assumptions.haircutBasis` so an ignored setting is visible.
+   *
+   * TODO(N-6): factoring / QuickPay discount is a real settlement cost and is
+   * not modelled. Out of scope for 3B-R3; needs its own ruling.
+   */
+  const haircutApplies = i.settlementMode !== "self_dispatch";
   const brokerOrDispatchHaircut_cents = guard(
     "brokerOrDispatchHaircut_cents",
-    divRound(i.linehaulRevenue_cents * i.brokerOrDispatchHaircut_bp, 10_000),
+    haircutApplies ? divRound(i.linehaulRevenue_cents * i.brokerOrDispatchHaircut_bp, 10_000) : 0,
   );
 
   const trueTripCost_cents = guard(
@@ -557,6 +682,37 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
   if (atRiskAccessorialRevenue_cents > 0) {
     reasons.push("Confirmed accessorials were not counted toward this verdict — they are at risk until paid.");
   }
+
+  /*
+   * 3B-R3 (F-2 amendment): the carrier's OWN hourly floor may turn a verdict to
+   * SKIP — never upgrade one. The app still does not price the clock; the driver
+   * did, in Settings, and decision 5 already runs the verdict against the
+   * carrier's own figures. Three states, none defaulted:
+   *   floor unset            → gate does not run.
+   *   floor set, clock known → skip when net per available hour is below it.
+   *   floor set, clock unknown → gate cannot run; flagged and listed as missing,
+   *                              because now the clock DOES bear on the verdict.
+   */
+  const floorSet = typeof i.hourlyFloor_cents === "number";
+  let hourlyFloorBasis: string;
+  if (!floorSet) {
+    hourlyFloorBasis = "no hourly floor configured — the hourly gate did not run (3B-R3, F-2 amendment)";
+  } else if (typeof netPerAvailableHour_cents !== "number") {
+    hourlyFloorBasis = `hourly floor ${i.hourlyFloor_cents}c configured but clock minutes unknown — gate NOT evaluated (3B-R3, F-2 amendment)`;
+    riskFlags.push(
+      `Hourly floor of ${i.hourlyFloor_cents}c/hr is set but the clock minutes are unknown — the floor was not checked.`,
+    );
+    missingFacts.push("clockMinutesConsumed");
+  } else if (netPerAvailableHour_cents < (i.hourlyFloor_cents as number)) {
+    hourlyFloorBasis = `net per available hour ${netPerAvailableHour_cents}c is below your own floor of ${i.hourlyFloor_cents}c — verdict turned to skip (3B-R3, F-2 amendment)`;
+    verdict = "skip";
+    reasons.push(
+      `Net per available hour (${netPerAvailableHour_cents}c) is below your own hourly floor (${i.hourlyFloor_cents}c).`,
+    );
+  } else {
+    hourlyFloorBasis = `net per available hour ${netPerAvailableHour_cents}c clears your own floor of ${i.hourlyFloor_cents}c (3B-R3, F-2 amendment)`;
+  }
+
   if (riskFlags.length > 0) {
     reasons.push("Unknown facts are excluded from the net rather than estimated.");
   }
@@ -577,7 +733,17 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
       i.detentionTermsKnown === true
         ? "confirmed detention counted in otherAccessorialRevenue_cents"
         : "0 cents — detention terms unknown and never estimated (SPEC-3B decision 3)",
-    haircutBasis: "percentage of linehaul revenue only (SPEC-3B decision 4)",
+    haircutBasis: haircutApplies
+      ? `percentage of linehaul revenue only (SPEC-3B decision 4); settlement mode ${i.settlementMode}`
+      : `0 — self-dispatch pays no dispatch fee; configured ${i.brokerOrDispatchHaircut_bp}bp ignored (3B-R3, N-3)`,
+    feeOrderBasis:
+      "each fee computed independently from linehaul; fees are never stacked on one another (3B-R3, N-3; Rev 2, F-3)",
+    deadheadBasis:
+      `${i.deadheadMiles} deadhead + ${i.repositionMiles} reposition miles charged as supplied; inbound empty is this load's, outbound empty is this load's unless a confirmed next load exists (3B-R3, N-2)`,
+    dieselPriceSnapshot: `regional diesel ${i.regionalDieselPrice_cents_per_gal}c/gal from snapshot ${i.dieselPriceSnapshotId} (3B-R3, N-5)`,
+    netDefinition:
+      "contribution after trip cash costs and configured per-mile / per-day reserves, before income tax and before allocated fixed costs (truck note, insurance, plates). NOT take-home, NOT weekly profit, NOT after-tax (3B-R3, N-1)",
+    hourlyFloorBasis,
     netBasis:
       "reliable revenue (linehaul + pass-throughs) less all costs; confirmed accessorials excluded until paid (SPEC-3B Rev 2, F-1)",
     atRiskBasis:
@@ -602,6 +768,7 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
   return {
     status: "OK",
     calcVersion: CALC_VERSION,
+    dieselPriceSnapshotId: i.dieselPriceSnapshotId,
     input: i,
     linehaulRevenue_cents: i.linehaulRevenue_cents,
     passThroughRevenue_cents: i.passThroughRevenue_cents,

@@ -51,6 +51,9 @@ const BASE: TrueNetInput = {
   overhead_cents_per_day: 20000,
   driverPay: { type: "percent", percent_bp: 2500 },
   brokerOrDispatchHaircut_bp: 0,
+  // 3B-R3: third_party keeps every golden figure exactly where Rev 2 left it.
+  settlementMode: "third_party",
+  dieselPriceSnapshotId: "test:eia-padd3:2026-09-08",
   breakEven_cents_per_mile: 180,
   target_cents_per_mile: 220,
 };
@@ -288,6 +291,8 @@ describe("20 golden loads — to the cent", () => {
         overhead_cents_per_day: 1,
         driverPay: { type: "percent", percent_bp: 50 },
         brokerOrDispatchHaircut_bp: 50,
+        settlementMode: "third_party",
+        dieselPriceSnapshotId: "test:g12",
         breakEven_cents_per_mile: 1,
         target_cents_per_mile: 2,
       }),
@@ -595,6 +600,8 @@ function randomLoad(next: () => number): TrueNetInput {
     overhead_cents_per_day: int(0, 60_000),
     driverPay,
     brokerOrDispatchHaircut_bp: int(0, 2500),
+    settlementMode: (["self_dispatch", "third_party", "in_house_percent"] as const)[int(0, 2)]!,
+    dieselPriceSnapshotId: `gen:${int(1, 999_999)}`,
     breakEven_cents_per_mile: int(80, 300),
     target_cents_per_mile: int(150, 450),
   };
@@ -723,10 +730,21 @@ describe("properties — hold across 500 generated loads", () => {
     }
   });
 
-  it("stamps the calculator version and the full input set on every result", () => {
+  it("stamps the calculator version, the fuel snapshot id and the full input set on every result", () => {
     for (const r of cases) {
       expect(r.calcVersion).toBe(CALC_VERSION);
+      expect(r.dieselPriceSnapshotId).toBe(r.input.dieselPriceSnapshotId); // 3B-R3, N-5
       expect(r.input.linehaulRevenue_cents).toBe(r.linehaulRevenue_cents);
+    }
+  });
+
+  it("[3B-R3, N-3] the haircut is zero under self_dispatch and the configured bp otherwise", () => {
+    for (const r of cases) {
+      const expected =
+        r.input.settlementMode === "self_dispatch"
+          ? 0
+          : Math.trunc((r.linehaulRevenue_cents * r.input.brokerOrDispatchHaircut_bp + 5000) / 10_000);
+      expect(r.brokerOrDispatchHaircut_cents).toBe(expected);
     }
   });
 
@@ -807,6 +825,148 @@ describe("[Rev 2, F-2] clock — reported outputs only", () => {
       expect(withClock.verdict).toBe(without.verdict);
       expect(withClock.trueEstimatedNet_cents).toBe(without.trueEstimatedNet_cents);
       expect(Number.isSafeInteger(withClock.netPerAvailableHour_cents)).toBe(true);
+    }
+  });
+});
+
+describe("[3B-R3, N-1] the number is defined, in words, on every result", () => {
+  it("names what the net IS and what it is NOT", () => {
+    const r = ok(load());
+    expect(r.assumptions.netDefinition).toMatch(/contribution after trip cash costs/);
+    expect(r.assumptions.netDefinition).toMatch(/before income tax and before allocated fixed costs/);
+    expect(r.assumptions.netDefinition).toMatch(/NOT take-home, NOT weekly profit, NOT after-tax/);
+  });
+});
+
+describe("[3B-R3, N-2] deadhead attribution is stated on the result", () => {
+  it("says which empty miles were charged and under what rule", () => {
+    const r = ok(load({ deadheadMiles: 100, repositionMiles: 40 }));
+    expect(r.assumptions.deadheadBasis).toMatch(/100 deadhead \+ 40 reposition/);
+    expect(r.assumptions.deadheadBasis).toMatch(/unless a confirmed next load exists/);
+  });
+});
+
+describe("[3B-R3, N-3] settlement mode — self-dispatch pays no dispatch fee", () => {
+  // G21 same load as G04 (pass-through 100000, 1000bp) but self-dispatched: the 20000c
+  //     haircut is NOT deducted. cost 192275 ; net 300000-192275 = 107725 — identical to G03.
+  it("G21 self_dispatch zeroes a configured 1000bp haircut — identical to G03", () => {
+    const r = ok(
+      load({ passThroughRevenue_cents: 100000, brokerOrDispatchHaircut_bp: 1000, settlementMode: "self_dispatch" }),
+    );
+    expect(r).toMatchObject({
+      brokerOrDispatchHaircut_cents: 0,
+      trueTripCost_cents: 192275,
+      trueEstimatedNet_cents: 107725,
+      verdict: "take",
+    });
+    expect(r.assumptions.haircutBasis).toMatch(/self-dispatch pays no dispatch fee; configured 1000bp ignored/);
+  });
+
+  it("third_party and in_house_percent both apply the haircut to linehaul only (G04 figure)", () => {
+    for (const settlementMode of ["third_party", "in_house_percent"] as const) {
+      const r = ok(load({ passThroughRevenue_cents: 100000, brokerOrDispatchHaircut_bp: 1000, settlementMode }));
+      expect(r.brokerOrDispatchHaircut_cents).toBe(20000);
+      expect(r.trueEstimatedNet_cents).toBe(87725);
+      expect(r.assumptions.haircutBasis).toMatch(new RegExp(`settlement mode ${settlementMode}`));
+    }
+  });
+
+  it("fees are computed independently — the haircut is never taken off a driver-pay subtotal, in any mode", () => {
+    // linehaul 200000, driver 25% = 50000, haircut 10% = 20000 — not 10% of 150000 = 15000.
+    const r = ok(load({ brokerOrDispatchHaircut_bp: 1000, settlementMode: "in_house_percent" }));
+    expect(r.driverPay_cents).toBe(50000);
+    expect(r.brokerOrDispatchHaircut_cents).toBe(20000);
+    expect(r.assumptions.feeOrderBasis).toMatch(/never stacked/);
+  });
+
+  it("a missing settlement mode is NEEDS_INPUT, never assumed", () => {
+    const { settlementMode: _omit, ...rest } = load();
+    const r = calculateTrueNet(rest);
+    expect(r.status).toBe("NEEDS_INPUT");
+    if (r.status === "NEEDS_INPUT") expect(r.missing).toEqual(["settlementMode"]);
+  });
+
+  it("an unknown settlement mode is a broken caller and throws", () => {
+    expect(() => calculateTrueNet(load({ settlementMode: "factoring" as never }))).toThrow(TrueNetError);
+  });
+});
+
+describe("[3B-R3, N-5] the fuel-price snapshot is pinned next to the calculator version", () => {
+  it("stamps the id on the result and names it in the assumptions", () => {
+    const r = ok(load({ dieselPriceSnapshotId: "eia:padd3:2026-09-08T00:00Z" }));
+    expect(r.calcVersion).toBe("3B.3.0");
+    expect(r.dieselPriceSnapshotId).toBe("eia:padd3:2026-09-08T00:00Z");
+    expect(r.assumptions.dieselPriceSnapshot).toMatch(/400c\/gal from snapshot eia:padd3:2026-09-08T00:00Z/);
+  });
+
+  it("a missing or empty snapshot id is NEEDS_INPUT — an unpinned price cannot be re-derived", () => {
+    const { dieselPriceSnapshotId: _omit, ...rest } = load();
+    const missing = calculateTrueNet(rest);
+    expect(missing.status).toBe("NEEDS_INPUT");
+    if (missing.status === "NEEDS_INPUT") expect(missing.missing).toEqual(["dieselPriceSnapshotId"]);
+    const empty = calculateTrueNet(load({ dieselPriceSnapshotId: "" }));
+    expect(empty.status).toBe("NEEDS_INPUT");
+  });
+
+  it("the id is opaque — it is never parsed, only echoed", () => {
+    const r = ok(load({ dieselPriceSnapshotId: "manual:andrew:whatever 🚚" }));
+    expect(r.dieselPriceSnapshotId).toBe("manual:andrew:whatever 🚚");
+  });
+});
+
+describe("[3B-R3, F-2 amendment] the carrier's OWN hourly floor may turn a verdict to skip", () => {
+  // base net 37725 ; 540 min -> 37725*60/540 = 4191.67 -> 4192c per available hour
+  it("skips when net per available hour is below the configured floor", () => {
+    const r = ok(load({ clockMinutesConsumed: 540, hourlyFloor_cents: 4500 }));
+    expect(r.netPerAvailableHour_cents).toBe(4192);
+    expect(r.verdict).toBe("skip");
+    expect(r.reasons).toContainEqual(expect.stringMatching(/4192c\) is below your own hourly floor \(4500c\)/));
+    expect(r.assumptions.hourlyFloorBasis).toMatch(/turned to skip/);
+    // the NET is untouched — the floor is a gate, not a cost
+    expect(r.trueEstimatedNet_cents).toBe(37725);
+  });
+
+  it("leaves the verdict alone when the floor is cleared (exactly at the floor clears it)", () => {
+    expect(ok(load({ clockMinutesConsumed: 540, hourlyFloor_cents: 4192 })).verdict).toBe("negotiate");
+    expect(ok(load({ clockMinutesConsumed: 540, hourlyFloor_cents: 4000 })).verdict).toBe("negotiate");
+  });
+
+  it("does not run when no floor is set — no default, no guess", () => {
+    const r = ok(load({ clockMinutesConsumed: 540 }));
+    expect(r.verdict).toBe("negotiate");
+    expect(r.assumptions.hourlyFloorBasis).toMatch(/no hourly floor configured/);
+    expect(r.missingFacts).not.toContain("clockMinutesConsumed");
+  });
+
+  it("cannot run when the floor is set but the clock is unknown — flagged and listed as missing, verdict unchanged", () => {
+    const r = ok(load({ hourlyFloor_cents: 4500 }));
+    expect(r.verdict).toBe("negotiate");
+    expect(r.netPerAvailableHour_cents).toBe("NEEDS_INPUT");
+    expect(r.riskFlags).toContainEqual(expect.stringMatching(/floor of 4500c\/hr is set but the clock minutes are unknown/));
+    expect(r.missingFacts).toContain("clockMinutesConsumed");
+    expect(r.assumptions.hourlyFloorBasis).toMatch(/gate NOT evaluated/);
+  });
+
+  it("a zero, negative or fractional floor is a broken caller and throws", () => {
+    for (const bad of [0, -1, 12.5, Number.NaN]) {
+      expect(() => calculateTrueNet(load({ hourlyFloor_cents: bad }))).toThrow(TrueNetError);
+    }
+  });
+
+  it("the floor can only make a verdict WORSE, never better — across 200 generated loads", () => {
+    const rank = { skip: 0, negotiate: 1, take: 2 } as const;
+    const next = lcg(0x3b_03);
+    for (let n = 0; n < 200; n += 1) {
+      const base = randomLoad(next);
+      const clock = 60 + Math.floor(next() * 600);
+      const without = ok({ ...base, clockMinutesConsumed: clock });
+      const withFloor = ok({ ...base, clockMinutesConsumed: clock, hourlyFloor_cents: 1 + Math.floor(next() * 8000) });
+      expect(rank[withFloor.verdict]).toBeLessThanOrEqual(rank[without.verdict]);
+      expect(withFloor.trueEstimatedNet_cents).toBe(without.trueEstimatedNet_cents);
+      if (withFloor.verdict !== without.verdict) {
+        expect(withFloor.verdict).toBe("skip");
+        expect(withFloor.netPerAvailableHour_cents).toBeLessThan(withFloor.input.hourlyFloor_cents as number);
+      }
     }
   });
 });
