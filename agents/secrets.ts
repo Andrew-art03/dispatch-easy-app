@@ -230,7 +230,12 @@ const PATTERNS: ReadonlyArray<{ re: RegExp; label: string }> = [
     re: /(?<!\d)(?:\+?1[-. ]?)?\(?[2-9]\d{2}\)?[-. ]?\d{3}[-. ]?\d{4}(?!\d)/g,
     label: "PHONE",
   },
-  { re: /\bMC[-# ]?\d{5,8}\b/gi, label: "MC_NUMBER" },
+  // MC_NUMBER was here until P-1C-3 (panel pass, 2026-09-11) and is gone on
+  // purpose: an MC number is a PUBLIC FMCSA carrier/broker identifier, printed on
+  // every rate con, and it is exactly what a dispatcher needs in an audit line to
+  // know which carrier a load belongs to. Redacting it globally destroyed
+  // observability on the core workflow while protecting nothing. EMAIL and PHONE
+  // stay: those identify a person, an MC identifies a company.
 ];
 
 /**

@@ -314,11 +314,20 @@ describe("scrub — shape patterns", () => {
     expect(out).toContain("[redacted:URL_PASSWORD]");
   });
 
-  it("redacts PII — email, phone, MC number (rule 22; 9A depends on this)", () => {
+  it("redacts PII — email, phone (rule 22; 9A depends on this)", () => {
     expect(scrub("driver dan@example.com")).toBe("driver [redacted:EMAIL]@example.com");
     expect(scrub("call (555) 123-4567 now")).toBe("call [redacted:PHONE] now");
-    expect(scrub("carrier MC-123456 ok")).toBe("carrier [redacted:MC_NUMBER] ok");
-    expect(scrub("carrier MC 1234567")).toBe("carrier [redacted:MC_NUMBER]");
+  });
+
+  it("P-1C-3: does NOT redact an MC number — a public FMCSA identifier a dispatcher needs in every audit line", () => {
+    // This test used to assert the opposite. An MC number identifies a company,
+    // not a person; it is printed on every rate con; and an audit line that says
+    // "[redacted:MC_NUMBER] booked load 4821" is useless to the dispatcher who
+    // has to act on it. Observability on the core workflow beats redacting a
+    // public number. EMAIL and PHONE (which identify people) still redact above.
+    expect(scrub("carrier MC-123456 ok")).toBe("carrier MC-123456 ok");
+    expect(scrub("carrier MC 1234567")).toBe("carrier MC 1234567");
+    expect(scrub("MC#987654 booked load 4821")).toBe("MC#987654 booked load 4821");
   });
 
   it("1C-3: an email keeps its domain — 4C intake failures must say WHICH broker, and the domain is not the private part", () => {
@@ -361,7 +370,7 @@ describe("scrub — shape patterns", () => {
     expect(scrub("1551234567")).toBe("1551234567"); // area code starting with 1, no country code to absorb it
     expect(scrub("5551234567890")).toBe("5551234567890"); // 13-digit run: lookaround guards hold
     expect(scrub("load 20260911123456")).toBe("load 20260911123456"); // 14-digit load id
-    expect(scrub("carrier MC 1234567")).toBe("carrier [redacted:MC_NUMBER]"); // 7 digits: MC, not phone
+    expect(scrub("carrier MC 1234567")).toBe("carrier MC 1234567"); // 7 digits: not a phone; MC is public (P-1C-3)
   });
 
   it("leaves ordinary text alone — a rail that cries wolf gets switched off", () => {
