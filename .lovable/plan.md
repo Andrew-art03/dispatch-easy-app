@@ -1,23 +1,20 @@
-# F-40 Marker Light treatment pass
+# Week $ correctness and navigation cleanup
 
 ## Scope
-Apply one consistent typography, shape, spacing, and action-hierarchy treatment across Home, Board, Hunt, Load Card, Docs, Ledger, and Settings. Preserve every existing color, data flow, route, and behavior.
-
-## Changes
-- Standardize display text on Barlow Condensed 700, body copy on Barlow, and small uppercase labels on tracked JetBrains Mono.
-- Normalize the requested type scale: 96px hero figures, 36px section headings, 20px card titles, and 10.5px labels where those roles appear.
-- Replace oversized card and chip rounding with 2–6px instrument-panel corners and subtle 1px hairlines; retain stronger borders only for genuinely active or highlighted states.
-- Convert state and fit badges from filled pills to bordered outlines.
-- Clarify one primary action per screen, cap primary controls at 56px, and keep at least 16px clear space around commit actions.
-- Align section content left and normalize major gaps and padding to the 8px spacing rhythm.
-- Make bottom navigation labels small, uppercase, tracked mono utility signage while keeping them centered under icons.
+- Reorder the five bottom tabs to Home, Hunt, Docs, Week $, Truck without changing their appearance or destinations.
+- Make Week $ derive daily earnings, earned total, and the week label from the displayed run records.
+- Exclude runs after the current local date from earned money while keeping those runs visible in the list.
+- Keep the delivery simulator available only in development previews.
+- Permanently remove the three unused legacy truck assets while preserving the shared truck and body-type picker images.
 
 ## Technical details
-- Add reusable treatment utilities and shared control sizing in `src/styles.css`, then apply semantic classes in the requested routes and their existing shared screen components.
-- Do not modify color variables, introduce new components, change the frozen schema, or alter queries and mutations.
-- Leave already-compliant body typography, left alignment, and action behavior untouched.
+- Parse each mock run date once, group completed run amounts by weekday, and pass that derived series through the existing chart and totals.
+- Determine the displayed week from the earliest listed run date and use that derived label for celebration persistence.
+- Guard the existing simulator control with `import.meta.env.DEV`.
+- Do not edit styles, color tokens, schema, routes, packages, or image rendering.
 
 ## Verification
-- Inspect every requested screen at 390px and a wider desktop viewport for clipping, hierarchy, spacing, and action isolation.
-- Confirm cards and chips use the sharper treatment and that existing colors remain unchanged.
-- Check browser errors and the automated build result.
+- Confirm the nav order and Week $ values in the live 390px preview.
+- Confirm Sep 8 and Sep 10 total $3,340 on Sep 11 while Sep 12 remains listed but unearned.
+- Confirm the simulator appears in development only and the removed assets have no remaining references.
+- Check the automated build result.
