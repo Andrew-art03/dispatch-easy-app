@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { AppShell, ErrorBox } from "@/components/AppShell";
 import { GoalBar, useTruckColor } from "@/components/GoalProgress";
+import { TruckImage } from "@/components/TruckImage";
 
 import type { LoadState } from "@/lib/types";
 
@@ -270,7 +271,18 @@ function HomePage() {
           }
         />
 
-        {/* 6 — EZ Copilot lives in the pinned top entry point on every screen */}
+        {/* 6 — Work with EZ Copilot */}
+        <Link to="/copilot" className="block rounded-md border border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="ez-card-title">Work with EZ Copilot</p>
+              <p className="text-sm text-muted-foreground">
+                Ask for a load, check your week, or see what still needs you.
+              </p>
+            </div>
+            <TruckImage size="md" glowColor={truckColor} />
+          </div>
+        </Link>
 
       </div>
     </AppShell>
