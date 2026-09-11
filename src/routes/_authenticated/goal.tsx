@@ -30,11 +30,11 @@ export const Route = createFileRoute("/_authenticated/goal")({
 // Visual-only mock data — no tables touched. Runs are the single source of
 // truth: the day series, the week label and the earned total all derive here.
 const MOCK = {
-  routes: [
-    { from: "Amarillo, TX", to: "Dallas, TX", date: "2026-09-08", net: 1450 },
-    { from: "Dallas, TX", to: "Atlanta, GA", date: "2026-09-10", net: 1890 },
-    { from: "Atlanta, GA", to: "Charlotte, NC", date: "2026-09-12", net: 720 },
-  ],
+      routes: [
+        { from: "Amarillo, TX", to: "Dallas, TX", date: "2026-09-08", net: 1450, status: "Paid" },
+        { from: "Dallas, TX", to: "Atlanta, GA", date: "2026-09-10", net: 1890, status: "Invoiced" },
+        { from: "Atlanta, GA", to: "Charlotte, NC", date: "2026-09-12", net: 720, status: "Booked" },
+      ],
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -184,10 +184,14 @@ function GoalPage() {
             <h2 className="text-lg font-semibold tracking-tight">This week's goal</h2>
             <div className="mt-2 h-0.5 w-14 rounded-full bg-ez-amber" />
           </div>
-          <p className="ez-num shrink-0 text-2xl">
-            {money(earned)}{" "}
-            <span className="text-muted-foreground">of {money(target)}</span>
-          </p>
+          <div className="shrink-0 text-right">
+            <p className="ez-num text-2xl">
+              {money(earned)}{" "}
+              <span className="text-muted-foreground">of {money(target)}</span>
+            </p>
+            {/* Placeholders until True-Net (3B) and payout (6E) ship — never computed here. */}
+            <p className="ez-label mt-1 text-muted-foreground">True-Net — · Unpaid —</p>
+          </div>
         </div>
 
         <p className="mt-4 text-sm text-muted-foreground">{weekLabel}</p>
@@ -291,7 +295,12 @@ function GoalPage() {
                 </p>
                 <p className="text-sm text-muted-foreground">{formatRunDate(r.date)}</p>
               </div>
-              <p className="ez-num shrink-0 text-xl">{money(r.net)}</p>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
+                  {r.status}
+                </span>
+                <p className="ez-num text-xl">{money(r.net)}</p>
+              </div>
             </li>
           ))}
         </ul>
