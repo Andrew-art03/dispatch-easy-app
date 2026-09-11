@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check:schema": "node scripts/check-schema-parity.mjs && node scripts/check-schema-parity.mjs --self-test",
     "check:env": "node scripts/assert-no-secret-source.mjs",
     "check:bundle": "node scripts/assert-no-service-role.mjs .output"
   },
