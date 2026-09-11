@@ -20,7 +20,7 @@ export type EnvClass = "scratch" | "staging" | "prod";
 /** Project refs are identifiers, not secrets — hard-coding them is correct. The keys are the secret (1C). */
 const PROD_REFS = new Set<string>(["efeaylkqgqhobookcqby"]);
 const STAGING_REFS = new Set<string>([]); // filled when staging exists
-const SCRATCH_REFS = new Set<string>([]); // ez-scratch ref goes here when Andrew creates it
+const SCRATCH_REFS = new Set<string>(["krwcnieffeasjczkwrlz"]); // ez-scratch, created 1D
 
 /** Exact hostnames only. Any other raw IP or ref-less supabase host throws (Grok v2). */
 const LOCAL_HOSTS = new Set<string>(["localhost", "127.0.0.1", "kong", "supabase_kong_ez"]);

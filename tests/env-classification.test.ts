@@ -11,6 +11,7 @@ import {
 
 const PROD_REF = "efeaylkqgqhobookcqby";
 const OTHER_REF = "abcdefghijklmnopqrst"; // well-formed, in no allowlist
+const SCRATCH_REF = "krwcnieffeasjczkwrlz"; // ez-scratch, allowlisted in 1D
 
 function b64url(value: string): string {
   return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -113,6 +114,16 @@ describe("classify — unknown and mixed both fail closed", () => {
 
   it("classifies a local target as scratch", () => {
     expect(classify([{ local: true }])).toBe("scratch");
+  });
+
+  // 1D: classify() throws UnknownEnvironment on any ref outside an allowlist, so
+  // the first CI run against the scratch DB failed closed until this ref landed.
+  it("classifies the ez-scratch ref as scratch", () => {
+    expect(classify([{ ref: SCRATCH_REF }])).toBe("scratch");
+  });
+
+  it("still refuses to mix the scratch ref with prod", () => {
+    expect(() => classify([{ ref: SCRATCH_REF }, { ref: PROD_REF }])).toThrow(/mixed environments/);
   });
 
   it("throws on a well-formed ref that is in no allowlist", () => {
