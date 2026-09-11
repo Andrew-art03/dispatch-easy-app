@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check:schema": "node scripts/check-schema-parity.mjs && node scripts/check-schema-parity.mjs --self-test",
+    "check:migration-baseline": "node scripts/check-migration-baseline.mjs",
+    "check:schema:live": "node scripts/check-schema-live.mjs",
+    "migrate": "bun scripts/migrate.ts",
     "check:env": "node scripts/assert-no-secret-source.mjs",
     "check:bundle": "node scripts/assert-no-service-role.mjs .output",
     "check:db-boundary": "node scripts/assert-db-boundary.mjs"

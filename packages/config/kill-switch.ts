@@ -13,7 +13,8 @@ export type KillSwitchReason =
   | "prod_target" // rule 40: a prod-classified target was reached for
   | "privilege" // a privileged client was built outside the allowlist
   | "secret_scope" // rule 41: a secret was read outside a skill's allowlist
-  | "unknown_env"; // classification failed closed
+  | "unknown_env" // classification failed closed
+  | "destructive"; // rule 47: a reset/force/shadow/DROP/rm -rf style operation was attempted (1D migrate wrapper)
 
 export class KillSwitchTrip extends Error {
   readonly reason: KillSwitchReason;
