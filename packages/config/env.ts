@@ -207,7 +207,23 @@ export function resolveEnv(source: EnvSource): ResolvedEnv {
   return { envClass, isAgentProcess: kind === "agent", kind };
 }
 
+/**
+ * Every variable whose value can change a resolution. The memo is keyed on
+ * these so that a changed environment invalidates it instead of being masked by
+ * a verdict cached earlier.
+ *
+ * Rule 6: these values include keys. They are held only as references to the
+ * same immutable strings `process.env` already holds — no copy is made, and the
+ * key is only ever compared, never logged, serialised or put in an error.
+ */
+const CACHE_KEY_VARS = [...TARGET_VARS, ...KEY_VARS, "EZ_ENV_CLAIM", "EZ_PROCESS_KIND"] as const;
+
 let cached: ResolvedEnv | undefined;
+let cachedKey: readonly (string | undefined)[] | undefined;
+
+function sameSource(source: EnvSource, key: readonly (string | undefined)[]): boolean {
+  return CACHE_KEY_VARS.every((name, index) => source[name] === key[index]);
+}
 
 /**
  * Memoised resolution against the real environment.
@@ -219,18 +235,34 @@ let cached: ResolvedEnv | undefined;
  * not a boot-time assert, is the enforcement boundary". Resolution is therefore
  * lazy and memoised. The `env.envClass` / `env.isAgentProcess` read syntax is
  * unchanged, so no call site differs from the signed interface.
+ *
+ * The memo is keyed, not unconditional. Caching the FIRST resolution forever was
+ * a kill-switch bypass: anything that resolved during startup — a build-time
+ * evaluation, a healthcheck route, a test bootstrap — before the real target
+ * variables were populated would pin a benign verdict permanently, and every
+ * later `createDb()` would read it and skip the rule-40 trip. Lazy resolution is
+ * correct (a shell export or `.env.local` can supersede the intended value);
+ * caching it forever was the defect. Found by Gemini under adversarial review;
+ * regression test in tests/env-cache-bypass.test.ts.
+ *
+ * A failed resolution is deliberately not cached, so a broken environment throws
+ * on every call rather than once.
  */
 export function getEnv(): ResolvedEnv {
-  if (!cached) {
-    const source = (globalThis as { process?: { env?: EnvSource } }).process?.env ?? {};
-    cached = resolveEnv(source);
+  const source = (globalThis as { process?: { env?: EnvSource } }).process?.env ?? {};
+  if (cached !== undefined && cachedKey !== undefined && sameSource(source, cachedKey)) {
+    return cached;
   }
+  const key = CACHE_KEY_VARS.map((name) => source[name]);
+  cached = resolveEnv(source);
+  cachedKey = key;
   return cached;
 }
 
 /** Test-only: drop the memoised value so a new source can be resolved. */
 export function resetEnvCache(): void {
   cached = undefined;
+  cachedKey = undefined;
 }
 
 export const env = {
