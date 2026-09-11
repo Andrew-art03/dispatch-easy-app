@@ -37,4 +37,15 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  {
+    // Formatting is advisory, not a merge gate (decision 2026-09-08, applied
+    // 2026-09-11). `eslint-plugin-prettier/recommended` sets this to "error",
+    // which made every unformatted line fail `bun run lint` and took CI red on
+    // all 13 runs since ci.yml landed. Nothing about correctness was being
+    // caught — the failures were whitespace. `bun run format` still fixes them.
+    //
+    // The hard gates are deliberately untouched and stay errors: typecheck,
+    // test, build + check:bundle, check:env, and gitleaks.
+    rules: { "prettier/prettier": "warn" },
+  },
 );
