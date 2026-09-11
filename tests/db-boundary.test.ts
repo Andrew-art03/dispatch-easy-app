@@ -138,3 +138,55 @@ describe("readTarget — accepts the publishable-key names", () => {
     expect(() => createDb("user")).toThrow(/anon\/publishable key/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// P-1C-2 (panel pass, 2026-09-11): the keys the factory hands out are on the
+// scrubber's PRIMARY rail (exact-value registry), not only the shape backstop
+// ---------------------------------------------------------------------------
+
+describe("P-1C-2: keys read by the factory are registered with the scrubber by name", () => {
+  const SCRATCH_REF = "krwcnieffeasjczkwrlz";
+  // Assembled at runtime so no tracked file holds a credential shape.
+  const FAKE_PUBLISHABLE = ["sb_", "publishable_", "ZzYyXxWw99887766"].join("");
+
+  it("after createDb('user') the publishable key is redacted BY NAME, not just by shape", async () => {
+    const { scrub, resetSecretRegistry } = await import("../agents/secrets.ts");
+    resetSecretRegistry();
+    setEnv({
+      SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
+      VITE_SUPABASE_PUBLISHABLE_KEY: FAKE_PUBLISHABLE,
+      EZ_PROCESS_KIND: "app",
+    });
+    createDb("user");
+    // By NAME: the registry (exact match) runs before the shape patterns, so the
+    // label is the variable name, which is what an operator needs to know.
+    expect(scrub(`key=${FAKE_PUBLISHABLE} sent`)).toBe("key=[redacted:VITE_SUPABASE_PUBLISHABLE_KEY] sent");
+    resetSecretRegistry();
+  });
+
+  it("after readServiceKey() the service-role key is redacted BY NAME", async () => {
+    const { scrub, resetSecretRegistry } = await import("../agents/secrets.ts");
+    const { readServiceKey } = await import("../packages/config/db.ts");
+    resetSecretRegistry();
+    // JWT-shaped for the scrubber's pattern rail: anonKey() signs with a 3-char "sig",
+    // and the JWT shape needs >= 4 chars per segment, so lengthen the signature.
+    const serviceValue = anonKey(SCRATCH_REF) + "nature";
+    setEnv({
+      SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
+      SCRATCH_SERVICE_ROLE: serviceValue,
+      EZ_PROCESS_KIND: "edge",
+    });
+    expect(readServiceKey()).toBe(serviceValue);
+    expect(scrub(`auth ${serviceValue} done`)).toBe("auth [redacted:SCRATCH_SERVICE_ROLE] done");
+    resetSecretRegistry();
+  });
+
+  it("without the factory having run, the same values fall back to the SHAPE labels only", async () => {
+    const { scrub, resetSecretRegistry } = await import("../agents/secrets.ts");
+    resetSecretRegistry();
+    // Proves the previous two tests are testing the registry, not the pattern rail.
+    expect(scrub(`key=${FAKE_PUBLISHABLE}`)).toBe("key=[redacted:SB_PUBLISHABLE]");
+    // Same lengthened signature as above: a 3-char "sig" segment is NOT JWT-shaped.
+    expect(scrub(`auth ${anonKey(SCRATCH_REF) + "nature"}`)).toBe("auth [redacted:JWT]");
+  });
+});
