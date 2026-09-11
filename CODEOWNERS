@@ -1,0 +1,39 @@
+# Andrew must approve anything in these areas (see HQ/01-OPERATING-SYSTEM.md §5).
+#
+# Handle: @Andrew-art03 — taken from the repo's own remote
+# (https://github.com/Andrew-art03/dispatch-easy-app.git). If GitHub renders this
+# file with an "unknown owner" warning, the handle is wrong; fix it here first,
+# because an unresolvable owner makes the whole rule silently inert.
+#
+# Paths below that do not exist yet (supabase/, packages/, legal/) are deliberate:
+# a CODEOWNERS line costs nothing while the path is absent and takes effect the
+# moment someone creates it — which is exactly when a migration or a billing
+# directory most needs a reviewer.
+
+# Catch-all so no path is unowned.
+*                                   @Andrew-art03
+
+# --- Auth boundary (CLAUDE.md rule 1: auth is off-limits unless the ticket names it)
+/src/routes/auth.tsx                @Andrew-art03
+/src/routes/_authenticated/         @Andrew-art03
+/src/lib/supabase.ts                @Andrew-art03
+
+# --- Server-side action surface (rules 5, 10, 21: no auto-book, no auto-send)
+/src/routes/api/                    @Andrew-art03
+/src/server.ts                      @Andrew-art03
+/src/start.ts                       @Andrew-art03
+
+# --- Safety rails. Weakening a guard needs the same review as the thing it guards.
+/CLAUDE.md                          @Andrew-art03
+/CODEOWNERS                         @Andrew-art03
+/scripts/                           @Andrew-art03
+/.env.example                       @Andrew-art03
+/.github/                           @Andrew-art03
+
+# --- Not present yet; active on creation (schema, money math, voice, legal)
+/supabase/migrations/               @Andrew-art03
+/supabase/functions/                @Andrew-art03
+/supabase/config.toml               @Andrew-art03
+/packages/calc/                     @Andrew-art03
+/packages/voice/                    @Andrew-art03
+/legal/                             @Andrew-art03

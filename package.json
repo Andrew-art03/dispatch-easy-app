@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:env": "node scripts/assert-no-secret-source.mjs",
+    "check:bundle": "node scripts/assert-no-service-role.mjs .output"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -86,6 +90,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "8.1.5"
+    "vite": "8.1.5",
+    "vitest": "^5.0.0"
   }
 }
