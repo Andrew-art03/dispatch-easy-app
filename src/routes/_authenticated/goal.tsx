@@ -9,7 +9,7 @@ import {
   useTruckColor,
   type WeekDayEarning,
 } from "@/components/GoalProgress";
-import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
+import { WEEK_GOAL, money } from "@/lib/goal";
 
 export const Route = createFileRoute("/_authenticated/goal")({
   head: () => ({
@@ -289,7 +289,7 @@ function GoalPage() {
                 <p className="truncate font-semibold">
                   {r.from} → {r.to}
                 </p>
-                <p className="text-sm text-muted-foreground">{r.date}</p>
+                <p className="text-sm text-muted-foreground">{formatRunDate(r.date)}</p>
               </div>
               <p className="ez-num shrink-0 text-xl">{money(r.net)}</p>
             </li>
