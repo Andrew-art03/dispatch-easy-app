@@ -109,13 +109,16 @@ describe("assertNotProd — defence in depth", () => {
 
 describe("readTarget — accepts the publishable-key names", () => {
   const SCRATCH_REF = "krwcnieffeasjczkwrlz";
+  // Assembled at runtime: a literal key-shaped string in a tracked file is exactly
+  // what gitleaks' generic-api-key rule fires on (it did, run 34618835730).
+  const FAKE_PUBLISHABLE = ["sb_", "publishable_", "AaBbCcDd11223344"].join("");
 
   it("builds a user client with only VITE_SUPABASE_PUBLISHABLE_KEY set (the app's tracked env)", () => {
     setEnv({
       SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
       // sb_* is not a JWT: it must be accepted by readTarget and must NOT be
       // pushed through refOfJwt (it is deliberately absent from KEY_VARS).
-      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_AaBbCcDd11223344",
+      VITE_SUPABASE_PUBLISHABLE_KEY: FAKE_PUBLISHABLE,
       EZ_PROCESS_KIND: "app",
     });
     expect(() => createDb("user")).not.toThrow();
@@ -124,7 +127,7 @@ describe("readTarget — accepts the publishable-key names", () => {
   it("builds a user client with SUPABASE_PUBLISHABLE_KEY (server-side name)", () => {
     setEnv({
       SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
-      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_AaBbCcDd11223344",
+      SUPABASE_PUBLISHABLE_KEY: FAKE_PUBLISHABLE,
       EZ_PROCESS_KIND: "edge",
     });
     expect(() => createDb("user")).not.toThrow();

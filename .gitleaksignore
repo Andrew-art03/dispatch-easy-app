@@ -1,0 +1,7 @@
+# .gitleaksignore — accepted BY EXACT FINGERPRINT (commit:file:rule:line).
+# a39f163 committed two literal fake publishable-key FIXTURES in a test (values
+# "AaBbCcDd11223344"; not a real key). Rewritten to runtime assembly in the next
+# commit, but a39f163 stays in the PR's scanned range and cannot be removed
+# without a force-push, which this project does not do. Two lines, nothing broader.
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:118
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:127
