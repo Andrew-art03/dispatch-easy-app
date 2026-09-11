@@ -102,10 +102,10 @@ function DocsPage() {
 
   return (
     <AppShell title="Paperwork">
-      <div className="space-y-5">
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+      <div className="space-y-4">
+        <section className="space-y-4 rounded-md border border-border bg-card p-4">
           <label className="block">
-            <span className="mb-1 block text-sm text-muted-foreground">What is this?</span>
+            <span className="ez-label mb-1 block text-muted-foreground">What is this?</span>
             <select
               className="ez-input"
               value={docType}
@@ -119,7 +119,7 @@ function DocsPage() {
             </select>
           </label>
 
-          <label className="ez-btn-amber block w-full cursor-pointer text-center">
+          <label className="ez-btn-amber mt-4 block w-full cursor-pointer text-center">
             {upload.isPending ? "Uploading…" : "Take a photo or upload"}
             <input
               type="file"
@@ -147,7 +147,7 @@ function DocsPage() {
           ) : (
             <ul className="grid grid-cols-3 gap-3">
               {docsQuery.data.map((doc) => (
-                <li key={doc.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                <li key={doc.id} className="overflow-hidden rounded-md border border-border bg-card">
                   {doc.url ? (
                     <a href={doc.url} target="_blank" rel="noreferrer">
                       <img
@@ -169,7 +169,7 @@ function DocsPage() {
 
         {packError ? <ErrorBox error={new Error(packError)} /> : null}
         {packNote ? (
-          <p className="rounded-xl border border-border bg-card p-3 text-sm text-primary">{packNote}</p>
+          <p className="rounded-md border border-border bg-card p-3 text-sm text-ez-green">{packNote}</p>
         ) : null}
 
         <button

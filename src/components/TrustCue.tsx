@@ -4,7 +4,7 @@
  */
 export function TrustCue({ label }: { label: string }) {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-border/70 bg-secondary/50 px-2 py-0.5 align-middle text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <span className="ez-label ml-2 inline-flex items-center rounded border border-border/70 bg-transparent px-2 py-0.5 align-middle text-muted-foreground">
       {label}
     </span>
   );

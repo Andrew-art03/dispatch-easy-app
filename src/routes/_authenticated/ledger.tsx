@@ -82,23 +82,43 @@ function LedgerPage() {
       {query.isPending ? <Loading label="Loading your money…" /> : null}
       {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
       {query.data ? (
-        query.data.length === 0 ? (
-          <Empty title="Nothing recorded yet" hint="Lines show up as loads and receipts land." />
-        ) : (
+        <>
+          {/* Settle list shape — Booked/Paid/Days to pay arrive with payout data (6E).
+              Until then every slot is an em-dash placeholder, never a computed figure. */}
+          <section>
+            <div className="overflow-hidden rounded-md border border-border bg-card">
+              <div className="grid grid-cols-4 gap-2 border-b border-border/60 p-3">
+                {["Load", "Booked", "Paid", "Days to pay"].map((label) => (
+                  <span key={label} className="ez-label text-muted-foreground">
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-2 p-3 text-sm text-muted-foreground">
+                <span>—</span>
+                <span>—</span>
+                <span>—</span>
+                <span>—</span>
+              </div>
+            </div>
+          </section>
+          {query.data.length === 0 ? (
+            <Empty title="Nothing recorded yet" hint="Lines show up as loads and receipts land." />
+          ) : (
           <div className="space-y-6">
             {[...groups.entries()].map(([week, lines]) => {
               const total = lines.reduce((sum, l) => sum + Number(l.amount), 0);
               return (
                 <section key={week}>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                   <div className="mb-4 flex items-baseline justify-between">
+                     <h2 className="ez-section-title text-muted-foreground">
                       {formatWeekLabel(week)}
                     </h2>
                     <span className={`font-bold ${total < 0 ? "text-ez-red" : "text-ez-green"}`}>
                       {money(total)}
                     </span>
                   </div>
-                  <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                   <div className="overflow-hidden rounded-md border border-border bg-card">
                     <table className="w-full text-sm">
                       <tbody>
                         {lines.map((line) => (
@@ -126,7 +146,8 @@ function LedgerPage() {
               );
             })}
           </div>
-        )
+          )}
+        </>
       ) : null}
     </AppShell>
   );

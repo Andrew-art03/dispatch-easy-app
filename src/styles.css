@@ -27,13 +27,13 @@
   --color-ez-amber: var(--ez-amber);
   --color-surface-2: var(--surface-2);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+  --radius-4xl: 6px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -71,45 +71,47 @@
 
 :root,
 .dark {
-  --radius: 0.875rem;
-  --ez-green: oklch(0.723 0.192 150);
-  --ez-red: oklch(0.63 0.21 25);
-  --ez-amber: oklch(0.706 0.162 58);
-  --surface-2: oklch(0.25 0.008 300);
-  --background: oklch(0.152 0.009 285);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.194 0.012 285);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.194 0.012 285);
-  --popover-foreground: oklch(1 0 0);
-  --primary: oklch(0.706 0.162 58);
-  --primary-foreground: oklch(0.152 0.009 285);
-  --secondary: oklch(0.25 0.008 300);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.25 0.008 300);
-  --muted-foreground: oklch(0.708 0.012 286);
-  --accent: oklch(0.706 0.162 58);
-  --accent-foreground: oklch(0.152 0.009 285);
-  --destructive: oklch(0.63 0.21 25);
-  --destructive-foreground: oklch(0.98 0.005 250);
+  --radius: 4px;
+  /* Marker Light palette — exact conversions of the reference hex values. */
+  --ez-green: oklch(0.790506 0.178991 154.139); /* #3ddb84 */
+  --ez-red: oklch(0.529674 0.196866 25.14); /* #c42029 */
+  --ez-amber: oklch(0.813099 0.164996 75.044); /* #ffb020 */
+  --surface-2: oklch(0.245 0.009 274.469);
+  --background: oklch(0.154098 0.004578 264.432); /* #0b0c0e */
+  --foreground: oklch(0.948921 0.002888 264.542); /* #edeef0 */
+  --card: oklch(0.191949 0.008216 274.469); /* #131418 */
+  --card-foreground: oklch(0.948921 0.002888 264.542);
+  --popover: oklch(0.191949 0.008216 274.469);
+  --popover-foreground: oklch(0.948921 0.002888 264.542);
+  --primary: oklch(0.813099 0.164996 75.044);
+  --primary-foreground: oklch(0.154098 0.004578 264.432);
+  --secondary: oklch(0.245 0.009 274.469);
+  --secondary-foreground: oklch(0.948921 0.002888 264.542);
+  --muted: oklch(0.245 0.009 274.469);
+  --muted-foreground: oklch(0.708 0.008 274.469);
+  --accent: oklch(0.813099 0.164996 75.044);
+  --accent-foreground: oklch(0.154098 0.004578 264.432);
+  --destructive: oklch(0.529674 0.196866 25.14);
+  --destructive-foreground: oklch(0.948921 0.002888 264.542);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.706 0.162 58);
-  --chart-1: oklch(0.81 0.19 155);
-  --chart-2: oklch(0.8 0.16 75);
+  --ring: oklch(0.813099 0.164996 75.044);
+  --chart-1: oklch(0.790506 0.178991 154.139);
+  --chart-2: oklch(0.813099 0.164996 75.044);
   --chart-3: oklch(0.7 0.15 150);
-  --chart-4: oklch(0.68 0.19 22);
-  --chart-5: oklch(0.65 0.012 250);
-  --sidebar: oklch(0.2 0.005 250);
-  --sidebar-foreground: oklch(0.94 0.003 250);
-  --sidebar-primary: oklch(0.81 0.19 155);
-  --sidebar-primary-foreground: oklch(0.19 0.03 155);
+  --chart-4: oklch(0.529674 0.196866 25.14);
+  --chart-5: oklch(0.65 0.012 264);
+  --sidebar: oklch(0.191949 0.008216 274.469);
+  --sidebar-foreground: oklch(0.948921 0.002888 264.542);
+  --sidebar-primary: oklch(0.813099 0.164996 75.044);
+  --sidebar-primary-foreground: oklch(0.154098 0.004578 264.432);
 
-  --sidebar-accent: oklch(0.27 0.016 250);
-  --sidebar-accent-foreground: oklch(0.97 0.005 250);
+  --sidebar-accent: oklch(0.245 0.009 274.469);
+  --sidebar-accent-foreground: oklch(0.948921 0.002888 264.542);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.78 0.17 78);
+  --sidebar-ring: oklch(0.813099 0.164996 75.044);
 }
+
 
 @layer base {
   * {
@@ -146,7 +148,8 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 60px;
+    min-height: 56px;
+    max-height: 56px;
     border-radius: var(--radius);
     background-color: var(--color-accent);
     color: var(--color-accent-foreground);
@@ -175,24 +178,25 @@
     font-family: var(--font-condensed);
     font-weight: 700;
     line-height: 0.95;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   .ez-ref {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .ez-chip {
-    border-left: 3px solid transparent;
-    background-color: var(--color-surface-2);
-    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    border-radius: var(--radius);
     padding: 0.625rem 0.75rem;
   }
 
   .ez-chip-watch {
-    border-left-color: var(--color-ez-red);
+    border-color: color-mix(in oklab, var(--color-ez-red) 50%, transparent);
   }
 
   .ez-ring {
@@ -216,7 +220,8 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 60px;
+    min-height: 56px;
+    max-height: 56px;
     border-radius: var(--radius);
     background-color: var(--color-accent);
     color: var(--color-accent-foreground);
@@ -229,6 +234,39 @@
   .ez-btn-primary:active,
   .ez-btn-amber:active {
     opacity: 0.85;
+  }
+
+  .ez-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .ez-section-title {
+    font-family: var(--font-condensed);
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .ez-card-title {
+    font-family: var(--font-condensed);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+  }
+
+  .ez-hero-number {
+    font-family: var(--font-condensed);
+    font-size: 6rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 0.82;
   }
 }
 
@@ -292,6 +330,120 @@
   .ez-splash-climb,
   .ez-splash-bar,
   .ez-splash-progress {
+    animation: none;
+  }
+}
+
+/* ── F-09 Week Goal cold open ─────────────────────────────────────────────
+   Ported from the reference file: perspective stage, one 3D-rotated truck
+   photo, headlight glare and streaming road dashes. Transform/opacity only. */
+.ez-coldopen-stage {
+  perspective: 900px;
+}
+.ez-coldopen-layer {
+  transition: opacity 0.22s linear;
+}
+.ez-coldopen-scene {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 4;
+}
+.ez-coldopen-rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* The art offsets its own axle onto this point, so the rig pivots at 0 0. */
+  transform-origin: 0 0;
+  width: 150px;
+  will-change: transform;
+  pointer-events: none;
+}
+.ez-coldopen-art {
+  transform-style: preserve-3d;
+  transform-origin: 28% 86%;
+  will-change: transform;
+}
+.ez-coldopen-truck {
+  display: block;
+  width: 100%;
+  backface-visibility: hidden;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+
+.ez-coldopen-glow {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -4px;
+  height: 12px;
+  border-radius: 50%;
+  filter: blur(3px);
+  opacity: 0;
+}
+.ez-coldopen-flare {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: screen;
+}
+.ez-coldopen-lamp {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 240, 0.95) 0%,
+    rgba(255, 226, 160, 0.55) 32%,
+    rgba(233, 130, 27, 0) 72%
+  );
+  filter: blur(1px);
+  transform: translate(-50%, -50%);
+}
+.ez-coldopen-streak {
+  position: absolute;
+  height: 2px;
+  width: 190px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 240, 200, 0),
+    rgba(255, 240, 200, 0.55),
+    rgba(255, 240, 200, 0)
+  );
+  filter: blur(1.5px);
+}
+.ez-coldopen-dust {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(233, 130, 27, 0.38), transparent 72%);
+  filter: blur(5px);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.rolling .ez-coldopen-dashes line {
+  animation: ez-coldopen-rush 0.5s linear infinite;
+}
+@keyframes ez-coldopen-rush {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rolling .ez-coldopen-dashes line {
     animation: none;
   }
 }

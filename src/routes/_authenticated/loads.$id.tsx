@@ -191,24 +191,27 @@ function LoadCard() {
 
   return (
     <AppShell title={load.reference ?? "Load"}>
-      <div className="space-y-5">
+      <div className="space-y-4">
         <EZStatusLine
           text={`EZ found your best move · high confidence · ${minsAgo ?? "—"} min ago`}
         />
 
-        <section className="rounded-2xl border border-border bg-card p-5">
+        <section className="rounded-md border border-border bg-card p-4">
           {load.reference ? <p className="ez-ref text-muted-foreground">{load.reference}</p> : null}
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="ez-label mt-2 text-muted-foreground">
             You keep about
             <TrustCue label="Estimated net" />
           </p>
-          <p className="ez-num text-6xl text-foreground">{keep}</p>
+          <p className="ez-hero-number mt-2 text-foreground">{keep}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             after estimated trip costs ·{" "}
             <span className="font-semibold text-foreground">{verdictWord}</span>
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No mystery score. See every number behind the recommendation.
+          </p>
 
-          <dl className="mt-5 grid grid-cols-3 gap-3 text-center">
+          <dl className="mt-4 grid grid-cols-3 gap-2 text-left">
             <Stat label="All-in / mi" value={rpm(score?.all_in_rpm ?? null)} />
             <Stat label="Gross" value={money(load.gross_rate)} />
             <Stat
@@ -222,7 +225,7 @@ function LoadCard() {
         <section className="space-y-2">
           {chips.map((chip) => (
             <div key={chip.title} className={`ez-chip ${chip.watch ? "ez-chip-watch" : ""}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="ez-label text-muted-foreground">
                 {chip.title}
               </p>
               <p className="text-sm">{chip.sentence}</p>
@@ -230,8 +233,8 @@ function LoadCard() {
           ))}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <section className="rounded-md border border-border bg-card p-4">
+          <p className="ez-label text-muted-foreground">
             EZ's call
           </p>
           <p className="mt-1 text-base">
@@ -245,24 +248,24 @@ function LoadCard() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <section className="rounded-md border border-border bg-card p-4">
+          <h2 className="ez-section-title text-muted-foreground">
             What's left
           </h2>
           <ul className="mt-3 space-y-2">
             {checklist.map((item) => (
               <li
                 key={item.label}
-                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+                className={`flex items-center gap-3 rounded-md border px-3 py-3 text-sm ${
                   !item.done && item.easy
                     ? "border border-ez-amber/50 bg-ez-amber/10 text-ez-amber"
-                    : "bg-surface-2"
+                    : "border-border bg-transparent"
                 }`}
               >
                 <span
                   className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-xs ${
                     item.done
-                      ? "border-ez-green bg-ez-green/20 text-ez-green"
+                      ? "border-ez-green bg-transparent text-ez-green"
                       : "border-border text-muted-foreground"
                   }`}
                 >
@@ -272,7 +275,7 @@ function LoadCard() {
                   {item.label}
                 </span>
                 {!item.done && item.easy ? (
-                  <span className="ml-auto rounded-full bg-ez-amber px-2 py-0.5 text-xs font-semibold text-accent-foreground">
+                  <span className="ez-label ml-auto rounded border border-ez-amber/50 bg-transparent px-2 py-0.5 text-ez-amber">
                     The Easy Part
                   </span>
                 ) : null}
@@ -286,8 +289,8 @@ function LoadCard() {
           ) : null}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <section className="rounded-md border border-border bg-card p-4">
+          <h2 className="ez-section-title text-muted-foreground">
             Stops
           </h2>
           <ol className="mt-2 space-y-3">
@@ -312,7 +315,7 @@ function LoadCard() {
           </ol>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card">
+        <section className="rounded-md border border-border bg-card">
           <button
             onClick={() => setShowMath((v) => !v)}
             className="flex min-h-12 w-full items-center justify-between p-5 text-left font-medium"
@@ -342,40 +345,53 @@ function LoadCard() {
 
         {actionError ? <ErrorBox error={new Error(actionError)} /> : null}
         {actionNote ? (
-          <p className="rounded-xl border border-border bg-card p-3 text-sm text-ez-green">
+          <p className="rounded-md border border-border bg-card p-3 text-sm text-ez-green">
             {actionNote}
           </p>
         ) : null}
 
-        <p className="text-center text-xs text-muted-foreground">
-          Your approval required — EZ never books a load on its own.
-        </p>
+        <section className="my-4 w-full rounded-md border border-border bg-card p-4">
+          <p className="ez-section-title text-muted-foreground">
+            Your call — Pursue / Negotiate / Skip
+          </p>
 
-        <button
-          onClick={() => callEndpoint.mutate("pursue")}
-          disabled={callEndpoint.isPending}
-          className="ez-btn-amber disabled:opacity-40"
-        >
-          {callEndpoint.isPending ? "Working…" : "Pursue this load"}
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={openLoadVoice} className="ez-btn-secondary text-ez-amber">
-            Ask EZ why
-          </button>
           <button
-            onClick={() => callEndpoint.mutate("skip")}
+            onClick={() => callEndpoint.mutate("pursue")}
             disabled={callEndpoint.isPending}
-            className="ez-btn-secondary text-muted-foreground"
+            className="ez-btn-amber mt-4 disabled:opacity-40"
           >
-            Skip
+            {callEndpoint.isPending ? "Working…" : "Pursue this load"}
           </button>
-        </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button onClick={openLoadVoice} className="ez-btn-secondary text-ez-amber">
+              Negotiate
+            </button>
+            <button
+              onClick={() => callEndpoint.mutate("skip")}
+              disabled={callEndpoint.isPending}
+              className="ez-btn-secondary text-muted-foreground"
+            >
+              Skip
+            </button>
+          </div>
+
+          <p className="mt-4 text-sm text-muted-foreground">You approve. EZ never books.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Never auto-book. You approve the deal.
+          </p>
+        </section>
 
         <p className="pt-1 text-center text-sm text-muted-foreground">
           Show alternatives · Ask {money(score?.recommended_bid ?? null)} (soon)
           <TrustCue label="Draft only" />
         </p>
+
+        {canConfirm ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Never auto-book. You approve the deal.
+          </p>
+        ) : null}
 
         {canConfirm ? (
           <button
@@ -408,8 +424,8 @@ function Line({ label, value }: { label: string; value: string }) {
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string | undefined }) {
   return (
-    <div className="rounded-xl bg-surface-2 p-3">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
+    <div className="rounded-md border border-border bg-transparent p-3">
+      <dt className="ez-label text-muted-foreground">{label}</dt>
       <dd className="ez-num mt-1 text-2xl">{value}</dd>
       {note ? <dd className="text-xs text-ez-amber">{note}</dd> : null}
     </div>

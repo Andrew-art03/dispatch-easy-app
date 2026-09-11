@@ -95,7 +95,9 @@ function AuthPage() {
             EZ
           </div>
           <h1 className="text-2xl font-bold">EZ Trucking</h1>
-          <p className="text-sm text-muted-foreground">Auto dispatching for owner-operators</p>
+          <p className="text-sm text-muted-foreground">
+            You drive the truck. EZ helps run the paperwork and decisions.
+          </p>
         </div>
 
         {!supabaseConfigured ? (
@@ -126,7 +128,7 @@ function AuthPage() {
                 className="ez-input"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                placeholder="Arteaga Trucking LLC"
+                placeholder="Freedom Trucking LLC"
                 required
               />
             </Field>

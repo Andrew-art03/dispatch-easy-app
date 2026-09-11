@@ -1,0 +1,111 @@
+# EZ Trucking — CI. Corrected 2026-09-08 (EZ-002 mid-build review item 5).
+#
+# Supersedes repo-kit/github-folder-RENAME-TO-.github/workflows/ci.yml (Sep 2),
+# which was wrong in four ways: pnpm (this repo uses bun + bun.lock), `dist`
+# (TanStack Start builds to .output), floating action tags, and a gitleaks step
+# that could not fail the build.
+#
+# ANDREW: copy this file to .github/workflows/ci.yml in dispatch-easy-app and
+# commit it from your own session. Claude Code cannot — its token is scoped to
+# Contents + Pull requests, and writing .github/workflows/ needs the `workflow`
+# scope, which is deliberately not granted (rule 27: an agent does not hold a
+# credential that can rewrite its own CI).
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege by default; jobs opt in to more if they ever need it.
+permissions:
+  contents: read
+
+# One run per ref. A new push cancels the previous run instead of queueing.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint · types · tests · build · rails
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to a commit SHA, not a tag. A tag is mutable: whoever
+      # controls the action repo can repoint v7 at new code, and that code runs
+      # with our GITHUB_TOKEN. The comment records which release the SHA was.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run lint
+      - run: bun run typecheck
+
+      # Rule-6 rail, before-build half: refuses a secret in tracked source.
+      - run: bun run check:env
+
+      - run: bun run test
+
+      - run: bun run build
+
+      # Rule-6 rail, after-build half: refuses a service-role key in .output.
+      - run: bun run check:bundle
+
+      # Advisory only — a new upstream advisory should not block an unrelated PR.
+      # Promote to a hard failure once someone owns triage.
+      - name: Dependency audit (advisory)
+        run: bun audit --audit-level=high
+        continue-on-error: true
+
+  secret-scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks scans history, not just the tip
+
+      # No `|| true` and no continue-on-error: this step failing fails the build.
+      # That is the point — the Sep 2 version could not stop a committed key.
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is required only for organisation-owned repos.
+          # dispatch-easy-app is user-owned, so none is needed today. If the repo
+          # is ever transferred to an org, this job starts failing until one is set.
+
+  integration:
+    name: integration (requires Supabase secrets)
+    runs-on: ubuntu-latest
+    # Runs only when a staging Supabase project is configured. Absent that, the
+    # job is SKIPPED, never green.
+    #
+    # ⚠ BRANCH PROTECTION: do NOT add this job to the required-checks list.
+    # GitHub treats a skipped required check as satisfied, so requiring it would
+    # produce exactly the false green this job exists to avoid. Require `check`
+    # and `gitleaks`; leave this one advisory until the suite actually exists.
+    if: vars.HAS_STAGING_SUPABASE == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Integration suite
+        # No suite exists yet (EZ-002 ships a smoke test only). This fails loudly
+        # rather than passing green, so enabling the flag before writing tests is
+        # an obvious mistake instead of a silent one.
+        run: |
+          echo "::error title=Integration tests::HAS_STAGING_SUPABASE is set but no integration suite exists yet."
+          exit 1
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}

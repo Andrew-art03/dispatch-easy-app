@@ -1,19 +1,20 @@
-# Consolidate Truck Setup in Settings
+# Week $ correctness and navigation cleanup
 
 ## Scope
-Make Settings the single destination for both the existing truck profile form and the visual truck appearance controls. Preserve every current field, default, validation rule, save action, and completion calculation.
-
-## Changes
-- Extract the existing Truck Profile form into a reusable screen section and place it on `/settings` alongside Truck appearance.
-- Change the Board empty-state “Set up my truck” action to `/settings` and remove the duplicate Settings action from that card.
-- Point the bottom-nav Truck tab to `/settings`.
-- Keep `/truck` as a compatibility redirect to `/settings`, so old links cannot expose a second form.
+- Reorder the five bottom tabs to Home, Hunt, Docs, Week $, Truck without changing their appearance or destinations.
+- Make Week $ derive daily earnings, earned total, and the week label from the displayed run records.
+- Exclude runs after the current local date from earned money while keeping those runs visible in the list.
+- Keep the delivery simulator available only in development previews.
+- Permanently remove the three unused legacy truck assets while preserving the shared truck and body-type picker images.
 
 ## Technical details
-- Continue reading/writing only the existing `truck` columns and `driver.hos_hours_left` through the current RLS-backed client behavior.
-- No schema, endpoint, validation, or collected-data changes.
+- Parse each mock run date once, group completed run amounts by weekday, and pass that derived series through the existing chart and totals.
+- Determine the displayed week from the earliest listed run date and use that derived label for celebration persistence.
+- Guard the existing simulator control with `import.meta.env.DEV`.
+- Do not edit styles, color tokens, schema, routes, packages, or image rendering.
 
 ## Verification
-- At 390px, open Board and click “Set up my truck”; confirm `/settings` contains the full profile and appearance controls.
-- Return to Board, click the Truck bottom-nav tab, and confirm it lands on the same `/settings` screen.
-- Confirm the completion indicator and form fields render, and check build/runtime errors.
+- Confirm the nav order and Week $ values in the live 390px preview.
+- Confirm Sep 8 and Sep 10 total $3,340 on Sep 11 while Sep 12 remains listed but unearned.
+- Confirm the simulator appears in development only and the removed assets have no remaining references.
+- Check the automated build result.

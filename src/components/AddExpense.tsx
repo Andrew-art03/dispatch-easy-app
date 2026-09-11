@@ -65,14 +65,14 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-black/70" role="dialog" aria-modal="true">
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border-t border-border bg-card p-5 pb-8">
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-md border-t border-border bg-card p-4 pb-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Add expense</h2>
+          <h2 className="ez-section-title">Add expense</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex size-11 items-center justify-center rounded-xl border border-border"
+            className="flex size-11 items-center justify-center rounded-md border border-border"
           >
             <X className="size-5" />
           </button>
@@ -86,7 +86,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
           }}
         >
           <label className="block">
-            <span className="text-sm font-medium">What was it for</span>
+            <span className="ez-label text-muted-foreground">What was it for</span>
             <select
               className="ez-input mt-2"
               value={category}
@@ -101,7 +101,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium">Amount</span>
+            <span className="ez-label text-muted-foreground">Amount</span>
             <input
               className="ez-input mt-2"
               inputMode="decimal"
@@ -113,7 +113,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium">Date</span>
+            <span className="ez-label text-muted-foreground">Date</span>
             <input
               type="date"
               className="ez-input mt-2"
@@ -123,7 +123,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium">Load (optional)</span>
+            <span className="ez-label text-muted-foreground">Load (optional)</span>
             <select
               className="ez-input mt-2"
               value={loadId}
@@ -145,7 +145,7 @@ export function AddExpenseSheet({ onClose }: { onClose: () => void }) {
           <button
             type="submit"
             disabled={!valid || save.isPending}
-            className="ez-btn-amber w-full disabled:opacity-40"
+            className="ez-btn-amber mt-4 w-full disabled:opacity-40"
           >
             {save.isPending ? "Saving…" : "Save expense"}
           </button>
