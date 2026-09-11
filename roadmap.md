@@ -8,3 +8,4 @@
 - [x] Marker Light theme pass: exact palette tokens, Home hierarchy, semantic status audit.
 - [x] F-41 cold-open motion fix: scene/rig/art node split so the truck stays on the road stroke.
 - [x] F-40 Marker Light treatment pass across Home, Board, Hunt, Load Card, Docs, Ledger, and Settings.
+- [ ] Reorder bottom navigation, derive Week $ totals/dates from runs, hide simulation in production, and remove dead truck assets.
