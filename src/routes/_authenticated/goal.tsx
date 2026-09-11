@@ -9,7 +9,7 @@ import {
   useTruckColor,
   type WeekDayEarning,
 } from "@/components/GoalProgress";
-import { WEEK_DAY_EARNINGS, WEEK_GOAL, money } from "@/lib/goal";
+import { WEEK_GOAL, money } from "@/lib/goal";
 
 export const Route = createFileRoute("/_authenticated/goal")({
   head: () => ({
@@ -27,14 +27,57 @@ export const Route = createFileRoute("/_authenticated/goal")({
   component: GoalPage,
 });
 
-// Visual-only mock data — no tables touched.
+// Visual-only mock data — no tables touched. Runs are the single source of
+// truth: the day series, the week label and the earned total all derive here.
 const MOCK = {
   routes: [
-    { from: "Amarillo, TX", to: "Dallas, TX", date: "Tue Sep 8", net: 1450 },
-    { from: "Dallas, TX", to: "Atlanta, GA", date: "Thu Sep 10", net: 1890 },
-    { from: "Atlanta, GA", to: "Charlotte, NC", date: "Sat Sep 12", net: 720 },
+    { from: "Amarillo, TX", to: "Dallas, TX", date: "2026-09-08", net: 1450 },
+    { from: "Dallas, TX", to: "Atlanta, GA", date: "2026-09-10", net: 1890 },
+    { from: "Atlanta, GA", to: "Charlotte, NC", date: "2026-09-12", net: 720 },
   ],
 };
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+/** Parses a plain YYYY-MM-DD as a local calendar day (no timezone drift). */
+function parseDay(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function mondayOf(date: Date) {
+  const offset = (date.getDay() + 6) % 7;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - offset);
+}
+
+function formatRunDate(value: string) {
+  return parseDay(value).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Days already driven get a number; future or empty days stay blank. */
+function deriveDays(today: Date): WeekDayEarning[] {
+  const totals = new Map<number, number>();
+  for (const run of MOCK.routes) {
+    const runDay = parseDay(run.date);
+    if (runDay > today) continue;
+    const index = (runDay.getDay() + 6) % 7;
+    totals.set(index, (totals.get(index) ?? 0) + run.net);
+  }
+  const lastIndex = Math.max(...[...totals.keys()], -1);
+  return DAY_LABELS.map((day, index) => ({
+    day,
+    amount: index <= lastIndex ? (totals.get(index) ?? 0) : null,
+  }));
+}
+
 
 /**
  * Drives the truck along an ABSOLUTE day-index (0 = before the first marker,
@@ -82,15 +125,24 @@ function useDayReveal(activeCount: number) {
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [target, setTarget] = useState(WEEK_GOAL.target);
-  const [days, setDays] = useState<WeekDayEarning[]>([...WEEK_DAY_EARNINGS]);
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const [days, setDays] = useState<WeekDayEarning[]>(() => deriveDays(today));
   const [showCelebration, setShowCelebration] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRaisePrompt, setShowRaisePrompt] = useState(false);
-  const previousEarned = useRef(WEEK_GOAL.earned);
-  const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
   const earned = useMemo(() => days.reduce((sum, day) => sum + (day.amount ?? 0), 0), [days]);
+  const previousEarned = useRef(earned);
+  const weekLabel = useMemo(() => {
+    const earliest = MOCK.routes
+      .map((run) => parseDay(run.date))
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    const monday = mondayOf(earliest ?? today);
+    return `Week of ${monday.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  }, [today]);
+  const celebrationKey = `ez-goal-celebrated:${weekLabel}`;
   const activeCount = useMemo(() => days.filter((day) => day.amount !== null).length, [days]);
   const reveal = useDayReveal(activeCount);
+
 
 
   useEffect(() => {
@@ -134,11 +186,12 @@ function GoalPage() {
           </div>
           <p className="ez-num shrink-0 text-2xl">
             {money(earned)}{" "}
-            <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
+            <span className="text-muted-foreground">of {money(target)}</span>
           </p>
         </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{weekLabel}</p>
+
 
         <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {days.map((day, index) => {
@@ -173,14 +226,16 @@ function GoalPage() {
             : `${money(target - earned)} to go.`}
         </p>
 
-        <button
-          type="button"
-          onClick={simulateDelivery}
-          disabled={days.some((day) => day.day === "Sat" && day.amount !== null)}
-          className="ez-btn-secondary mt-4 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Simulate delivery +$800
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={simulateDelivery}
+            disabled={days.some((day) => day.day === "Sat" && day.amount !== null)}
+            className="ez-btn-secondary mt-4 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Simulate delivery +$800
+          </button>
+        )}
       </section>
 
       {showCelebration ? (
@@ -234,7 +289,7 @@ function GoalPage() {
                 <p className="truncate font-semibold">
                   {r.from} → {r.to}
                 </p>
-                <p className="text-sm text-muted-foreground">{r.date}</p>
+                <p className="text-sm text-muted-foreground">{formatRunDate(r.date)}</p>
               </div>
               <p className="ez-num shrink-0 text-xl">{money(r.net)}</p>
             </li>
