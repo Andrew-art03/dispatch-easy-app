@@ -6,11 +6,11 @@ import { EZVoiceSheetHost, useEZVoice } from "@/components/EZVoice";
 import { CopilotAvatar, useTruckColor } from "@/components/GoalProgress";
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/settings", label: "Truck", icon: Truck },
   { to: "/home", label: "Home", icon: Home },
   { to: "/hunt", label: "Hunt", icon: Search },
   { to: "/docs", label: "Docs", icon: FileText },
   { to: "/goal", label: "Week $", icon: Wallet },
+  { to: "/settings", label: "Truck", icon: Truck },
 ];
 
 /** The one way into EZ Copilot — pinned to the top of every screen. */
