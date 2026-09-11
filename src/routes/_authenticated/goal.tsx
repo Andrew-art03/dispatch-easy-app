@@ -125,15 +125,24 @@ function useDayReveal(activeCount: number) {
 function GoalPage() {
   const [truckColor, setTruckColor] = useTruckColor();
   const [target, setTarget] = useState(WEEK_GOAL.target);
-  const [days, setDays] = useState<WeekDayEarning[]>([...WEEK_DAY_EARNINGS]);
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const [days, setDays] = useState<WeekDayEarning[]>(() => deriveDays(today));
   const [showCelebration, setShowCelebration] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showRaisePrompt, setShowRaisePrompt] = useState(false);
-  const previousEarned = useRef(WEEK_GOAL.earned);
-  const celebrationKey = `ez-goal-celebrated:${WEEK_GOAL.weekLabel}`;
   const earned = useMemo(() => days.reduce((sum, day) => sum + (day.amount ?? 0), 0), [days]);
+  const previousEarned = useRef(earned);
+  const weekLabel = useMemo(() => {
+    const earliest = MOCK.routes
+      .map((run) => parseDay(run.date))
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    const monday = mondayOf(earliest ?? today);
+    return `Week of ${monday.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  }, [today]);
+  const celebrationKey = `ez-goal-celebrated:${weekLabel}`;
   const activeCount = useMemo(() => days.filter((day) => day.amount !== null).length, [days]);
   const reveal = useDayReveal(activeCount);
+
 
 
   useEffect(() => {
