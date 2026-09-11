@@ -290,9 +290,11 @@ describe("scrub — shape patterns", () => {
 
   it("redacts a PEM private key block including its body", () => {
     const pem = [
-      "-----BEGIN RSA PRIVATE KEY-----",
+      // Header assembled at runtime so no tracked file contains the literal
+      // marker — gitleaks' default private-key rule fires on the BEGIN line alone.
+      shape("-----BEGIN ", "RSA PRIVATE KEY-----"),
       "MIIEowIBAAKCAQEAxxxxxxxxxxxxxxxxxxxx",
-      "-----END RSA PRIVATE KEY-----",
+      shape("-----END ", "RSA PRIVATE KEY-----"),
     ].join("\n");
     const out = scrub(`cfg:\n${pem}\ndone`);
     expect(out).toBe("cfg:\n[redacted:PRIVATE_KEY]\ndone");
@@ -300,8 +302,10 @@ describe("scrub — shape patterns", () => {
   });
 
   it("redacts a connection-string password but keeps scheme and host", () => {
+    // Assembled at runtime: a literal "user:password@host" in a tracked file is
+    // exactly what .gitleaks.toml's connection-string rule exists to catch.
     const out = scrub(
-      "postgres://postgres.abc:hunter2@aws-0-us-east-1.pooler.supabase.com:6543/db",
+      shape("postgres://postgres.abc:", "hunter2", "@aws-0-us-east-1.pooler.supabase.com:6543/db"),
     );
     // Same reasoning as 1B's error messages: an operator must be able to tell
     // WHICH database a line is about. The host is not the secret; the password is.

@@ -33,8 +33,17 @@ keywords = ["eyJ"]
 [[rules]]
 id = "supabase-connection-string-password"
 description = "Postgres connection string with an inline password"
-regex = '''postgres(?:ql)?://[^:/\s]+:(?!PASSWORD\b)[^@\s]{6,}@'''
+# gitleaks is Go/RE2: there is NO lookaround. The original `(?!PASSWORD\b)` made
+# this whole file fail to compile, so gitleaks had never actually run against
+# this repo (1C-4 finding, 2026-09-11). The placeholder exemption now lives in a
+# rule-scoped allowlist below, which is the RE2-compatible way to say "not this".
+regex = '''postgres(?:ql)?://[^:/\s]+:[^@\s]{6,}@'''
 keywords = ["postgres://", "postgresql://"]
+
+  [[rules.allowlists]]
+  description = "The literal PASSWORD placeholder is documentation, not a credential"
+  regexTarget = "match"
+  regexes = ['''://[^:/\s]+:PASSWORD@''']
 
 [[rules]]
 id = "vite-published-secret-name"

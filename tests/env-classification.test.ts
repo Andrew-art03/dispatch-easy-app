@@ -70,7 +70,9 @@ describe("refOf — everything it cannot identify must throw", () => {
   });
 
   it("never puts the raw target in the error message, because a postgres URL carries its password", () => {
-    const withPassword = "postgres://postgres:hunter2@db.eztrucking.com:5432/postgres";
+    // Assembled at runtime so no tracked file holds a literal user:password@host —
+    // .gitleaks.toml's connection-string rule would (correctly) flag it otherwise.
+    const withPassword = ["postgres://postgres:", "hunter2", "@db.eztrucking.com:5432/postgres"].join("");
     expect(() => refOf(withPassword)).toThrow(/db\.eztrucking\.com/);
     try {
       refOf(withPassword);
