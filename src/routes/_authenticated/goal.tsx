@@ -186,11 +186,12 @@ function GoalPage() {
           </div>
           <p className="ez-num shrink-0 text-2xl">
             {money(earned)}{" "}
-            <span className="text-muted-foreground">of {money(WEEK_GOAL.target)}</span>
+            <span className="text-muted-foreground">of {money(target)}</span>
           </p>
         </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">{WEEK_GOAL.weekLabel}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{weekLabel}</p>
+
 
         <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {days.map((day, index) => {
@@ -225,14 +226,16 @@ function GoalPage() {
             : `${money(target - earned)} to go.`}
         </p>
 
-        <button
-          type="button"
-          onClick={simulateDelivery}
-          disabled={days.some((day) => day.day === "Sat" && day.amount !== null)}
-          className="ez-btn-secondary mt-4 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Simulate delivery +$800
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={simulateDelivery}
+            disabled={days.some((day) => day.day === "Sat" && day.amount !== null)}
+            className="ez-btn-secondary mt-4 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Simulate delivery +$800
+          </button>
+        )}
       </section>
 
       {showCelebration ? (
