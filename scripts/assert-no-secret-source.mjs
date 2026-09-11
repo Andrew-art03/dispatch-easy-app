@@ -13,7 +13,12 @@
 
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { findCredentialValues, findPublishedSecretNames, isBinary } from "./credential-shapes.mjs";
+import {
+  findCredentialValues,
+  findPublishedSecretNames,
+  isBinary,
+  stripExemptLines,
+} from "./credential-shapes.mjs";
 
 // SCOPE WIDENED IN EZ-004 (1C), deliberately.
 //
@@ -48,19 +53,20 @@ for (const file of tracked) {
   }
   if (isBinary(buf)) continue;
 
-  // PER-LINE EXEMPTION, not a per-file one (EZ-004).
+  // PER-LINE EXEMPTION, not a per-file one (EZ-004; tightened in P-1C-4).
   //
   // Widening the scan to every tracked file immediately flagged this rail's own
   // detector source, whose comments necessarily quote the names it detects --
   // exactly the self-flagging bug 1B's check:db-boundary hit. The obvious fix,
   // excluding those files, would make the files that handle credentials the only
-  // ones nobody scans. So a line may opt out by naming the pragma, which keeps
-  // the rest of the file scanned and makes every exemption a visible diff line.
-  const text = buf
-    .toString("utf8")
-    .split("\n")
-    .filter((line) => !line.includes("secret-rail:allow"))
-    .join("\n");
+  // ones nobody scans. So a line may opt out, which keeps the rest of the file
+  // scanned and makes every exemption a visible diff line.
+  //
+  // P-1C-4: the pragma is a STANDALONE comment on the line BEFORE the exempted
+  // line, never a same-line substring. The previous form dropped any line that
+  // merely contained the text, so `const k = "<real key>"; // secret-rail:allow`
+  // passed this check -- the exemption was itself a bypass. See stripExemptLines.
+  const text = stripExemptLines(buf.toString("utf8"));
 
   for (const why of [...findPublishedSecretNames(text), ...findCredentialValues(text)]) {
     hits.push({ file, why });

@@ -11,6 +11,37 @@
 // so an exception was never the right way to skip images and fonts.
 export const isBinary = (buf) => buf.subarray(0, 8192).includes(0);
 
+// PER-LINE EXEMPTION -- the `secret-rail:allow` pragma (rewritten in P-1C-4).
+//
+// The pragma is honoured ONLY as a standalone comment line, and it exempts ONLY
+// the single line that follows it. It is never a same-line substring. Before
+// P-1C-4 any line merely CONTAINING the text was dropped from the scan, so a real
+// credential on a line that also said `secret-rail:allow` passed check:env --
+// the exemption mechanism was itself a bypass. Now the pragma has to sit on its
+// own line, which makes every exemption a visible, greppable diff line with a
+// reason after it, and a credential can never hide behind it on the same line.
+//
+// Both the pragma line and the exempted line are replaced by EMPTY lines rather
+// than removed, so line numbers in any later report still match the file.
+export const ALLOW_PRAGMA = /^\s*(?:\/\/|#|\/\*|\*)\s*secret-rail:allow\b/;
+
+export const stripExemptLines = (text) => {
+  const lines = text.split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (ALLOW_PRAGMA.test(lines[i])) {
+      out.push("");          // the pragma line itself
+      if (i + 1 < lines.length) {
+        out.push("");        // exactly one following line
+        i += 1;
+      }
+      continue;
+    }
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+};
+
 const isServiceRoleJwt = (jwt) => {
   const payload = jwt.split(".")[1];
   if (!payload) return false;
@@ -57,8 +88,10 @@ export const findCredentialValues = (text) => {
 // Caught here by NAME, before a build exists for check:bundle to scan.
 //
 // ANY OCCURRENCE, not just an assignment. The first cut required a trailing "=",
-// which caught `VITE_X_SECRET=v` in a .env file but sailed straight past   secret-rail:allow (example in a comment)
-// `import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY` in a .ts file -- source READS   secret-rail:allow (example in a comment)
+// secret-rail:allow  next line quotes a detected NAME as a documentation example
+// which caught `VITE_X_SECRET=v` in a .env file but sailed straight past
+// secret-rail:allow  next line quotes a detected NAME as a documentation example
+// `import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY` in a .ts file -- source READS
 // these names, it does not assign them, so the assignment form missed the very
 // case this rail exists for. Found by planting that exact line before trusting it.
 export const findPublishedSecretNames = (text) => {
