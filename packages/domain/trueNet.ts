@@ -37,7 +37,13 @@
  * BUMP THIS whenever a definition changes in a way that could move a number.
  * Adding a field that cannot change an existing figure does not require a bump.
  */
-export const CALC_VERSION = "3B.1.0";
+/**
+ * 3B.2.0 — SPEC-3B Revision 2 (F-1/F-2/F-3). The RESULT SHAPE changed:
+ * trueEstimatedNet_cents is now derived from reliable revenue only, and three
+ * revenue fields plus two clock fields were added. A 3B.1.0 result and a 3B.2.0
+ * result are not comparable and must never be mixed silently in the ledger.
+ */
+export const CALC_VERSION = "3B.2.0";
 
 export type Verdict = "take" | "negotiate" | "skip";
 
@@ -127,6 +133,16 @@ export interface TrueNetInput {
    * ban is on ESTIMATING, not on counting confirmed.
    */
   readonly detentionTermsKnown?: boolean;
+
+  /**
+   * Rev 2 (F-2): how much of the driver's 11-hour drive clock this load consumes,
+   * in WHOLE MINUTES (same integer convention as `tripMinutes`). Optional and
+   * never defaulted: when absent, the two clock outputs report NEEDS_INPUT and
+   * the verdict is unaffected. 3B does NOT price the clock — inventing an hourly
+   * opportunity cost is the same class of error as estimating detention. 3E
+   * decides its weight, against real data.
+   */
+  readonly clockMinutesConsumed?: number;
 }
 
 export interface TrueNetOk {
@@ -138,7 +154,20 @@ export interface TrueNetOk {
   readonly linehaulRevenue_cents: number;
   readonly passThroughRevenue_cents: number;
   readonly otherAccessorialRevenue_cents: number;
+  /** Still the correct all-in total; 6E reconciles booked-vs-paid against it. NOT the verdict's basis. */
   readonly grossRevenue_cents: number;
+
+  /**
+   * Rev 2 (F-1): "confirmed on a rate con" and "actually paid" are different
+   * things. reliable = linehaul + pass-throughs — the money that arrives if the
+   * load is delivered. at-risk = otherAccessorialRevenue — detention, stop pay,
+   * layover, TONU: confirmed on paper, routinely denied or disputed after the
+   * fact. The net and the verdict see ONLY the reliable figure; at-risk is
+   * reported separately and always labelled; upside is display-only.
+   */
+  readonly reliableRevenue_cents: number;
+  readonly atRiskAccessorialRevenue_cents: number;
+  readonly upsideIfAllAccessorialsPay_cents: number;
 
   readonly loadedMiles: number;
   readonly emptyMiles: number;
@@ -160,6 +189,16 @@ export interface TrueNetOk {
   /** All-in revenue per mile, in THOUSANDTHS of a cent, so the verdict comparison keeps its precision. */
   readonly allInRpm_millicents_per_mile: number;
   readonly netPerAvailableDay_cents: number;
+
+  /**
+   * Rev 2 (F-2): reported outputs only — 3B does not price the clock. Hours in
+   * THOUSANDTHS (integer, like mpg_milli), derived from `clockMinutesConsumed`.
+   * Both are the literal string NEEDS_INPUT when the minutes are unknown: never
+   * a default, never substituted into the verdict. Per-field, not whole-result,
+   * because an unknown clock must not block a load from being priced.
+   */
+  readonly clockHoursConsumed_milli: number | "NEEDS_INPUT";
+  readonly netPerAvailableHour_cents: number | "NEEDS_INPUT";
 
   /** Trip-level revenue needed to reach the carrier's own break-even / target. */
   readonly breakEvenRate_cents: number;
@@ -370,6 +409,16 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     divRound(i.overhead_cents_per_day * i.tripMinutes, 1440),
   );
 
+  /*
+   * ROUNDING RULE — SPEC-3B Rev 2, F-3. Every percentage multiply in the money
+   * path: (a) rounds HALF-UP, AWAY FROM ZERO (divRound, not Math.round, which
+   * rounds half toward +Infinity and would put money through a float); (b) is
+   * computed INDEPENDENTLY from linehaulRevenue_cents — never chained off a
+   * previously rounded subtotal, so two multiplies can never compound a cent.
+   * Asserted by the half-cent golden case. Any future percentage line must
+   * follow this rule and say so here.
+   */
+
   /* Decision 2: a percentage pays on LINEHAUL ONLY. Per-mile pays on every mile. */
   let driverPayRaw: number;
   switch (i.driverPay.type) {
@@ -377,6 +426,7 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
       driverPayRaw = 0;
       break;
     case "percent":
+      // F-3: independent multiply from linehaul, half-up via divRound.
       driverPayRaw = divRound(i.linehaulRevenue_cents * i.driverPay.percent_bp, 10_000);
       break;
     case "perMile":
@@ -385,7 +435,7 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
   }
   const driverPay_cents = guard("driverPay_cents", driverPayRaw);
 
-  /* Decision 4: the haircut is on LINEHAUL ONLY. */
+  /* Decision 4: the haircut is on LINEHAUL ONLY. F-3: independent multiply, half-up. */
   const brokerOrDispatchHaircut_cents = guard(
     "brokerOrDispatchHaircut_cents",
     divRound(i.linehaulRevenue_cents * i.brokerOrDispatchHaircut_bp, 10_000),
@@ -403,9 +453,32 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
       brokerOrDispatchHaircut_cents,
   );
 
+  /*
+   * Rev 2 (F-1): "confirmed" is not "paid". The net a driver acts on is built
+   * from RELIABLE revenue only — linehaul plus pass-throughs. Confirmed
+   * accessorials (detention, stop pay, layover, TONU) are reported as at-risk
+   * and never summed into the headline. This is decision 3 extended one step:
+   * decision 3 banned estimating detention hours; this bans banking confirmed-
+   * but-unsettled dollars. Same principle, same reason. grossRevenue_cents stays
+   * as the true all-in total for 6E's booked-vs-paid reconciliation.
+   */
+  const reliableRevenue_cents = guard(
+    "reliableRevenue_cents",
+    i.linehaulRevenue_cents + i.passThroughRevenue_cents,
+  );
+  const atRiskAccessorialRevenue_cents = guard(
+    "atRiskAccessorialRevenue_cents",
+    i.otherAccessorialRevenue_cents,
+  );
+
   const trueEstimatedNet_cents = guard(
     "trueEstimatedNet_cents",
-    grossRevenue_cents - trueTripCost_cents,
+    reliableRevenue_cents - trueTripCost_cents,
+  );
+  /* Display-only, always labelled, never the headline and never in the verdict. */
+  const upsideIfAllAccessorialsPay_cents = guard(
+    "upsideIfAllAccessorialsPay_cents",
+    trueEstimatedNet_cents + atRiskAccessorialRevenue_cents,
   );
 
   const allInRpm_millicents_per_mile = guard(
@@ -416,6 +489,25 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     "netPerAvailableDay_cents",
     divRound(trueEstimatedNet_cents * 1440, i.tripMinutes),
   );
+
+  /*
+   * Rev 2 (F-2): the clock is REPORTED, not priced. Both outputs are NEEDS_INPUT
+   * when the minutes are unknown — never a default — and neither enters the
+   * verdict. Their weight is 3E's decision, against real data.
+   */
+  const clockKnown =
+    typeof i.clockMinutesConsumed === "number" &&
+    Number.isSafeInteger(i.clockMinutesConsumed) &&
+    i.clockMinutesConsumed > 0;
+  const clockHoursConsumed_milli: number | "NEEDS_INPUT" = clockKnown
+    ? guard("clockHoursConsumed_milli", divRound((i.clockMinutesConsumed as number) * 1000, 60))
+    : "NEEDS_INPUT";
+  const netPerAvailableHour_cents: number | "NEEDS_INPUT" = clockKnown
+    ? guard(
+        "netPerAvailableHour_cents",
+        divRound(trueEstimatedNet_cents * 60, i.clockMinutesConsumed as number),
+      )
+    : "NEEDS_INPUT";
 
   /* Decision 5: thresholds are the carrier's own, scaled to this trip's miles. */
   const breakEvenRate_cents = guard("breakEvenRate_cents", i.breakEven_cents_per_mile * totalMiles);
@@ -429,22 +521,41 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     riskFlags.push("Detention terms/hours unknown — not included in estimated net.");
     missingFacts.push("detentionTermsKnown");
   }
+  if (atRiskAccessorialRevenue_cents > 0) {
+    riskFlags.push(
+      `${atRiskAccessorialRevenue_cents}c of confirmed accessorials is at risk until paid — not in the estimated net.`,
+    );
+  }
+  // The clock is deliberately NOT a missingFact: missingFacts drive the
+  // "net is conservative by construction" confidence line, and an unknown clock
+  // does not touch the net. The per-field NEEDS_INPUT on the two clock outputs
+  // is the only place it is reported.
 
+  /*
+   * Rev 2 (F-1, ruling 4): the verdict evaluates the RELIABLE figure only. A
+   * load must not read "Take" on the strength of detention that may never be
+   * paid, so at-risk dollars are structurally absent from every comparison
+   * below: the net is reliable-minus-costs, and the threshold comparisons use
+   * reliableRevenue_cents, never grossRevenue_cents.
+   */
   const reasons: string[] = [];
   let verdict: Verdict;
   if (trueEstimatedNet_cents <= 0) {
     verdict = "skip";
-    reasons.push("Estimated net is zero or negative after all costs.");
-  } else if (grossRevenue_cents >= recommendedBid_cents) {
+    reasons.push("Estimated net (reliable revenue less all costs) is zero or negative.");
+  } else if (reliableRevenue_cents >= recommendedBid_cents) {
     verdict = "take";
-    reasons.push("Gross revenue meets or beats your target rate for these miles.");
-  } else if (grossRevenue_cents >= breakEvenRate_cents) {
+    reasons.push("Reliable revenue meets or beats your target rate for these miles.");
+  } else if (reliableRevenue_cents >= breakEvenRate_cents) {
     verdict = "negotiate";
-    reasons.push("Gross revenue clears your break-even but falls short of your target.");
+    reasons.push("Reliable revenue clears your break-even but falls short of your target.");
     reasons.push("Counter toward your target; your floor is your break-even.");
   } else {
     verdict = "skip";
-    reasons.push("Gross revenue does not clear your break-even for these miles.");
+    reasons.push("Reliable revenue does not clear your break-even for these miles.");
+  }
+  if (atRiskAccessorialRevenue_cents > 0) {
+    reasons.push("Confirmed accessorials were not counted toward this verdict — they are at risk until paid.");
   }
   if (riskFlags.length > 0) {
     reasons.push("Unknown facts are excluded from the net rather than estimated.");
@@ -467,9 +578,21 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
         ? "confirmed detention counted in otherAccessorialRevenue_cents"
         : "0 cents — detention terms unknown and never estimated (SPEC-3B decision 3)",
     haircutBasis: "percentage of linehaul revenue only (SPEC-3B decision 4)",
+    netBasis:
+      "reliable revenue (linehaul + pass-throughs) less all costs; confirmed accessorials excluded until paid (SPEC-3B Rev 2, F-1)",
+    atRiskBasis:
+      atRiskAccessorialRevenue_cents > 0
+        ? `${atRiskAccessorialRevenue_cents}c confirmed but unsettled — shown separately, never in the net or the verdict`
+        : "no confirmed accessorials on this load",
+    clockBasis: clockKnown
+      ? "clock hours reported only — 3B does not price the driver's clock (SPEC-3B Rev 2, F-2)"
+      : "clock hours unknown — reported as NEEDS_INPUT, never defaulted, not in the verdict (SPEC-3B Rev 2, F-2)",
+    roundingBasis:
+      "half-up, away from zero, on each percentage multiply, each computed independently from linehaul (SPEC-3B Rev 2, F-3)",
     verdictBasis:
       `your own break-even ${i.breakEven_cents_per_mile}c/mi and target ` +
-      `${i.target_cents_per_mile}c/mi, not a global threshold (SPEC-3B decision 5)`,
+      `${i.target_cents_per_mile}c/mi, not a global threshold (SPEC-3B decision 5); ` +
+      "evaluated on reliable revenue and the reliable net only (Rev 2, F-1)",
     confidence:
       missingFacts.length === 0
         ? "All inputs confirmed."
@@ -484,6 +607,9 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     passThroughRevenue_cents: i.passThroughRevenue_cents,
     otherAccessorialRevenue_cents: i.otherAccessorialRevenue_cents,
     grossRevenue_cents,
+    reliableRevenue_cents,
+    atRiskAccessorialRevenue_cents,
+    upsideIfAllAccessorialsPay_cents,
     loadedMiles: i.loadedMiles,
     emptyMiles,
     totalMiles,
@@ -500,6 +626,8 @@ export function calculateTrueNet(input: Partial<TrueNetInput>): TrueNetResult {
     trueEstimatedNet_cents,
     allInRpm_millicents_per_mile,
     netPerAvailableDay_cents,
+    clockHoursConsumed_milli,
+    netPerAvailableHour_cents,
     breakEvenRate_cents,
     floorRate_cents,
     recommendedBid_cents,

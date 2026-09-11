@@ -93,19 +93,28 @@ describe("20 golden loads — to the cent", () => {
     });
   });
 
-  // G02 confirmed detention is real revenue: other 15000 -> gross 245000 >= target 242000.
-  //     net 245000-192275 = 52725 ; 52725*1440/2880 = 26362.5 -> 26363
-  it("G02 confirmed detention counts as revenue — take", () => {
+  // G02 [Rev 2, F-1] confirmed detention is CONFIRMED, not PAID. other 15000 -> gross 245000
+  //     (still the true all-in total for 6E), but reliable = 200000+30000 = 230000 < target
+  //     242000 -> negotiate, NOT take. net = 230000-192275 = 37725 (unchanged from G01);
+  //     at-risk 15000 ; upside 37725+15000 = 52725. Rev 1 said "take" on this load - that was
+  //     the defect: a verdict on the strength of detention that may never be paid.
+  it("G02 confirmed-but-unsettled detention lands in at-risk and does NOT move the verdict — negotiate", () => {
     const r = ok(load({ otherAccessorialRevenue_cents: 15000, detentionTermsKnown: true }));
     expect(r).toMatchObject({
       grossRevenue_cents: 245000,
-      trueTripCost_cents: 192275,
-      trueEstimatedNet_cents: 52725,
-      netPerAvailableDay_cents: 26363,
-      verdict: "take",
+      reliableRevenue_cents: 230000,
+      atRiskAccessorialRevenue_cents: 15000,
+      upsideIfAllAccessorialsPay_cents: 52725,
+      trueEstimatedNet_cents: 37725,
+      netPerAvailableDay_cents: 18863,
+      verdict: "negotiate",
     });
-    expect(r.riskFlags).toEqual([]);
-    expect(r.missingFacts).toEqual([]);
+    // The same load with the detention removed reaches the identical verdict and net.
+    const without = ok(load({ detentionTermsKnown: true }));
+    expect(without.verdict).toBe(r.verdict);
+    expect(without.trueEstimatedNet_cents).toBe(r.trueEstimatedNet_cents);
+    expect(r.riskFlags).toContainEqual(expect.stringMatching(/15000c of confirmed accessorials is at risk/));
+    expect(r.reasons).toContainEqual(expect.stringMatching(/not counted toward this verdict/));
   });
 
   // G03 percent pay is LINEHAUL ONLY: pass-through 30000 -> 100000 raises gross to 300000
@@ -297,8 +306,10 @@ describe("20 golden loads — to the cent", () => {
 
   // G13 awkward numbers: linehaul 111111 -> pay 111111*2500/10000 = 27777.75 -> 27778
   //     gross 111111+22222+3333 = 136666
-  //     cost 74375+5000+16500+4400+2000+40000+27778 = 170053 ; net -33387 -> skip
-  //     rpm 136666000/1100 = 124241.8 -> 124242 ; /day -(33387*1440/2880 = 16693.5 -> 16694)
+  //     cost 74375+5000+16500+4400+2000+40000+27778 = 170053
+  //     [Rev 2] reliable 111111+22222 = 133333 ; net 133333-170053 = -36720 -> skip ; at-risk 3333
+  //     upside -36720+3333 = -33387 (Rev 1's net). rpm stays gross-based: 136666000/1100 -> 124242
+  //     /day -36720*1440/2880 = -18360 exactly
   it("G13 non-round inputs round once, at the end — skip", () => {
     expect(
       ok(
@@ -310,26 +321,32 @@ describe("20 golden loads — to the cent", () => {
       ),
     ).toMatchObject({
       grossRevenue_cents: 136666,
+      reliableRevenue_cents: 133333,
+      atRiskAccessorialRevenue_cents: 3333,
+      upsideIfAllAccessorialsPay_cents: -33387,
       driverPay_cents: 27778,
       trueTripCost_cents: 170053,
-      trueEstimatedNet_cents: -33387,
+      trueEstimatedNet_cents: -36720,
       allInRpm_millicents_per_mile: 124242,
-      netPerAvailableDay_cents: -16694,
+      netPerAvailableDay_cents: -18360,
       verdict: "skip",
     });
   });
 
-  // G14 smaller confirmed detention: other 7500 -> gross 237500, still under target 242000.
-  //     net 237500-192275 = 45225 ; rpm 237500000/1100 = 215909.09 -> 215909
-  //     /day 45225*1440/2880 = 22612.5 -> 22613
+  // G14 smaller confirmed detention: other 7500 -> gross 237500 ; rpm 237500000/1100 -> 215909
+  //     [Rev 2] reliable 230000 < 242000 -> negotiate ; net 230000-192275 = 37725 ; /day 18863
+  //     at-risk 7500 ; upside 45225 (Rev 1's net)
   it("G14 confirmed detention below target — negotiate", () => {
     expect(
       ok(load({ otherAccessorialRevenue_cents: 7500, detentionTermsKnown: true })),
     ).toMatchObject({
       grossRevenue_cents: 237500,
-      trueEstimatedNet_cents: 45225,
+      reliableRevenue_cents: 230000,
+      atRiskAccessorialRevenue_cents: 7500,
+      upsideIfAllAccessorialsPay_cents: 45225,
+      trueEstimatedNet_cents: 37725,
       allInRpm_millicents_per_mile: 215909,
-      netPerAvailableDay_cents: 22613,
+      netPerAvailableDay_cents: 18863,
       verdict: "negotiate",
     });
   });
@@ -596,9 +613,36 @@ describe("properties — hold across 500 generated loads", () => {
     }
   });
 
-  it("net is exactly gross minus trip cost", () => {
+  it("[Rev 2] net is exactly RELIABLE revenue minus trip cost — at-risk dollars never enter it", () => {
     for (const r of cases) {
-      expect(r.trueEstimatedNet_cents).toBe(r.grossRevenue_cents - r.trueTripCost_cents);
+      expect(r.trueEstimatedNet_cents).toBe(r.reliableRevenue_cents - r.trueTripCost_cents);
+    }
+  });
+
+  it("[Rev 2] gross = reliable + at-risk, and upside = net + at-risk — the split is exhaustive", () => {
+    for (const r of cases) {
+      expect(r.reliableRevenue_cents).toBe(r.linehaulRevenue_cents + r.passThroughRevenue_cents);
+      expect(r.atRiskAccessorialRevenue_cents).toBe(r.otherAccessorialRevenue_cents);
+      expect(r.grossRevenue_cents).toBe(r.reliableRevenue_cents + r.atRiskAccessorialRevenue_cents);
+      expect(r.upsideIfAllAccessorialsPay_cents).toBe(r.trueEstimatedNet_cents + r.atRiskAccessorialRevenue_cents);
+    }
+  });
+
+  it("[Rev 2] adding confirmed accessorials never moves the verdict or the net", () => {
+    const next = lcg(20260911);
+    for (let n = 0; n < 500; n += 1) {
+      const base = randomLoad(next);
+      const original = ok(base);
+      const extra = 1 + Math.floor(next() * 50000);
+      const bumped = ok({
+        ...base,
+        otherAccessorialRevenue_cents: base.otherAccessorialRevenue_cents + extra,
+        detentionTermsKnown: true,
+      });
+      expect(bumped.verdict).toBe(original.verdict);
+      expect(bumped.trueEstimatedNet_cents).toBe(original.trueEstimatedNet_cents);
+      expect(bumped.atRiskAccessorialRevenue_cents).toBe(original.atRiskAccessorialRevenue_cents + extra);
+      expect(bumped.grossRevenue_cents).toBe(original.grossRevenue_cents + extra);
     }
   });
 
@@ -620,6 +664,9 @@ describe("properties — hold across 500 generated loads", () => {
   it("every money figure is an integer number of cents", () => {
     const moneyFields = [
       "grossRevenue_cents",
+      "reliableRevenue_cents",
+      "atRiskAccessorialRevenue_cents",
+      "upsideIfAllAccessorialsPay_cents",
       "fuelCost_cents",
       "maintenanceReserve_cents",
       "tireReserve_cents",
@@ -688,6 +735,78 @@ describe("properties — hold across 500 generated loads", () => {
       expect(r.reasons.length).toBeGreaterThan(0);
       expect(r.assumptions.calculatedFrom).toMatch(/total miles/);
       expect(r.assumptions.confidence.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-3B Rev 2, F-3 — the rounding rule, asserted on values that actually land
+// on the half-cent. NOTE on the spec's own example: 12345 x 0.25 = 3086.25, which
+// rounds to 3086 under floor, half-up AND banker's — it cannot distinguish rules.
+// It is kept below as written, and the case that CAN distinguish is added next
+// to it: 12346 x 0.25 = 3086.5 -> 3087 half-up (floor and banker's give 3086).
+// ---------------------------------------------------------------------------
+
+describe("[Rev 2, F-3] rounding — half-up, away from zero, per multiply, never chained", () => {
+  it("the spec's literal case: 12345 x 25% -> 3086 (not 3085)", () => {
+    expect(ok(load({ linehaulRevenue_cents: 12345 })).driverPay_cents).toBe(3086);
+  });
+
+  it("a TRUE half-cent: 12346 x 25% = 3086.5 -> 3087 (floor and banker's would say 3086)", () => {
+    expect(ok(load({ linehaulRevenue_cents: 12346 })).driverPay_cents).toBe(3087);
+  });
+
+  it("the haircut follows the same rule: 12350 x 5% = 617.5 -> 618", () => {
+    expect(
+      ok(load({ linehaulRevenue_cents: 12350, brokerOrDispatchHaircut_bp: 500 })).brokerOrDispatchHaircut_cents,
+    ).toBe(618);
+  });
+
+  it("each multiply is independent from linehaul — the haircut is never taken off a rounded pay subtotal", () => {
+    // 12346: pay 25% -> 3087 (half-up) ; haircut 5% -> 617.3 -> 617, computed from 12346, not from 12346-3087.
+    const r = ok(load({ linehaulRevenue_cents: 12346, brokerOrDispatchHaircut_bp: 500 }));
+    expect(r.driverPay_cents).toBe(3087);
+    expect(r.brokerOrDispatchHaircut_cents).toBe(617);
+    expect(r.assumptions.roundingBasis).toMatch(/half-up/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-3B Rev 2, F-2 — the clock is reported, never priced, never in the verdict
+// ---------------------------------------------------------------------------
+
+describe("[Rev 2, F-2] clock — reported outputs only", () => {
+  it("reports hours in thousandths and net per available hour when the minutes are known", () => {
+    // base net 37725 ; 540 min = 9.000 h ; 37725*60/540 = 4191.67 -> 4192
+    const r = ok(load({ clockMinutesConsumed: 540 }));
+    expect(r.clockHoursConsumed_milli).toBe(9000);
+    expect(r.netPerAvailableHour_cents).toBe(4192);
+    expect(r.assumptions.clockBasis).toMatch(/does not price/);
+  });
+
+  it("returns NEEDS_INPUT for both outputs when the minutes are unknown — never a default", () => {
+    const r = ok(load());
+    expect(r.clockHoursConsumed_milli).toBe("NEEDS_INPUT");
+    expect(r.netPerAvailableHour_cents).toBe("NEEDS_INPUT");
+    expect(r.assumptions.clockBasis).toMatch(/NEEDS_INPUT/);
+    // and it does NOT make the net "conservative" — the clock does not touch the net
+    expect(r.missingFacts).not.toContain("clockMinutesConsumed");
+  });
+
+  it("a zero or non-integer clock is treated as unknown, not as a division", () => {
+    expect(ok(load({ clockMinutesConsumed: 0 })).netPerAvailableHour_cents).toBe("NEEDS_INPUT");
+    expect(ok(load({ clockMinutesConsumed: 1.5 })).netPerAvailableHour_cents).toBe("NEEDS_INPUT");
+  });
+
+  it("the clock never changes the verdict or the net", () => {
+    const next = lcg(20260912);
+    for (let n = 0; n < 200; n += 1) {
+      const base = randomLoad(next);
+      const without = ok(base);
+      const withClock = ok({ ...base, clockMinutesConsumed: 60 + Math.floor(next() * 600) });
+      expect(withClock.verdict).toBe(without.verdict);
+      expect(withClock.trueEstimatedNet_cents).toBe(without.trueEstimatedNet_cents);
+      expect(Number.isSafeInteger(withClock.netPerAvailableHour_cents)).toBe(true);
     }
   });
 });
