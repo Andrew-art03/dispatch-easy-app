@@ -20,7 +20,7 @@ export type EnvClass = "scratch" | "staging" | "prod";
 /** Project refs are identifiers, not secrets — hard-coding them is correct. The keys are the secret (1C). */
 const PROD_REFS = new Set<string>(["efeaylkqgqhobookcqby"]);
 const STAGING_REFS = new Set<string>([]); // filled when staging exists
-const SCRATCH_REFS = new Set<string>([]); // ez-scratch ref goes here when Andrew creates it
+const SCRATCH_REFS = new Set<string>(["krwcnieffeasjczkwrlz"]); // ez-scratch, created 1D
 
 /** Exact hostnames only. Any other raw IP or ref-less supabase host throws (Grok v2). */
 const LOCAL_HOSTS = new Set<string>(["localhost", "127.0.0.1", "kong", "supabase_kong_ez"]);
@@ -207,7 +207,23 @@ export function resolveEnv(source: EnvSource): ResolvedEnv {
   return { envClass, isAgentProcess: kind === "agent", kind };
 }
 
+/**
+ * Every variable whose value can change a resolution. The memo is keyed on
+ * these so that a changed environment invalidates it instead of being masked by
+ * a verdict cached earlier.
+ *
+ * Rule 6: these values include keys. They are held only as references to the
+ * same immutable strings `process.env` already holds — no copy is made, and the
+ * key is only ever compared, never logged, serialised or put in an error.
+ */
+const CACHE_KEY_VARS = [...TARGET_VARS, ...KEY_VARS, "EZ_ENV_CLAIM", "EZ_PROCESS_KIND"] as const;
+
 let cached: ResolvedEnv | undefined;
+let cachedKey: readonly (string | undefined)[] | undefined;
+
+function sameSource(source: EnvSource, key: readonly (string | undefined)[]): boolean {
+  return CACHE_KEY_VARS.every((name, index) => source[name] === key[index]);
+}
 
 /**
  * Memoised resolution against the real environment.
@@ -219,18 +235,76 @@ let cached: ResolvedEnv | undefined;
  * not a boot-time assert, is the enforcement boundary". Resolution is therefore
  * lazy and memoised. The `env.envClass` / `env.isAgentProcess` read syntax is
  * unchanged, so no call site differs from the signed interface.
+ *
+ * The memo is keyed, not unconditional. Caching the FIRST resolution forever was
+ * a kill-switch bypass: anything that resolved during startup — a build-time
+ * evaluation, a healthcheck route, a test bootstrap — before the real target
+ * variables were populated would pin a benign verdict permanently, and every
+ * later `createDb()` would read it and skip the rule-40 trip. Lazy resolution is
+ * correct (a shell export or `.env.local` can supersede the intended value);
+ * caching it forever was the defect. Found by Gemini under adversarial review;
+ * regression test in tests/env-cache-bypass.test.ts.
+ *
+ * A failed resolution is deliberately not cached, so a broken environment throws
+ * on every call rather than once.
  */
+/**
+ * The environment as this process can actually see it (P-1B-2, panel pass).
+ *
+ * Vite exposes `VITE_*` to the browser bundle ONLY through `import.meta.env`,
+ * and `process` is undefined there — so a resolver that read `process.env`
+ * alone could never classify inside the app, which is the one place rule 40's
+ * `kind === "app"` opt-out is meant to run. Under Node/Bun/vitest both objects
+ * usually exist. Merged, with `process.env` winning: a shell export at runtime
+ * supersedes a value inlined at build time, never the other way round.
+ *
+ * Both reads are guarded. `import.meta.env` is a Vite-ism: outside Vite it is
+ * `undefined` and must not throw, and `import.meta` itself is only legal in an
+ * ES module — this file is one. Typed as `EnvSource` (string | undefined
+ * values) rather than Vite's `ImportMetaEnv`, because `packages/config` must
+ * not depend on Vite's ambient types to compile.
+ *
+ * Shared with db.ts so the factory and the classifier can never disagree about
+ * what the environment contains.
+ */
+export function readEnvSource(): EnvSource {
+  return mergeEnvSources(
+    (import.meta as ImportMeta & { env?: unknown }).env,
+    (globalThis as { process?: { env?: unknown } }).process?.env,
+  );
+}
+
+/**
+ * The pure merge behind `readEnvSource()`, exported so the browser case can be
+ * tested honestly: under vitest `import.meta.env` is a proxy over `process.env`,
+ * so "delete `process` and read `import.meta.env`" cannot be simulated in the
+ * test runner — the two are the same object there. Feeding this function a meta
+ * object and `undefined` for process IS the browser, with nothing faked.
+ *
+ * Either input may be anything (undefined, null, a Vite env object, a Proxy);
+ * only plain-object inputs contribute. `proc` wins on collisions.
+ */
+export function mergeEnvSources(meta: unknown, proc: unknown): EnvSource {
+  const fromMeta = typeof meta === "object" && meta !== null ? (meta as EnvSource) : {};
+  const fromProcess = typeof proc === "object" && proc !== null ? (proc as EnvSource) : {};
+  return { ...fromMeta, ...fromProcess };
+}
+
 export function getEnv(): ResolvedEnv {
-  if (!cached) {
-    const source = (globalThis as { process?: { env?: EnvSource } }).process?.env ?? {};
-    cached = resolveEnv(source);
+  const source = readEnvSource();
+  if (cached !== undefined && cachedKey !== undefined && sameSource(source, cachedKey)) {
+    return cached;
   }
+  const key = CACHE_KEY_VARS.map((name) => source[name]);
+  cached = resolveEnv(source);
+  cachedKey = key;
   return cached;
 }
 
 /** Test-only: drop the memoised value so a new source can be resolved. */
 export function resetEnvCache(): void {
   cached = undefined;
+  cachedKey = undefined;
 }
 
 export const env = {

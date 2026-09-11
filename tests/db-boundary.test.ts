@@ -26,6 +26,8 @@ const MANAGED = [
   "SUPABASE_POOLER_URL",
   "SUPABASE_ANON_KEY",
   "VITE_SUPABASE_ANON_KEY",
+  "SUPABASE_PUBLISHABLE_KEY", // P-1B-2
+  "VITE_SUPABASE_PUBLISHABLE_KEY", // P-1B-2
   "SCRATCH_SERVICE_ROLE",
   "SUPABASE_SERVICE_ROLE",
   "EZ_ENV_CLAIM",
@@ -98,5 +100,41 @@ describe("assertNotProd — defence in depth", () => {
   it("is silent against a local target", () => {
     setEnv({ SUPABASE_URL: "http://localhost:54321", EZ_PROCESS_KIND: "app" });
     expect(() => assertNotProd("migration")).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P-1B-2 (panel pass, 2026-09-11): the publishable-key name the app really uses
+// ---------------------------------------------------------------------------
+
+describe("readTarget — accepts the publishable-key names", () => {
+  const SCRATCH_REF = "krwcnieffeasjczkwrlz";
+  // Assembled at runtime: a literal key-shaped string in a tracked file is exactly
+  // what gitleaks' generic-api-key rule fires on (it did, run 34618835730).
+  const FAKE_PUBLISHABLE = ["sb_", "publishable_", "AaBbCcDd11223344"].join("");
+
+  it("builds a user client with only VITE_SUPABASE_PUBLISHABLE_KEY set (the app's tracked env)", () => {
+    setEnv({
+      SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
+      // sb_* is not a JWT: it must be accepted by readTarget and must NOT be
+      // pushed through refOfJwt (it is deliberately absent from KEY_VARS).
+      VITE_SUPABASE_PUBLISHABLE_KEY: FAKE_PUBLISHABLE,
+      EZ_PROCESS_KIND: "app",
+    });
+    expect(() => createDb("user")).not.toThrow();
+  });
+
+  it("builds a user client with SUPABASE_PUBLISHABLE_KEY (server-side name)", () => {
+    setEnv({
+      SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
+      SUPABASE_PUBLISHABLE_KEY: FAKE_PUBLISHABLE,
+      EZ_PROCESS_KIND: "edge",
+    });
+    expect(() => createDb("user")).not.toThrow();
+  });
+
+  it("names both accepted key families when none is configured", () => {
+    setEnv({ SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`, EZ_PROCESS_KIND: "app" });
+    expect(() => createDb("user")).toThrow(/anon\/publishable key/);
   });
 });

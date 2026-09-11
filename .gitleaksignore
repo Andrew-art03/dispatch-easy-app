@@ -23,3 +23,7 @@ d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connecti
 d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connection-string-password:217
 d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connection-string-password:275
 d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:private-key:264
+
+# --- merged from ez-003 (P-1B-2 fixture literals, commit a39f163) ---
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:118
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:127
