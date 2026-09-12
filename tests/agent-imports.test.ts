@@ -70,6 +70,7 @@ describe("the gate goes red on a planted positive", () => {
     dir = mkdtempSync(join(tmpdir(), "ez-agent-imports-vitest-"));
     write(
       "src/lib/supabase.ts",
+      // db-boundary:allow — planted fixture, written to a temp dir and never to this tree.
       `import { createClient } from "@supabase/supabase-js";\nexport const supabase = createClient("u", "k");\n`,
     );
     write("agents/innocent.ts", `export const x = 1;\n`);
@@ -111,6 +112,7 @@ describe("the gate goes red on a planted positive", () => {
     // hardened that check; this is the layer that removes the need to rely on it.
     write(
       "packages/config/db.ts",
+      // db-boundary:allow — planted fixture, written to a temp dir and never to this tree.
       `import { createClient } from "@supabase/supabase-js";\nexport const createDb = () => createClient("u", "k");\n`,
     );
     write("agents/planted.ts", `import { createDb } from "../packages/config/db.ts";\nexport const y = createDb;\n`);

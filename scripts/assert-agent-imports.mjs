@@ -24,6 +24,7 @@
  * anyone edited.
  *
  * WHY NOT A GREP. A grep for the package name misses
+ * db-boundary:allow — the next line QUOTES an import to name the case; it is not one.
  * `export { createClient } from "@supabase/supabase-js"` re-exported one module
  * away, and misses `import { supabase } from "@/lib/supabase"` entirely — the
  * agent never names the package, it names a module that names it. Imports here
@@ -200,6 +201,7 @@ function selfTest() {
       writeFileSync(join(dir, p), body);
     };
 
+    // db-boundary:allow — planted fixture, written to a temp dir and never to this tree.
     write("src/lib/supabase.ts", `import { createClient } from "@supabase/supabase-js";\nexport const supabase = createClient("u", "k");\n`);
     write("src/lib/reexport.ts", `export { supabase } from "./supabase.ts";\n`);
     write("agents/innocent.ts", `import { readFileSync } from "node:fs";\nexport const x = readFileSync;\n`);

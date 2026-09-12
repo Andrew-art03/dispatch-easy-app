@@ -219,3 +219,60 @@ describe("P-1C-2: keys read by the factory are registered with the scrubber by n
     expect(scrub(`auth ${anonKey(SCRATCH_REF) + "nature"}`)).toBe("auth [redacted:JWT]");
   });
 });
+
+/**
+ * 1F — the `db-boundary:allow` pragma, and the proof it is not a bypass.
+ *
+ * These run the SAME case list as `node scripts/assert-db-boundary.mjs
+ * --self-test`, imported rather than retyped, so the script's self-test and
+ * these unit tests cannot drift into covering different halves.
+ *
+ * They live in vitest because `check:db-boundary` is not a CI step yet — it is
+ * RED by design while `src/lib/supabase.ts` exists (F-20 / held item C-3) — and
+ * `bun run test` is. A self-test only reachable through a script nobody runs is
+ * not a gate. Same reasoning that put the import-graph walk into
+ * tests/agent-imports.test.ts rather than waiting on a ci.yml line.
+ */
+describe("db-boundary:allow pragma (1F)", () => {
+  const PACKAGE = "@supabase/supabase-js";
+  const realImport = `import { createClient } from "${PACKAGE}";\n`;
+  const pragma = "// db-boundary:allow — fixture text, not a live import";
+
+  it("behaves exactly as the script's own self-test claims, case for case", async () => {
+    const { selfTestCases, violates } = await import("../scripts/db-boundary-rules.mjs");
+    const cases = selfTestCases();
+    // Guard against an empty or truncated list quietly passing this test.
+    expect(cases.length).toBeGreaterThanOrEqual(9);
+    for (const c of cases) {
+      expect(`${c.label}: ${violates(c.rel, c.text)}`).toBe(`${c.label}: ${c.violates}`);
+    }
+  });
+
+  it("never exempts application code, whatever the comment says", async () => {
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    // This is the limit that makes the pragma narrower than 1C's secret-rail:allow.
+    // A credential SHAPE is a heuristic and earns forgiveness; an import is not.
+    expect(violates("src/sneaky.ts", `${pragma}\n${realImport}`)).toBe(true);
+    expect(violates("packages/config/sneaky.ts", `${pragma}\n${realImport}`)).toBe(true);
+    // And the same text IS forgiven inside the rails, so the test above is
+    // measuring the directory rule and not a broken pragma.
+    expect(violates("scripts/rail.mjs", `${pragma}\n${realImport}`)).toBe(false);
+  });
+
+  it("is never a same-line substring — P-1C-4's lesson, applied before it could bite", async () => {
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    // 1C shipped a pragma that dropped any line CONTAINING the text, so a real
+    // credential could sit on the same line as its own excuse. This one has to
+    // be on its own line, which also makes every exemption a greppable diff line.
+    expect(violates("scripts/rail.mjs", `${realImport.trimEnd()} // db-boundary:allow\n`)).toBe(
+      true,
+    );
+  });
+
+  it("exempts one line only, and still flags a rail that did not ask", async () => {
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    expect(violates("scripts/rail.mjs", `${pragma}\nconst harmless = 1;\n${realImport}`)).toBe(true);
+    expect(violates("scripts/rail.mjs", realImport)).toBe(true);
+    expect(violates("tests/rail.test.ts", realImport)).toBe(true);
+  });
+});

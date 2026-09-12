@@ -18,7 +18,7 @@
     "migrate": "bun scripts/migrate.ts",
     "check:env": "node scripts/assert-no-secret-source.mjs",
     "check:bundle": "node scripts/assert-no-service-role.mjs .output",
-    "check:db-boundary": "node scripts/assert-db-boundary.mjs",
+    "check:db-boundary": "node scripts/assert-db-boundary.mjs --self-test && node scripts/assert-db-boundary.mjs",
     "check:agent-imports": "node scripts/assert-agent-imports.mjs",
     "check:secrets": "gitleaks detect --no-git --config .gitleaks.toml --redact -v",
     "hooks:install": "node scripts/install-hooks.mjs"
