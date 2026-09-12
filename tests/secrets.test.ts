@@ -246,13 +246,27 @@ describe("scrub — registered values", () => {
     expect(out).toBe("connecting to [redacted:DATABASE_URL]");
   });
 
-  it("does not register a value shorter than 8 characters", () => {
-    registerSecretValue("ANTHROPIC_API_KEY", "abc");
+  it("REFUSES a value shorter than 8 characters instead of skipping it (1F/H-5)", () => {
     // Redacting every "abc" in every log line would destroy the logs and teach
-    // people that redaction output is noise. This is only safe because the read
-    // path fails first: readSecret refuses a value this short (1C-1), so a
-    // too-short secret never reaches a skill unregistered. The shape patterns do
-    // NOT cover arbitrary short values — that claim was wrong and is gone.
+    // people that redaction output is noise, so the threshold stays. What
+    // changed at 1F is what happens BELOW it.
+    //
+    // Until 1F this call returned silently and the value was simply absent from
+    // the rail. That was justified by "the read path fails first" — true of
+    // readSecret (1C-1), false of packages/config/db.ts, which calls
+    // registerSecretValue directly from readTarget()/readServiceKey() (P-1C-2).
+    // On that path a short key was handed to its caller and left unregistered
+    // with nobody told. Now it throws on both doors.
+    let message = "";
+    try {
+      registerSecretValue("ANTHROPIC_API_KEY", "abc");
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/ANTHROPIC_API_KEY is 3 characters/);
+    // Rule 6: the error names the variable and the length, never the value.
+    expect(message).not.toContain("abc");
+    // And nothing was registered, so the logs are untouched.
     expect(scrub("abc appears in abcdef")).toBe("abc appears in abcdef");
   });
 

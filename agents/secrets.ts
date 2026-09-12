@@ -170,13 +170,45 @@ const registered = new Map<string, string>();
  *
  * That leaves a gap this threshold must not paper over: a value under the
  * threshold is NOT covered by the pattern rules unless it happens to have a known
- * shape, and most do not. So `readSecret` refuses to hand one out at all (1C-1).
- * The registry skipping it here is only safe because the read path fails first.
+ * shape, and most do not. So `readSecret` refuses to hand one out at all (1C-1)
+ * and `registerSecretValue` refuses to accept one at all (1F/H-5).
+ *
+ * The wording here used to be "the registry skipping it here is only safe
+ * because the read path fails first". That stated a guarantee which held on
+ * exactly one of the two doors into this registry. Nothing is skipped now, so
+ * the guarantee no longer depends on which door a value came through.
  */
 const MIN_REGISTERED_LENGTH = 8;
 
+/**
+ * Put a value on the scrubber's primary rail. Refuses anything too short to
+ * register rather than skipping it.
+ *
+ * 1F/H-5 RESIDUAL — the hole this closes. This function used to skip a
+ * sub-threshold value silently, justified by `readSecret` throwing on one
+ * first (1C-1). True of `readSecret`. False of `packages/config/db.ts`, which
+ * calls this DIRECTLY from `readTarget()` and `readServiceKey()` (P-1C-2) and
+ * never passes through that throw. Two fixes in two tickets, one hole between
+ * them: on the db.ts path a short key was handed to its caller and quietly left
+ * unregistered, so the scrubber could not redact it and nobody was told.
+ *
+ * Refusing, rather than registering regardless — the ticket offered both. A
+ * two-character value on the rail would redact those two characters out of
+ * every log line in the process, which destroys the logs and teaches people
+ * that redaction output is noise. A credential that short is not a real
+ * credential in any format this repo accepts, so failing closed costs nothing
+ * real and the alternative costs the logs.
+ *
+ * Rule 6: the error names the variable and the length, never the value.
+ */
 export function registerSecretValue(name: string, value: string): void {
-  if (value.length >= MIN_REGISTERED_LENGTH) registered.set(value, name);
+  if (value.length < MIN_REGISTERED_LENGTH) {
+    throw new Error(
+      `secret ${name} is ${value.length} characters; the scrubber cannot register values ` +
+        `shorter than ${MIN_REGISTERED_LENGTH}, so it is refused rather than handed out unredactable`,
+    );
+  }
+  registered.set(value, name);
 }
 
 /** Test seam. Nothing under agents/skills may call it; the lint rule does not
