@@ -30,6 +30,10 @@ import { registerSecretValue } from "../../agents/secrets.ts";
  * empty in 1B: nothing legitimately needs service-role yet, so anything asking
  * for one right now is a bug or an attack. 1D adds the migration runner.
  */
+// 1F/H-8: keep this empty. It is not a placeholder waiting to be filled in —
+// the moment it holds a name, `callerModule()` becomes an authorization
+// mechanism, which is the thing H-8 says it may never be. 1D's `PrivilegedGrant`
+// is what replaces it (SPEC 1B v3.1 amendment 4).
 const PRIVILEGED_CALLERS = new Set<string>([]);
 
 export type ClientKind = "user" | "privileged";
@@ -45,6 +49,35 @@ export interface CreateDbOptions {
  * Best-effort caller identification from the stack. Used only to *deny* — a
  * caller that cannot be identified is refused rather than allowed, so a
  * spoofed or missing frame fails closed.
+ *
+ * ---------------------------------------------------------------------------
+ * 1F/H-8: THIS MAY NEVER ESTABLISH AUTHORIZATION. Read before extending it.
+ * ---------------------------------------------------------------------------
+ *
+ * A stack frame is evidence about the LAST hop, and nothing else. It sees the
+ * function that called `createDb`; it cannot see who called that. So the most
+ * it can ever support is "this caller is not on the list, refuse" — never
+ * "this caller is on the list, therefore this request is authorized", because
+ * the request may have originated anywhere and merely passed through.
+ *
+ * Is any allow decision currently resting on it? The ticket asked to say so
+ * rather than fix it quietly, so: **structurally yes, in effect no.**
+ * `PRIVILEGED_CALLERS.has(caller)` IS an allow decision keyed on this
+ * function's output. It is inert only because the set is empty, so the
+ * expression is constant-false and nothing can pass. The day a name is added
+ * to that set, this function starts granting access — and on that day an
+ * unlisted module can reach privileged access by calling a listed one, which
+ * the test in tests/db-boundary.test.ts demonstrates rather than describes.
+ *
+ * That day must not come. SPEC 1B v3.1 amendment 4 is the resolution:
+ * `PRIVILEGED_CALLERS` stays empty and 1D replaces this with an explicit
+ * `PrivilegedGrant` capability minted in exactly one module and REQUIRED by
+ * `createDb("privileged")` — a token the caller must hold and pass, which a
+ * laundering intermediary cannot conjure on behalf of someone who does not.
+ *
+ * Also not a defence: `opts.caller` is an ordinary string argument supplied by
+ * the caller. It exists so tests can be explicit. It is not evidence of
+ * anything, and the deny-only rule is what keeps that from mattering.
  */
 function callerModule(explicit?: string): string {
   if (explicit) return explicit;

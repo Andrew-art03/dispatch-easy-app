@@ -287,3 +287,80 @@ describe("db-boundary:allow pragma (1F)", () => {
     expect(violates("tests/rail.test.ts", realImport)).toBe(true);
   });
 });
+
+/**
+ * TICKET 1F item 6 — finding H-8: `callerModule()` is deny-only and may never
+ * establish authorization.
+ *
+ * The ticket asked for a comment and a test proving an allowed intermediary
+ * cannot launder a disallowed caller. The comment is in db.ts. This is the
+ * demonstration, and it is deliberately written to keep working when someone
+ * eventually replaces the mechanism.
+ */
+describe("1F/H-8 — callerModule is deny-only", () => {
+  const scratchEnv = {
+    SUPABASE_URL: "http://localhost:54321",
+    // A user client needs a key to be built at all; the privileged cases below
+    // never reach the reader, but the "not consulted for a user client" case does.
+    VITE_SUPABASE_PUBLISHABLE_KEY: ["sb_", "publishable_", "AaBbCcDd11223344"].join(""),
+    EZ_PROCESS_KIND: "app",
+  };
+
+  it("no caller string can buy a privileged client, however plausible it looks", () => {
+    setEnv(scratchEnv);
+    // `opts.caller` is an ordinary argument supplied by the caller. If naming
+    // yourself convincingly were worth anything, one of these would work.
+    const attempts = [
+      "packages/config/db.ts",
+      "scripts/migrate.ts", // the module 1D is expected to add to the allowlist
+      "at createDb (packages/config/db.ts:1:1)",
+      "<unknown>",
+      "",
+    ];
+    for (const caller of attempts) {
+      expect(() => createDb("privileged", { caller })).toThrow(KillSwitchTrip);
+    }
+    // And with no caller supplied at all — an unidentifiable caller fails closed
+    // rather than being waved through.
+    expect(() => createDb("privileged")).toThrow(KillSwitchTrip);
+  });
+
+  it("sees only the LAST hop — which is why it can deny and never grant", () => {
+    setEnv(scratchEnv);
+    // The laundering shape, concretely. `disallowedOuter` wants a privileged
+    // client and cannot have one. It calls `intermediary`, which is the frame
+    // createDb actually sees. Today both are refused because the allowlist is
+    // empty; the point of this case is WHICH NAME the refusal reports.
+    function intermediary() {
+      return createDb("privileged");
+    }
+    function disallowedOuter() {
+      return intermediary();
+    }
+
+    let detail = "";
+    try {
+      disallowedOuter();
+    } catch (e) {
+      detail = (e as Error).message;
+    }
+
+    expect(detail).toContain("privilege");
+    // The identification names the intermediary and is blind to the originator.
+    // If `intermediary` were ever added to PRIVILEGED_CALLERS, this is exactly
+    // how `disallowedOuter` would obtain a client it was never granted: it does
+    // not have to spoof anything, it just has to call something that is listed.
+    // That is the whole argument for 1D's PrivilegedGrant (SPEC 1B v3.1 #4).
+    expect(detail).toContain("intermediary");
+    expect(detail).not.toContain("disallowedOuter");
+  });
+
+  it("is not consulted at all for a user client — deny-only means deny-path-only", () => {
+    setEnv(scratchEnv);
+    // A caller string that is refused for `privileged` has no effect on `user`,
+    // which is what "used only to deny" has to mean in practice. If this ever
+    // starts throwing, the mechanism has leaked onto the ordinary path.
+    expect(() => createDb("user", { caller: "src/anything.ts" })).not.toThrow();
+    expect(() => createDb("user")).not.toThrow();
+  });
+});
