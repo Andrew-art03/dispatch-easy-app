@@ -249,3 +249,162 @@ describe("mergeEnvSources / getEnv — the browser bundle, where process is unde
     }
   });
 });
+
+/**
+ * TICKET 1F item 3 — finding H-4: every accepted credential name is validated.
+ *
+ * The state 1B accepted, which these cases now refuse: `db.ts` kept its own
+ * `USER_KEY_NAMES` including the publishable names, while `env.ts` kept a
+ * JWT-only `KEY_VARS`. A name the factory accepted and the classifier had never
+ * heard of is a name no agreement check ever ran on — so 1B's strongest check
+ * did not execute for the key format the front end actually ships.
+ */
+describe("1F/H-4 — one canonical credential set, checked by shape and by capability", () => {
+  const serviceKey = (ref: string) => jwt({ iss: "supabase", role: "service_role", ref });
+  // Split so the literal never appears whole in this file — the secret rail
+  // scans tracked source, and a realistic key shape in a fixture is what it is
+  // built to stop. Same treatment tests/db-boundary.test.ts already uses.
+  const publishable = ["sb_", "publishable_", "AaBbCcDd11223344"].join("");
+  const sbSecret = ["sb_", "secret_", "AaBbCcDd11223344"].join("");
+
+  const scratchUrl = { SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co` };
+  /** No proven kind, so these cases exercise the classifier and not process identity. */
+  const resolve = (source: EnvSource) => resolveEnv({ EZ_PROCESS_KIND: "edge", ...source }, undefined);
+
+  describe("the bad state H-4 named, in the direction that is actually detectable", () => {
+    it("refuses a PROD anon JWT sitting under a publishable name with a SCRATCH url", () => {
+      // This is H-4's headline case. Before 1F the publishable names were unknown
+      // to the classifier, so this config resolved to "scratch" on the strength of
+      // the URL alone and the prod key went entirely unexamined.
+      expect(() =>
+        resolve({ ...scratchUrl, VITE_SUPABASE_PUBLISHABLE_KEY: anonKey(PROD_REF) }),
+      ).toThrow(UnknownEnvironment);
+      expect(() =>
+        resolve({ ...scratchUrl, VITE_SUPABASE_PUBLISHABLE_KEY: anonKey(PROD_REF) }),
+      ).toThrow(/mixed environments/);
+    });
+
+    it("accepts the same legacy JWT when it agrees with the url", () => {
+      // Proving the case above measures DISAGREEMENT and not merely "a JWT here
+      // is banned". A project issued before the new key format ships a legacy
+      // anon JWT under exactly this name; refusing it outright would break a
+      // working deployment to buy nothing.
+      expect(
+        resolve({ ...scratchUrl, VITE_SUPABASE_PUBLISHABLE_KEY: anonKey(SCRATCH_REF) }).envClass,
+      ).toBe("scratch");
+    });
+  });
+
+  describe("shape must match the name", () => {
+    it("refuses an sb_publishable value in a JWT-named variable (SPEC 1B v3.1)", () => {
+      expect(() => resolve({ ...scratchUrl, SUPABASE_ANON_KEY: publishable })).toThrow(
+        /SUPABASE_ANON_KEY holds a sb_publishable value/,
+      );
+    });
+
+    it("refuses an sb_secret value in a JWT-named variable", () => {
+      expect(() => resolve({ ...scratchUrl, SCRATCH_SERVICE_ROLE: sbSecret })).toThrow(
+        /SCRATCH_SERVICE_ROLE holds a sb_secret value/,
+      );
+    });
+
+    it("refuses a value of no recognised format at all", () => {
+      expect(() => resolve({ ...scratchUrl, SUPABASE_ANON_KEY: "not-a-key" })).toThrow(
+        /not a recognised key format/,
+      );
+    });
+  });
+
+  describe("capability — a name is a claim, a value is a fact", () => {
+    it("refuses a service-role JWT under an anon name", () => {
+      // The dangerous direction: an RLS-bypassing key under a VITE_ name is
+      // inlined into the browser bundle by Vite and published to every visitor.
+      expect(() =>
+        resolve({ ...scratchUrl, VITE_SUPABASE_ANON_KEY: serviceKey(SCRATCH_REF) }),
+      ).toThrow(/anon credential name but holds a value with privileged capability/);
+    });
+
+    it("refuses an anon JWT under a service-role name", () => {
+      // The quieter direction, and the one our own fixtures got wrong before H-4:
+      // a read whose whole purpose is establishing privileged access must never
+      // be satisfied by something that cannot bypass RLS.
+      expect(() => resolve({ ...scratchUrl, SCRATCH_SERVICE_ROLE: anonKey(SCRATCH_REF) })).toThrow(
+        /privileged credential name but holds a value with anon capability/,
+      );
+    });
+
+    it("accepts a service-role JWT under a service-role name", () => {
+      expect(resolve({ ...scratchUrl, SCRATCH_SERVICE_ROLE: serviceKey(SCRATCH_REF) }).envClass).toBe(
+        "scratch",
+      );
+    });
+  });
+
+  describe("the opaque formats, and the limit that is not fixable in code", () => {
+    it("classifies the app's real shipping config from the url alone", () => {
+      expect(
+        resolve({ ...scratchUrl, VITE_SUPABASE_PUBLISHABLE_KEY: publishable }).envClass,
+      ).toBe("scratch");
+    });
+
+    it("contributes NO ref, so the url is provably the sole authority", async () => {
+      const { credentialRefs, OPAQUE_KEY_FORMATS, detectKeyFormat } = await import(
+        "../packages/config/env.ts"
+      );
+      // Asserted rather than left in prose: an sb_* key carries no project
+      // identifier of any kind, so the "URL=scratch + publishable key=prod" case
+      // is NOT detectable here or anywhere else. Stated in the source too; if a
+      // later change makes these keys ref-bearing, this test is what tells you
+      // the comment needs rewriting.
+      expect(credentialRefs({ VITE_SUPABASE_PUBLISHABLE_KEY: publishable })).toEqual([]);
+      expect(OPAQUE_KEY_FORMATS).toContain(detectKeyFormat(publishable));
+      expect(OPAQUE_KEY_FORMATS).toContain(detectKeyFormat(sbSecret));
+      // And a JWT is not opaque — it is the half we CAN cross-check.
+      expect(credentialRefs({ SUPABASE_ANON_KEY: anonKey(SCRATCH_REF) })).toEqual([SCRATCH_REF]);
+    });
+  });
+
+  describe("the two lists are now one", () => {
+    it("db.ts's accepted names are derived from the table, by capability", async () => {
+      const { USER_KEY_NAMES, SERVICE_KEY_NAMES, CREDENTIAL_VAR_NAMES } = await import(
+        "../packages/config/env.ts"
+      );
+      // The publishable names are the ones that used to be in db.ts and not here.
+      expect(USER_KEY_NAMES).toContain("VITE_SUPABASE_PUBLISHABLE_KEY");
+      expect(USER_KEY_NAMES).toContain("SUPABASE_PUBLISHABLE_KEY");
+      // No name is both, and together they are the whole table — so a name added
+      // to the table can never be silently unreachable from the factory.
+      expect(USER_KEY_NAMES.filter((n) => SERVICE_KEY_NAMES.includes(n))).toEqual([]);
+      expect([...USER_KEY_NAMES, ...SERVICE_KEY_NAMES].sort()).toEqual(
+        [...CREDENTIAL_VAR_NAMES].sort(),
+      );
+    });
+
+    it("a name outside the table is refused rather than ignored", async () => {
+      const { validateCredential } = await import("../packages/config/env.ts");
+      expect(() => validateCredential("SUPABASE_SOMETHING_ELSE", anonKey(SCRATCH_REF))).toThrow(
+        /not an accepted credential name/,
+      );
+    });
+  });
+
+  it("rule 6: no rejection message ever contains the credential value", () => {
+    const cases: Array<[string, string]> = [
+      ["SUPABASE_ANON_KEY", publishable],
+      ["SCRATCH_SERVICE_ROLE", sbSecret],
+      ["VITE_SUPABASE_ANON_KEY", serviceKey(SCRATCH_REF)],
+      ["SCRATCH_SERVICE_ROLE", anonKey(SCRATCH_REF)],
+      ["SUPABASE_ANON_KEY", "not-a-key"],
+    ];
+    for (const [name, value] of cases) {
+      let message = "";
+      try {
+        resolve({ ...scratchUrl, [name]: value });
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).not.toBe("");
+      expect(message).not.toContain(value);
+    }
+  });
+});

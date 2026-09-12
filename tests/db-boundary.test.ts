@@ -10,13 +10,23 @@ const PROD_REF = "efeaylkqgqhobookcqby";
 function b64url(value: string): string {
   return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
-/** A structurally valid anon key for `ref`, so classification agrees with the URL. */
-const anonKey = (ref: string) =>
+/** A structurally valid JWT for `ref` in `role`, so classification agrees with the URL. */
+const jwtFor = (ref: string, role: "anon" | "service_role") =>
   [
     b64url(JSON.stringify({ alg: "HS256", typ: "JWT" })),
-    b64url(JSON.stringify({ iss: "supabase", role: "anon", ref })),
+    b64url(JSON.stringify({ iss: "supabase", role, ref })),
     "sig",
   ].join(".");
+
+const anonKey = (ref: string) => jwtFor(ref, "anon");
+
+/**
+ * 1F/H-4: a *_SERVICE_ROLE variable must hold a credential that can actually
+ * bypass RLS. Before H-4 these cases put an ANON key in SCRATCH_SERVICE_ROLE and
+ * nothing objected — the name was treated as the capability. It is not; the
+ * value is. The fixture was wrong, not the assertion it was supporting.
+ */
+const serviceKey = (ref: string) => jwtFor(ref, "service_role");
 
 /** Every variable the classifier or the factory reads. Cleared between cases. */
 const MANAGED = [
@@ -197,9 +207,10 @@ describe("P-1C-2: keys read by the factory are registered with the scrubber by n
     const { scrub, resetSecretRegistry } = await import("../agents/secrets.ts");
     const { readServiceKey } = await import("../packages/config/db.ts");
     resetSecretRegistry();
-    // JWT-shaped for the scrubber's pattern rail: anonKey() signs with a 3-char "sig",
+    // JWT-shaped for the scrubber's pattern rail: jwtFor() signs with a 3-char "sig",
     // and the JWT shape needs >= 4 chars per segment, so lengthen the signature.
-    const serviceValue = anonKey(SCRATCH_REF) + "nature";
+    // role: service_role, because 1F/H-4 refuses an anon value under this name.
+    const serviceValue = serviceKey(SCRATCH_REF) + "nature";
     setEnv({
       SUPABASE_URL: `https://${SCRATCH_REF}.supabase.co`,
       SCRATCH_SERVICE_ROLE: serviceValue,

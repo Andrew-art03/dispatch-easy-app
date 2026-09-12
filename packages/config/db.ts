@@ -12,7 +12,13 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { getEnv, readEnvSource } from "./env.ts";
+import {
+  SERVICE_KEY_NAMES,
+  USER_KEY_NAMES,
+  getEnv,
+  readEnvSource,
+  validateCredential,
+} from "./env.ts";
 import { killSwitchTrip } from "./kill-switch.ts";
 // P-1C-2: the keys this factory hands out go onto the scrubber's PRIMARY rail
 // (exact-value registry), not only the shape-pattern backstop. No cycle:
@@ -71,19 +77,17 @@ function firstConfigured(
   return undefined;
 }
 
-// The app's tracked env uses the newer publishable-key name (`sb_publishable_…`),
-// which is what the front end actually ships with. Accepted alongside the legacy
-// anon names. Deliberately NOT added to env.ts KEY_VARS: an `sb_*` key is not a
-// JWT and must never go through `refOfJwt` — the URL-derived ref covers it
-// (SPEC 1B v3.1).
-const USER_KEY_NAMES = [
-  "SUPABASE_ANON_KEY",
-  "VITE_SUPABASE_ANON_KEY",
-  "SUPABASE_PUBLISHABLE_KEY",
-  "VITE_SUPABASE_PUBLISHABLE_KEY",
-] as const;
-
-const SERVICE_KEY_NAMES = ["SCRATCH_SERVICE_ROLE", "SUPABASE_SERVICE_ROLE"] as const;
+// 1F/H-4: the accepted names come from env.ts's one canonical table and are no
+// longer restated here.
+//
+// This file used to keep its own `USER_KEY_NAMES`, which accepted the
+// publishable names while env.ts's JWT-only `KEY_VARS` had never heard of them.
+// A name the factory accepted and the classifier did not know about is, by
+// construction, a name no agreement check ran on — so 1B's strongest check did
+// not execute for the key format the front end actually ships. Two lists were
+// the defect; one list, imported, is the fix. `USER_KEY_NAMES` and
+// `SERVICE_KEY_NAMES` are now derived from each name's declared CAPABILITY,
+// so the split cannot drift from what the values are allowed to do.
 
 function readTarget(): { url: string; key: string } {
   const source = readEnvSource();
@@ -93,6 +97,13 @@ function readTarget(): { url: string; key: string } {
   // Fail with our own message rather than letting supabase-js report a bare
   // "supabaseKey is required" from three frames down.
   if (!found) throw new Error("no Supabase anon/publishable key configured");
+  // 1F/H-4: validate the VALUE against the NAME before handing it out. `getEnv()`
+  // has normally already done this for the whole environment, but this reader is
+  // reachable on its own and a check that only runs on the common path is not a
+  // check. Refuses a JWT in a publishable-named variable (which is how the
+  // agreement check used to be skipped) and a service-role JWT in an anon name
+  // (which is how an RLS-bypassing key reaches a browser).
+  validateCredential(found.name, found.value);
   // P-1C-2: on the primary rail from the moment it is handed out. A publishable
   // key is public by design, but in a log it still fingerprints WHICH project a
   // line came from — the same reason the shape pattern already redacts it.
@@ -110,6 +121,13 @@ function readTarget(): { url: string; key: string } {
 export function readServiceKey(): string {
   const found = firstConfigured(readEnvSource(), SERVICE_KEY_NAMES);
   if (!found) throw new Error("no service-role key configured");
+  // 1F/H-4, the capability half, at the one place it matters most: a name is a
+  // claim, a value is a fact. This function's whole purpose is establishing
+  // privileged access, so it must never be satisfied by a credential that cannot
+  // bypass RLS. An anon JWT sitting in SCRATCH_SERVICE_ROLE — or a publishable
+  // key put there by someone tidying up an .env — is refused here rather than
+  // handed out and discovered later as a permissions mystery.
+  validateCredential(found.name, found.value);
   // P-1C-2: the highest-value secret in the system, registered by name before any
   // caller can log it. Previously it relied on the JWT shape pattern alone.
   registerSecretValue(found.name, found.value);

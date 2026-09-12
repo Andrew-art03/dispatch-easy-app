@@ -103,7 +103,19 @@ function decodeBase64Url(segment: string): string {
  * requires it to agree with the URL-derived ref, so a forged key alone cannot
  * move the classification.
  */
-export function refOfJwt(key: string): string {
+export type JwtRole = "anon" | "service_role";
+
+/**
+ * The structural check, with the role claim kept rather than discarded.
+ *
+ * 1F/H-4 split this out of `refOfJwt` WITHOUT changing a single validation
+ * step — the ticket said to keep the legacy JWT check exactly as-is and not
+ * weaken it, and `refOfJwt` below is still the same function to every caller.
+ * The only difference is that the role is now returned instead of being
+ * validated and thrown away, because H-4's second half ("distinguish by
+ * capability") needs to know whether a key can bypass RLS.
+ */
+function parseJwtClaims(key: string): { ref: string; role: JwtRole } {
   const parts = key.trim().split(".");
   if (parts.length !== 3) throw new UnknownEnvironment("key is not a three-segment JWT");
 
@@ -129,7 +141,11 @@ export function refOfJwt(key: string): string {
   if (typeof ref !== "string" || !REF.test(ref)) {
     throw new UnknownEnvironment("JWT ref claim is missing or malformed");
   }
-  return ref;
+  return { ref, role };
+}
+
+export function refOfJwt(key: string): string {
+  return parseJwtClaims(key).ref;
 }
 
 /** Every target and key must agree on exactly one class. Unknown ref or mixed classes throw. */
@@ -165,12 +181,195 @@ const TARGET_VARS = [
   "SUPABASE_POOLER_URL",
 ] as const;
 
-const KEY_VARS = [
-  "SUPABASE_ANON_KEY",
-  "VITE_SUPABASE_ANON_KEY",
-  "SCRATCH_SERVICE_ROLE",
-  "SUPABASE_SERVICE_ROLE",
+// ---------------------------------------------------------------------------
+// Accepted credential names — ONE canonical set (TICKET 1F item 3, finding H-4)
+// ---------------------------------------------------------------------------
+//
+// THE DEFECT THIS FIXES. There used to be two lists. `KEY_VARS` here was
+// JWT-only, so it was the set the URL-agreement check ran over. `db.ts` kept its
+// own `USER_KEY_NAMES`, which additionally accepted
+// `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` — the names the
+// front end actually ships with. A name the factory accepted but the classifier
+// had never heard of was, by construction, a name no agreement check ran on.
+// 1B's strongest check simply did not execute for the key format we deploy.
+//
+// So: one list, here, and `db.ts` imports its names from it rather than keeping
+// a second opinion. A name that is not on this list is not accepted anywhere.
+//
+// WHAT EACH NAME DECLARES:
+//   formats     — which value shapes are legal under this name. A value of the
+//                 wrong shape is a hard failure, not a coercion.
+//   capability  — what the name is FOR. `privileged` means "may bypass RLS".
+//                 A check whose purpose is establishing privileged access may
+//                 only ever be satisfied by a `privileged` value, which is the
+//                 second half of H-4 in one word.
+//
+// WHY `*_SERVICE_ROLE` IS JWT-ONLY. SPEC 1B v3.1 amendment 1: an `sb_*` value in
+// a JWT-named variable stays a hard failure. When this repo adopts Supabase's
+// `sb_secret_…` keys, that is a NEW NAME added to this table in the same diff
+// that first reads it — never a quietly widened `formats` list on an existing
+// name, because widening a format is invisible in a diff that reviews as config.
+// TODO(1F/H-4): add the `sb_secret_*` name when a real secret key is issued.
+export type KeyFormat = "jwt" | "sb_publishable" | "sb_secret";
+
+/** `privileged` means the credential can bypass RLS. Nothing else does. */
+export type Capability = "anon" | "privileged";
+
+export interface CredentialSpec {
+  readonly name: string;
+  readonly formats: readonly KeyFormat[];
+  readonly capability: Capability;
+}
+
+export const CREDENTIAL_NAMES: readonly CredentialSpec[] = [
+  { name: "SUPABASE_ANON_KEY", formats: ["jwt"], capability: "anon" },
+  { name: "VITE_SUPABASE_ANON_KEY", formats: ["jwt"], capability: "anon" },
+  // Two formats, deliberately, and the asymmetry is the point. SPEC 1B v3.1
+  // amendment 1 makes an `sb_*` value in a JWT-named variable a hard failure and
+  // says nothing about the reverse, because the reverse is a real deployment: a
+  // project issued before the new key format ships a legacy anon JWT, and it is
+  // perfectly valid under the name the front end reads. Refusing it would break
+  // a working config to buy nothing — whereas ACCEPTING it and then ref-checking
+  // it is exactly what was missing. `capability: "anon"` still refuses a
+  // service-role JWT here, which is the dangerous value under this name.
+  { name: "SUPABASE_PUBLISHABLE_KEY", formats: ["sb_publishable", "jwt"], capability: "anon" },
+  {
+    name: "VITE_SUPABASE_PUBLISHABLE_KEY",
+    formats: ["sb_publishable", "jwt"],
+    capability: "anon",
+  },
+  { name: "SCRATCH_SERVICE_ROLE", formats: ["jwt"], capability: "privileged" },
+  { name: "SUPABASE_SERVICE_ROLE", formats: ["jwt"], capability: "privileged" },
 ] as const;
+
+const CREDENTIAL_BY_NAME = new Map(CREDENTIAL_NAMES.map((c) => [c.name, c]));
+
+/** Every accepted credential name, in declaration order. */
+export const CREDENTIAL_VAR_NAMES = CREDENTIAL_NAMES.map((c) => c.name);
+
+/** Names a user (non-privileged) client may be built from. `db.ts` reads this. */
+export const USER_KEY_NAMES = CREDENTIAL_NAMES.filter((c) => c.capability === "anon").map(
+  (c) => c.name,
+);
+
+/** Names a privileged client may be built from. `db.ts` reads this. */
+export const SERVICE_KEY_NAMES = CREDENTIAL_NAMES.filter(
+  (c) => c.capability === "privileged",
+).map((c) => c.name);
+
+/**
+ * Formats that carry NO verifiable project ref, so the URL is the sole authority
+ * for them.
+ *
+ * THE HONEST LIMIT, stated here rather than discovered in review. H-4 as written
+ * asked for "a per-format extractor plus one shared agreement assertion". There
+ * is no extractor to write for these two: Supabase's `sb_publishable_…` and
+ * `sb_secret_…` keys are opaque bearer tokens with no `ref` claim and no
+ * project identifier of any kind — the SDK itself only ever tests their prefix.
+ * SPEC 1B v3.1 amendment 1 says the same thing and is signed.
+ *
+ * Consequence, said plainly: the bad state H-4 named — URL pointing at scratch
+ * while an opaque publishable key belongs to production — is NOT detectable in
+ * code, by this or by anything else, and no amount of extractor writing changes
+ * that. What IS now enforced, and was not before:
+ *
+ *   - a JWT under ANY accepted name is ref-checked against the URL, including
+ *     the publishable-named variables, which is where the check used to be
+ *     skipped entirely;
+ *   - a value whose shape does not match its name is refused;
+ *   - a non-privileged value can never satisfy a privileged name.
+ *
+ * The residual gap is an opaque key pointed at the wrong project. It is
+ * mitigated operationally (one `.env` per environment) and structurally by rule
+ * 40's agent deny, not by this function. Do not let a later reading of this file
+ * conclude the agreement check covers every key we accept — it covers every key
+ * that carries something to agree with.
+ */
+export const OPAQUE_KEY_FORMATS: readonly KeyFormat[] = ["sb_secret", "sb_publishable"];
+
+const SB_PUBLISHABLE_PREFIX = "sb_publishable_";
+const SB_SECRET_PREFIX = "sb_secret_";
+
+/**
+ * Identify a credential's format from its shape alone. Rule 6: the error names
+ * the format problem, never the value — this runs on live keys.
+ */
+export function detectKeyFormat(value: string): KeyFormat {
+  const v = value.trim();
+  if (v.startsWith(SB_PUBLISHABLE_PREFIX)) return "sb_publishable";
+  if (v.startsWith(SB_SECRET_PREFIX)) return "sb_secret";
+  // Cheap structural test only. `parseJwtClaims` does the real validation and
+  // throws with a specific reason; getting here on a three-part non-JWT is the
+  // right outcome, because "looks like a JWT and is not one" must fail loudly
+  // rather than fall through to "unrecognised".
+  if (v.split(".").length === 3) return "jwt";
+  throw new UnknownEnvironment("credential value is not a recognised key format");
+}
+
+/**
+ * What a VALUE is actually capable of, derived from the value, never from the
+ * variable it was found in. That direction is the whole point: the name is a
+ * claim, the value is the fact.
+ */
+function capabilityOfValue(format: KeyFormat, value: string): Capability {
+  if (format === "sb_publishable") return "anon";
+  if (format === "sb_secret") return "privileged";
+  return parseJwtClaims(value).role === "service_role" ? "privileged" : "anon";
+}
+
+/**
+ * Validate one configured credential against the name it was found under, and
+ * return the project ref it claims — `undefined` when its format carries none.
+ *
+ * Three ways this refuses, all of them states 1B accepted before 1F:
+ *   1. an unknown variable name;
+ *   2. a value whose shape is not legal under that name (an `sb_*` value in a
+ *      JWT-named variable, a JWT in a publishable-named one);
+ *   3. a capability mismatch — an anon JWT sitting in `*_SERVICE_ROLE`, so the
+ *      privileged read is satisfied by something that cannot bypass RLS, or a
+ *      service-role JWT sitting in an anon name, which is the version that
+ *      ships an RLS-bypassing key to a browser.
+ */
+export function validateCredential(name: string, value: string): { ref?: string } {
+  const spec = CREDENTIAL_BY_NAME.get(name);
+  if (!spec) throw new UnknownEnvironment(`${name} is not an accepted credential name`);
+
+  const format = detectKeyFormat(value);
+  if (!spec.formats.includes(format)) {
+    throw new UnknownEnvironment(
+      `${name} holds a ${format} value; this name accepts ${spec.formats.join(" or ")} only`,
+    );
+  }
+
+  const capability = capabilityOfValue(format, value);
+  if (capability !== spec.capability) {
+    throw new UnknownEnvironment(
+      `${name} is a ${spec.capability} credential name but holds a value with ` +
+        `${capability} capability`,
+    );
+  }
+
+  if (OPAQUE_KEY_FORMATS.includes(format)) return {};
+  return { ref: parseJwtClaims(value).ref };
+}
+
+/**
+ * Every configured credential, validated, reduced to the refs that can be
+ * cross-checked. This is the "one shared agreement assertion" half of H-4: the
+ * refs it returns go into `classify()` alongside the URL-derived ones, so a key
+ * that disagrees with its URL produces a mixed-environment throw — whatever
+ * variable it was configured under.
+ */
+export function credentialRefs(source: Record<string, string | undefined>): string[] {
+  const refs: string[] = [];
+  for (const spec of CREDENTIAL_NAMES) {
+    const value = source[spec.name];
+    if (!value) continue;
+    const { ref } = validateCredential(spec.name, value);
+    if (ref !== undefined) refs.push(ref);
+  }
+  return refs;
+}
 
 /**
  * `ProcessKind` moved to process-kind.ts at 1F, where the code-level
@@ -201,13 +400,17 @@ export function resolveEnv(
     .filter((v): v is string => Boolean(v))
     .map(refOf);
 
-  const jwtRefs = KEY_VARS.map((k) => source[k])
-    .filter((v): v is string => Boolean(v))
-    .map(refOfJwt);
+  // 1F/H-4: every ACCEPTED credential name, not just the JWT-named four. Each
+  // value is checked against the name it was found under — shape, then
+  // capability — and contributes a ref where its format carries one. The
+  // publishable names used to be accepted by the factory and unknown to this
+  // function, which is precisely how 1B's agreement check came to be skipped for
+  // the key format the app actually ships.
+  const keyRefs = credentialRefs(source);
 
   if (targets.length === 0) throw new UnknownEnvironment("no Supabase target configured");
 
-  const envClass = classify([...targets, ...jwtRefs]);
+  const envClass = classify([...targets, ...keyRefs]);
 
   const claim = source["EZ_ENV_CLAIM"];
   if (claim && claim !== envClass) {
@@ -264,7 +467,17 @@ export function resolveEnv(
  * same immutable strings `process.env` already holds — no copy is made, and the
  * key is only ever compared, never logged, serialised or put in an error.
  */
-const CACHE_KEY_VARS = [...TARGET_VARS, ...KEY_VARS, "EZ_ENV_CLAIM", "EZ_PROCESS_KIND"] as const;
+// 1F/H-4 widened this from the four JWT names to every accepted credential name.
+// The publishable names were missing from the memo key, which was harmless only
+// while they were also missing from the classification. They now change the
+// verdict, so they have to invalidate it — the same cache-bypass shape Gemini
+// found on the env vars, one name over.
+const CACHE_KEY_VARS = [
+  ...TARGET_VARS,
+  ...CREDENTIAL_VAR_NAMES,
+  "EZ_ENV_CLAIM",
+  "EZ_PROCESS_KIND",
+] as const;
 
 let cached: ResolvedEnv | undefined;
 let cachedKey: readonly (string | undefined)[] | undefined;
