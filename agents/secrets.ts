@@ -18,6 +18,7 @@
  * event. A secret read correctly and then printed is still a leaked secret.
  */
 
+import "./agent-process.ts"; // 1F/C-2: declares this process an agent before anything can reach a DB
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
 
 // ---------------------------------------------------------------------------

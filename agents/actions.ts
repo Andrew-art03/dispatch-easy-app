@@ -15,6 +15,7 @@
 // integration in here, until the audit log is backed by the Supabase audit_log table — a local
 // JSONL file (see guardrails.ts) is enough to develop against, not enough to ship real sends on.
 
+import "./agent-process.ts"; // 1F/C-2: declares this process an agent before anything can reach a DB
 import { assertPrerequisite } from "./guardrails";
 import { isKillSwitchEngaged, KillSwitchEngagedError, getKillSwitchState } from "./kill-switch";
 

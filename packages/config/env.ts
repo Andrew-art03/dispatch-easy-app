@@ -15,6 +15,14 @@
  * name the hostname and nothing else.
  */
 
+import { killSwitchTrip } from "./kill-switch.ts";
+import {
+  type KindSource,
+  type ProcessKind,
+  declaredProcessKindSource,
+  provenProcessKind,
+} from "./process-kind.ts";
+
 export type EnvClass = "scratch" | "staging" | "prod";
 
 /** Project refs are identifiers, not secrets — hard-coding them is correct. The keys are the secret (1C). */
@@ -164,12 +172,18 @@ const KEY_VARS = [
   "SUPABASE_SERVICE_ROLE",
 ] as const;
 
-export type ProcessKind = "agent" | "app" | "edge";
+/**
+ * `ProcessKind` moved to process-kind.ts at 1F, where the code-level
+ * declaration lives. Re-exported so no existing import has to move.
+ */
+export type { KindSource, ProcessKind } from "./process-kind.ts";
 
 export interface ResolvedEnv {
   readonly envClass: EnvClass;
   readonly isAgentProcess: boolean;
   readonly kind: ProcessKind;
+  /** Which leg decided `kind`. `env`/`default` mean nothing in code claimed this process. */
+  readonly kindSource: KindSource;
 }
 
 export type EnvSource = Record<string, string | undefined>;
@@ -179,7 +193,10 @@ export type EnvSource = Record<string, string | undefined>;
  * `process.env`, and so a caller can classify a candidate config without
  * adopting it.
  */
-export function resolveEnv(source: EnvSource): ResolvedEnv {
+export function resolveEnv(
+  source: EnvSource,
+  proven: { kind: ProcessKind; source: KindSource } | undefined = provenProcessKind(),
+): ResolvedEnv {
   const targets = TARGET_VARS.map((k) => source[k])
     .filter((v): v is string => Boolean(v))
     .map(refOf);
@@ -199,12 +216,43 @@ export function resolveEnv(source: EnvSource): ResolvedEnv {
 
   // v3 (Grok): unset EZ_PROCESS_KIND defaults to 'agent'. The web app and Edge
   // Functions must OPT OUT explicitly. A forgotten variable fails safe.
-  const kind = source["EZ_PROCESS_KIND"] ?? "agent";
-  if (kind !== "agent" && kind !== "app" && kind !== "edge") {
-    throw new UnknownEnvironment(`EZ_PROCESS_KIND=${kind}`);
+  //
+  // 1F/C-2: that default is only half of it. The variable is ordinary
+  // environment input, so the opt-out it provides was available to the agent
+  // process too — set it and rule 40's check in db.ts never runs. What a
+  // process can be proven to be in code now OUTRANKS the variable, and the
+  // variable is only consulted when there is no proof either way.
+  const claimed = source["EZ_PROCESS_KIND"];
+  if (claimed !== undefined && claimed !== "agent" && claimed !== "app" && claimed !== "edge") {
+    // A typo is a typo, not a bypass attempt. Same error 1B always threw.
+    throw new UnknownEnvironment(`EZ_PROCESS_KIND=${claimed}`);
   }
 
-  return { envClass, isAgentProcess: kind === "agent", kind };
+  if (proven !== undefined) {
+    // The variable may agree, or be absent. It may not overrule.
+    if (claimed !== undefined && claimed !== proven.kind) {
+      const by = proven.source === "declared" ? declaredProcessKindSource() : "the entrypoint path";
+      killSwitchTrip(
+        "process_kind",
+        `EZ_PROCESS_KIND=${claimed} contradicts ${proven.kind}, established by ${by}. ` +
+          `Process identity is not settable by environment (1F/C-2).`,
+      );
+    }
+    return {
+      envClass,
+      isAgentProcess: proven.kind === "agent",
+      kind: proven.kind,
+      kindSource: proven.source,
+    };
+  }
+
+  const kind: ProcessKind = claimed ?? "agent";
+  return {
+    envClass,
+    isAgentProcess: kind === "agent",
+    kind,
+    kindSource: claimed === undefined ? "default" : "env",
+  };
 }
 
 /**
@@ -221,8 +269,24 @@ const CACHE_KEY_VARS = [...TARGET_VARS, ...KEY_VARS, "EZ_ENV_CLAIM", "EZ_PROCESS
 let cached: ResolvedEnv | undefined;
 let cachedKey: readonly (string | undefined)[] | undefined;
 
-function sameSource(source: EnvSource, key: readonly (string | undefined)[]): boolean {
-  return CACHE_KEY_VARS.every((name, index) => source[name] === key[index]);
+/**
+ * 1F/C-2: the proven kind is part of the key too. It does not live in
+ * `source`, so without this a resolution taken before `agents/agent-process.ts`
+ * was imported would be served back afterwards — the same shape of cache bypass
+ * Gemini found on the env vars, one field over.
+ */
+function cacheKeyOf(
+  source: EnvSource,
+  proven: { kind: ProcessKind; source: KindSource } | undefined,
+): readonly (string | undefined)[] {
+  return [...CACHE_KEY_VARS.map((name) => source[name]), proven?.kind, proven?.source];
+}
+
+function sameKey(
+  a: readonly (string | undefined)[],
+  b: readonly (string | undefined)[],
+): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 /**
@@ -292,11 +356,12 @@ export function mergeEnvSources(meta: unknown, proc: unknown): EnvSource {
 
 export function getEnv(): ResolvedEnv {
   const source = readEnvSource();
-  if (cached !== undefined && cachedKey !== undefined && sameSource(source, cachedKey)) {
+  const proven = provenProcessKind();
+  const key = cacheKeyOf(source, proven);
+  if (cached !== undefined && cachedKey !== undefined && sameKey(key, cachedKey)) {
     return cached;
   }
-  const key = CACHE_KEY_VARS.map((name) => source[name]);
-  cached = resolveEnv(source);
+  cached = resolveEnv(source, proven);
   cachedKey = key;
   return cached;
 }

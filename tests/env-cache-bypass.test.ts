@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { assertNotProd, createDb } from "../packages/config/db.ts";
 import { getEnv, resetEnvCache } from "../packages/config/env.ts";
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
+import { resetDeclaredProcessKind } from "../packages/config/process-kind.ts";
 
 /**
  * Regression test for the kill-switch cache bypass (Gemini, adversarial review).
@@ -56,8 +57,20 @@ function mutateEnvNoReset(source: Record<string, string>) {
   Object.assign(process.env, source);
 }
 
+/**
+ * 1F/C-2: every case here models a process that has loaded no agent code, so
+ * `EZ_PROCESS_KIND` is allowed to speak for it. Cleared before each case rather
+ * than only after, because vitest shares module state across test files and a
+ * sibling file that imports `agents/**` declares the process an agent in this
+ * one too. The declaration's own precedence is tested in process-kind.test.ts.
+ */
+beforeEach(() => {
+  resetDeclaredProcessKind();
+});
+
 afterEach(() => {
   for (const k of MANAGED) delete process.env[k];
+  resetDeclaredProcessKind();
   resetEnvCache();
 });
 

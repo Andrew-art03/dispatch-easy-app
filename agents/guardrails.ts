@@ -4,6 +4,7 @@
 // HQ/24-AGENT-INCIDENT-LESSONS.md for why each wall exists — every one traces to a real,
 // documented AI-agent incident.
 
+import "./agent-process.ts"; // 1F/C-2: declares this process an agent before anything can reach a DB
 import { z } from "zod";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";

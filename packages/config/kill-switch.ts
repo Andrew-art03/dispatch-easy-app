@@ -14,6 +14,7 @@ export type KillSwitchReason =
   | "privilege" // a privileged client was built outside the allowlist
   | "secret_scope" // rule 41: a secret was read outside a skill's allowlist
   | "unknown_env" // classification failed closed
+  | "process_kind" // 1F/C-2: the environment contradicted what this process can be proven to be
   | "destructive"; // rule 47: a reset/force/shadow/DROP/rm -rf style operation was attempted (1D migrate wrapper)
 
 export class KillSwitchTrip extends Error {

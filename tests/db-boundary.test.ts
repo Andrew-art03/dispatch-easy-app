@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { assertNotProd, createDb } from "../packages/config/db.ts";
 import { resetEnvCache } from "../packages/config/env.ts";
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
+import { declareProcessKind, resetDeclaredProcessKind } from "../packages/config/process-kind.ts";
 
 const PROD_REF = "efeaylkqgqhobookcqby";
 
@@ -42,11 +43,19 @@ const MANAGED = [
 function setEnv(source: Record<string, string>) {
   for (const k of MANAGED) delete process.env[k];
   Object.assign(process.env, source);
+  // 1F/C-2: these cases model a process that has loaded NO agent code, so
+  // `EZ_PROCESS_KIND` is the only thing that can speak for it — the 1B
+  // behaviour every assertion below was written against. Needed explicitly
+  // because this file dynamically imports agents/secrets.ts further down for
+  // the P-1C-2 scrubber cases, and that declares the process an agent for good.
+  // Process-identity precedence has its own suite in tests/process-kind.test.ts.
+  resetDeclaredProcessKind();
   resetEnvCache();
 }
 
 afterEach(() => {
   for (const k of MANAGED) delete process.env[k];
+  resetDeclaredProcessKind();
   resetEnvCache();
 });
 
@@ -55,6 +64,26 @@ describe("createDb — rule 40 enforcement at the factory", () => {
     setEnv({ SUPABASE_URL: `https://${PROD_REF}.supabase.co` }); // kind unset → agent
     expect(() => createDb("user")).toThrow(KillSwitchTrip);
     expect(() => createDb("user")).toThrow(/prod_target/);
+  });
+
+  /**
+   * TICKET 1F item 1, the acceptance test as written: "EZ_PROCESS_KIND=app
+   * inside an agent process must STILL be refused a prod client."
+   *
+   * Before 1F this case built a client and handed it back. The variable was the
+   * only thing that decided whether the rule-40 check above ran, and the
+   * variable is ordinary environment input — so the control protected against
+   * forgetting and not against setting (ChatGPT panel, finding C-2).
+   */
+  it("refuses a prod client to a declared agent even with EZ_PROCESS_KIND=app set", () => {
+    setEnv({
+      SUPABASE_URL: `https://${PROD_REF}.supabase.co`,
+      SUPABASE_ANON_KEY: anonKey(PROD_REF),
+      EZ_PROCESS_KIND: "app", // the bypass
+    });
+    declareProcessKind("agent", "tests/db-boundary.test.ts"); // what agents/** does at import
+    expect(() => createDb("user")).toThrow(KillSwitchTrip);
+    expect(() => createDb("user")).toThrow(/process_kind/);
   });
 
   it("lets an app process build a user client against prod", () => {
