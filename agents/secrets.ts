@@ -209,6 +209,83 @@ export function registerSecretValue(name: string, value: string): void {
     );
   }
   registered.set(value, name);
+  // 1F/H-6: a sink sees a secret in whatever form the code put it there in, not
+  // in the form it was read in. A connection string inside a URL query, or any
+  // value that has been through JSON.stringify, is the same secret with
+  // different bytes — and exact-substring matching, which is what makes the
+  // primary rail trustworthy, will not find it. So the encodings we can
+  // enumerate are registered as aliases of the same NAME, and a leak in any of
+  // them still redacts as `[redacted:<NAME>]`.
+  //
+  // Only lossless, mechanical encodings belong here. This is not an attempt to
+  // guess every transformation a value could undergo — base64, gzip, a hash and
+  // a split-and-rejoined string are all out of reach, by construction. The
+  // pattern rail and, for streams, the sink's line buffering are what cover the
+  // rest.
+  for (const variant of encodedVariants(value)) {
+    if (variant !== value && variant.length >= MIN_REGISTERED_LENGTH) {
+      registered.set(variant, name);
+    }
+  }
+}
+
+/**
+ * The mechanical re-encodings of a secret that a log line can plausibly contain.
+ *
+ * `encodeURIComponent` matters most for connection strings — `postgres://`,
+ * `:`, `@` and a password's punctuation all change — which is exactly the class
+ * of value whose leak is worst. The JSON form matters whenever a value has been
+ * through `JSON.stringify` on its way to a log, which for structured logging is
+ * most of the time.
+ */
+function encodedVariants(value: string): string[] {
+  const out: string[] = [];
+  try {
+    out.push(encodeURIComponent(value));
+  } catch {
+    // Lone surrogates throw URIError. A value we cannot encode simply has no
+    // URL-encoded form to register; the raw value is still on the rail.
+  }
+  // Strip the quotes JSON.stringify adds, so this matches the value as it
+  // appears INSIDE a serialised object rather than only as a whole token.
+  out.push(JSON.stringify(value).slice(1, -1));
+  return out;
+}
+
+/**
+ * The largest index at or before `cut` where `text` can be split without
+ * orphaning the beginning of a registered secret in the part being cut away.
+ *
+ * 1F/H-7 needs this, and the reason is worth stating because the obvious
+ * alternative is wrong. A stream sink that emits everything except the last N
+ * characters does NOT prevent a split secret from leaking: a secret straddling
+ * the cut has its FIRST characters in the emitted part, so the fragment goes out
+ * unredacted, and no choice of N changes that — the leak is the prefix, not the
+ * remainder. The sink's first draft did exactly this and its own test caught it.
+ *
+ * What is actually computable is this: pull the cut back to before any proper
+ * prefix of a registered value that sits at the end of the emitted region. Then
+ * the emitted text provably contains no partial registered secret, and any
+ * COMPLETE occurrence inside it is redacted by `scrub` as usual. The retained
+ * remainder stays in the buffer until the rest of the value arrives.
+ *
+ * Exact for the registry rail only. A pattern-matched credential — one that was
+ * never registered, so nothing here knows its length — can still be split across
+ * a forced emission. That residual is why `readSecret` / `registerSecretValue`
+ * being the normal path matters, and it is stated at the sink too.
+ */
+export function safeSplitIndex(text: string, cut: number): number {
+  let safe = Math.min(cut, text.length);
+  for (const value of registered.keys()) {
+    const longestProperPrefix = Math.min(value.length - 1, safe);
+    for (let k = longestProperPrefix; k > 0; k -= 1) {
+      if (text.startsWith(value.slice(0, k), safe - k)) {
+        safe -= k;
+        break;
+      }
+    }
+  }
+  return safe;
 }
 
 /** Test seam. Nothing under agents/skills may call it; the lint rule does not
