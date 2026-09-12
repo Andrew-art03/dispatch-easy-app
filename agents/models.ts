@@ -48,7 +48,7 @@ function assertAllowedModel(model: string): string {
   return model;
 }
 
-const usingOllama = !process.env.EZ_FORCE_CLOUD; // Plan A is the default; set EZ_FORCE_CLOUD=1 for Plan C
+const usingOllama = !process.env["EZ_FORCE_CLOUD"]; // Plan A is the default; set EZ_FORCE_CLOUD=1 for Plan C
 
 function laneConfig(lane: Lane): LaneConfig {
   if (usingOllama) {
@@ -59,7 +59,7 @@ function laneConfig(lane: Lane): LaneConfig {
     };
   }
   // Plan B/C — Anthropic. small=Haiku for FAST, strong=Sonnet for MONEY (06-AGENT-REGISTRY §"Which model?").
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) throw new Error("EZ_FORCE_CLOUD is set but ANTHROPIC_API_KEY is missing.");
   return {
     baseURL: "https://api.anthropic.com",

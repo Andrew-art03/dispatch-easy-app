@@ -25,7 +25,12 @@ type Form = { line: number; name: string };
 
 function formsIn(source: string): Form[] {
   const forms: Form[] = [];
-  source.split("\n").forEach((text, index) => {
+  // `\r?\n`, not `\n`: on a Windows checkout (core.autocrlf=true, and this repo
+  // has no .gitattributes until F-20) every line keeps a trailing `\r`. `\r` is
+  // a JS line terminator, so `.` in the regex below cannot match it and `$`
+  // never lands — `forms` came back empty and the suite was red on Windows only.
+  // CI is Linux and never saw it. Pre-existing; found on a fresh clone at 1F.
+  source.split(/\r?\n/).forEach((text, index) => {
     const m = /\/\/ form: (.+)$/.exec(text);
     if (m?.[1]) forms.push({ line: index + 1, name: m[1].trim() });
   });
