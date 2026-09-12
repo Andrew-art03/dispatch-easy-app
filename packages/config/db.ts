@@ -14,6 +14,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { getEnv, readEnvSource } from "./env.ts";
 import { killSwitchTrip } from "./kill-switch.ts";
+// P-1C-2: the keys this factory hands out go onto the scrubber's PRIMARY rail
+// (exact-value registry), not only the shape-pattern backstop. No cycle:
+// agents/secrets.ts imports only ./kill-switch.ts, which imports nothing.
+import { registerSecretValue } from "../../agents/secrets.ts";
 
 /**
  * Modules allowed to build a privileged (service-role) client. Deliberately
@@ -51,31 +55,65 @@ function callerModule(explicit?: string): string {
  * `process.env` directly here would leave the browser bundle unable to find
  * its own URL and key even after `getEnv()` had classified it correctly.
  */
+/**
+ * First configured variable from `names`, returned WITH its name so the value
+ * can be registered under it — a scrubbed log line reads `[redacted:NAME]`,
+ * and "which key leaked" is the first thing an operator needs to know.
+ */
+function firstConfigured(
+  source: Record<string, string | undefined>,
+  names: readonly string[],
+): { name: string; value: string } | undefined {
+  for (const name of names) {
+    const value = source[name];
+    if (value) return { name, value };
+  }
+  return undefined;
+}
+
+// The app's tracked env uses the newer publishable-key name (`sb_publishable_…`),
+// which is what the front end actually ships with. Accepted alongside the legacy
+// anon names. Deliberately NOT added to env.ts KEY_VARS: an `sb_*` key is not a
+// JWT and must never go through `refOfJwt` — the URL-derived ref covers it
+// (SPEC 1B v3.1).
+const USER_KEY_NAMES = [
+  "SUPABASE_ANON_KEY",
+  "VITE_SUPABASE_ANON_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+const SERVICE_KEY_NAMES = ["SCRATCH_SERVICE_ROLE", "SUPABASE_SERVICE_ROLE"] as const;
+
 function readTarget(): { url: string; key: string } {
   const source = readEnvSource();
   const url = source["SUPABASE_URL"] ?? source["VITE_SUPABASE_URL"];
   if (!url) throw new Error("no Supabase URL configured");
-  // The app's tracked env uses the newer publishable-key name (`sb_publishable_…`),
-  // which is what the front end actually ships with. Accepted here alongside the
-  // legacy anon names. Deliberately NOT added to env.ts KEY_VARS: an `sb_*` key is
-  // not a JWT and must never go through `refOfJwt` — the URL-derived ref covers it
-  // (SPEC 1B v3.1).
-  const key =
-    source["SUPABASE_ANON_KEY"] ??
-    source["VITE_SUPABASE_ANON_KEY"] ??
-    source["SUPABASE_PUBLISHABLE_KEY"] ??
-    source["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  const found = firstConfigured(source, USER_KEY_NAMES);
   // Fail with our own message rather than letting supabase-js report a bare
   // "supabaseKey is required" from three frames down.
-  if (!key) throw new Error("no Supabase anon/publishable key configured");
-  return { url, key };
+  if (!found) throw new Error("no Supabase anon/publishable key configured");
+  // P-1C-2: on the primary rail from the moment it is handed out. A publishable
+  // key is public by design, but in a log it still fingerprints WHICH project a
+  // line came from — the same reason the shape pattern already redacts it.
+  registerSecretValue(found.name, found.value);
+  return { url, key: found.value };
 }
 
-function readServiceKey(): string {
-  const source = readEnvSource();
-  const key = source["SCRATCH_SERVICE_ROLE"] ?? source["SUPABASE_SERVICE_ROLE"];
-  if (!key) throw new Error("no service-role key configured");
-  return key;
+/**
+ * Exported for one reason: P-1C-2's regression test. `PRIVILEGED_CALLERS` is
+ * empty in 1B, so `createDb("privileged")` trips the kill switch before it could
+ * ever reach this function — the only way to prove the service key lands on the
+ * scrubber's rail is to call the reader directly. It returns a string, never a
+ * client; the factory guard is untouched.
+ */
+export function readServiceKey(): string {
+  const found = firstConfigured(readEnvSource(), SERVICE_KEY_NAMES);
+  if (!found) throw new Error("no service-role key configured");
+  // P-1C-2: the highest-value secret in the system, registered by name before any
+  // caller can log it. Previously it relied on the JWT shape pattern alone.
+  registerSecretValue(found.name, found.value);
+  return found.value;
 }
 
 /**

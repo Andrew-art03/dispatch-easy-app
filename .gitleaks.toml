@@ -1,0 +1,93 @@
+# gitleaks config — SPEC 1C. CI is the gate; the pre-commit hook is convenience.
+#
+# Run with `--no-git` (see package.json check:secrets) so the scan does not depend
+# on git.exe being reachable — a real constraint on this project's build machine,
+# and the reason Gemini's review flagged the flag.
+#
+# On the FIRST CI run this must also scan full history (`gitleaks detect` without
+# --no-git, on a full-depth checkout). The repo began as a Lovable export; nothing
+# has proven its history clean.
+
+title = "EZ Trucking"
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Project-specific rules. The defaults do not know Supabase's newer key formats.
+# ---------------------------------------------------------------------------
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret key (sb_secret_…) — bypasses RLS"
+regex = '''\bsb_secret_[A-Za-z0-9_-]{8,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase service_role JWT — bypasses RLS entirely"
+# The role claim base64url-encodes to this fragment in the payload segment.
+regex = '''eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*(cm9sZSI6InNlcnZpY2Vfcm9sZ|InJvbGUiOiJzZXJ2aWNlX3JvbGUi)[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+'''
+keywords = ["eyJ"]
+
+[[rules]]
+id = "supabase-connection-string-password"
+description = "Postgres connection string with an inline password"
+# gitleaks is Go/RE2: there is NO lookaround. The original `(?!PASSWORD\b)` made
+# this whole file fail to compile, so gitleaks had never actually run against
+# this repo (1C-4 finding, 2026-09-11). The placeholder exemption now lives in a
+# rule-scoped allowlist below, which is the RE2-compatible way to say "not this".
+regex = '''postgres(?:ql)?://[^:/\s]+:[^@\s]{6,}@'''
+keywords = ["postgres://", "postgresql://"]
+
+  # Singular [rules.allowlist], not [[rules.allowlists]]: CI's gitleaks-action runs
+  # 8.24.3, which predates the plural form and silently ignores it (proven 2026-09-11:
+  # 8.24.3 reported 4 leaks on a path this file exempts; 8.30.1 reported 0). The
+  # singular form is accepted by both.
+  [rules.allowlist]
+  description = "The literal PASSWORD placeholder is documentation, not a credential"
+  regexTarget = "match"
+  regexes = ['''://[^:/\s]+:PASSWORD@''']
+
+[[rules]]
+id = "vite-published-secret-name"
+description = "A VITE_ name containing SERVICE/SECRET/ROLE is published to the browser"
+regex = '''\bVITE_[A-Z0-9_]*(?:SERVICE|SECRET|ROLE)[A-Z0-9_]*\b'''
+keywords = ["VITE_"]
+
+# ---------------------------------------------------------------------------
+# Allowlist
+#
+# Narrow on purpose. There is deliberately NO blanket exemption for tests: a
+# "but not in tests" rule is how real keys end up in test files. Instead
+# tests/secrets.test.ts assembles every credential-shaped fixture at runtime, so
+# the shape exists in memory and never in a tracked file. See the note at the top
+# of that file.
+# ---------------------------------------------------------------------------
+
+# ONE singular [allowlist] table, not [[allowlists]]. CI's gitleaks-action runs
+# gitleaks 8.24.3, which predates the plural form and silently ignored all three
+# blocks that used to live here — proven 2026-09-11 when CI flagged four lines in
+# scripts/credential-shapes.mjs, a file this config has exempted by path since day
+# one. 8.30.1 (local) honoured the plural form and reported nothing, which is how
+# the gap hid. The singular form is accepted by both versions.
+#
+# Path-only on purpose. The old .env.example block also exempted two placeholder
+# REGEXES; in the singular form regexes apply globally, not per path, so exempting
+# the whole placeholder file by path is the narrower choice.
+[allowlist]
+description = "Placeholder file · detector sources · lockfiles and build output"
+paths = [
+  # .env.example holds names and PLACEHOLDER values only — no real values, by rule
+  '''^\.env\.example$''',
+  # Detector source: these files must contain the patterns they detect
+  '''^scripts/credential-shapes\.mjs$''',
+  '''^agents/secrets\.ts$''',
+  '''^\.gitleaks\.toml$''',
+  # Lockfiles and build output carry integrity hashes that look like entropy
+  '''^bun\.lock$''',
+  '''^package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''^\.output/''',
+  '''^dist/''',
+]
