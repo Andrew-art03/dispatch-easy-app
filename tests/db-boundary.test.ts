@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { assertNotProd, createDb } from "../packages/config/db.ts";
 import { resetEnvCache } from "../packages/config/env.ts";
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
-import { declareProcessKind, resetDeclaredProcessKind } from "../packages/config/process-kind.ts";
+import { declareAgentProcess } from "../packages/config/process-kind.ts";
+import { resetDeclaredProcessKind } from "./support/process-kind.ts";
 
 const PROD_REF = "efeaylkqgqhobookcqby";
 
@@ -91,7 +92,7 @@ describe("createDb — rule 40 enforcement at the factory", () => {
       SUPABASE_ANON_KEY: anonKey(PROD_REF),
       EZ_PROCESS_KIND: "app", // the bypass
     });
-    declareProcessKind("agent", "tests/db-boundary.test.ts"); // what agents/** does at import
+    declareAgentProcess("tests/db-boundary.test.ts"); // what agents/** does at import
     expect(() => createDb("user")).toThrow(KillSwitchTrip);
     expect(() => createDb("user")).toThrow(/process_kind/);
   });

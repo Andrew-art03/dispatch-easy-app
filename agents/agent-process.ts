@@ -29,9 +29,9 @@
  * declared every process that used it an agent.
  */
 
-import { declareProcessKind } from "../packages/config/process-kind.ts";
+import { declareAgentProcess } from "../packages/config/process-kind.ts";
 
-declareProcessKind("agent", "agents/agent-process.ts");
+declareAgentProcess("agents/agent-process.ts");
 
 /**
  * Exported only so a linter, a bundler or a future `verbatimModuleSyntax` pass

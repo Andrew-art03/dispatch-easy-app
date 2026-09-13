@@ -22,12 +22,13 @@ import { createDb } from "../packages/config/db.ts";
 import { UnknownEnvironment, getEnv, resetEnvCache, resolveEnv } from "../packages/config/env.ts";
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
 import {
-  declareProcessKind,
+  declareAgentProcess,
   declaredProcessKind,
+  declaredProcessKindSource,
   entrypointProcessKind,
   provenProcessKind,
-  resetDeclaredProcessKind,
 } from "../packages/config/process-kind.ts";
+import { resetDeclaredProcessKind } from "./support/process-kind.ts";
 
 const PROD_REF = "efeaylkqgqhobookcqby";
 const SCRATCH_REF = "krwcnieffeasjczkwrlz";
@@ -74,14 +75,14 @@ afterEach(() => {
 describe("C-2: EZ_PROCESS_KIND cannot turn an agent into an app", () => {
   it("refuses a prod client to a declared agent that claims to be an app", () => {
     setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(() => createDb("user")).toThrow(KillSwitchTrip);
     expect(() => createDb("user")).toThrow(/process_kind/);
   });
 
   it("names both the claim and what overruled it, so the log says what happened", () => {
     setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(() => getEnv()).toThrow(/EZ_PROCESS_KIND=app contradicts agent/);
     expect(() => getEnv()).toThrow(/agents\/agent-process\.ts/);
   });
@@ -92,19 +93,20 @@ describe("C-2: EZ_PROCESS_KIND cannot turn an agent into an app", () => {
     // "probably fine, it's only scratch" is how the unknown-is-safe class of bug
     // gets back in (same reasoning as UnknownEnvironment in 1B).
     setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "app" });
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(() => getEnv()).toThrow(KillSwitchTrip);
   });
 
-  it("is symmetric: a declared app cannot be demoted to an agent by the variable either", () => {
-    setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "agent" });
-    declareProcessKind("app", "src/entry-server.ts");
-    expect(() => getEnv()).toThrow(/process_kind/);
-  });
+  // The "is symmetric: a declared app cannot be demoted to an agent by the
+  // variable either" case that stood here until 1F/N-4 is GONE, and its absence
+  // is the fix. It declared `"app"` from a test and called that correct
+  // behaviour — which is how the panel found that Leg A was not deny-only at
+  // all, with this file blessing it. `app` is no longer declarable; see the
+  // N-4 suite at the bottom of this file.
 
   it("accepts the variable when it agrees with the declaration", () => {
     setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "agent" });
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(getEnv().kind).toBe("agent");
     expect(getEnv().kindSource).toBe("declared");
   });
@@ -141,7 +143,7 @@ describe("unchanged 1B behaviour when no code has claimed the process", () => {
 
   it("a garbage value is rejected before the declaration is consulted", () => {
     setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "aget" });
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(() => getEnv()).toThrow(UnknownEnvironment);
   });
 });
@@ -150,35 +152,34 @@ describe("unchanged 1B behaviour when no code has claimed the process", () => {
 // The declaration itself
 // ---------------------------------------------------------------------------
 
-describe("declareProcessKind", () => {
+describe("declareAgentProcess", () => {
   it("starts undeclared, so nothing is claimed by accident", () => {
     expect(declaredProcessKind()).toBeUndefined();
   });
 
   it("records the first declaration", () => {
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(declaredProcessKind()).toBe("agent");
     expect(provenProcessKind()).toEqual({ kind: "agent", source: "declared" });
   });
 
-  it("is idempotent for the same kind — several agent modules may import it", () => {
-    declareProcessKind("agent", "agents/guardrails.ts");
-    expect(() => declareProcessKind("agent", "agents/actions.ts")).not.toThrow();
+  it("is idempotent — several agent modules import agent-process.ts", () => {
+    declareAgentProcess("agents/guardrails.ts");
+    expect(() => declareAgentProcess("agents/actions.ts")).not.toThrow();
     expect(declaredProcessKind()).toBe("agent");
   });
 
-  it("trips on a contradicting redeclaration rather than taking the last one", () => {
-    declareProcessKind("agent", "agents/agent-process.ts");
-    expect(() => declareProcessKind("app", "somewhere-else.ts")).toThrow(KillSwitchTrip);
-    expect(() => declareProcessKind("app", "somewhere-else.ts")).toThrow(/process_kind/);
+  it("keeps the ORIGINAL declarer, so a message names what established identity", () => {
+    declareAgentProcess("agents/agent-process.ts");
+    declareAgentProcess("agents/actions.ts");
+    expect(declaredProcessKindSource()).toBe("agents/agent-process.ts");
   });
 
-  it("keeps the ORIGINAL declarer in the message, not the challenger", () => {
-    declareProcessKind("agent", "agents/agent-process.ts");
-    expect(() => declareProcessKind("app", "attacker.ts")).toThrow(
-      /already declared "agent" by agents\/agent-process\.ts/,
-    );
-  });
+  // 1F/N-4: the "trips on a contradicting redeclaration" pair that stood here
+  // is gone with the parameter that made a contradiction expressible. A guard
+  // against an impossible state is a guard nobody maintains correctly, and the
+  // two cases were the only thing making `declareProcessKind("app", …)` look
+  // like a supported call.
 });
 
 // ---------------------------------------------------------------------------
@@ -234,7 +235,7 @@ describe("entrypointProcessKind — deny-only inference from argv", () => {
 
   it("yields to an explicit declaration, which is the more specific statement", () => {
     process.argv = [realArgv[0] ?? "node", "/home/ez/app/agents/run.ts"];
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(provenProcessKind()).toEqual({ kind: "agent", source: "declared" });
   });
 });
@@ -251,7 +252,7 @@ describe("getEnv memoisation must not outlive the declaration either", () => {
 
     // An agent module is now imported. Nothing calls resetEnvCache() — production
     // code has no reason to, so a test that reset here could not see the bug.
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
 
     expect(() => getEnv()).toThrow(KillSwitchTrip);
   });
@@ -259,7 +260,7 @@ describe("getEnv memoisation must not outlive the declaration either", () => {
   it("re-resolves when a declaration lands and the variable was never set", () => {
     setEnv({ SUPABASE_URL: SCRATCH_URL });
     expect(getEnv().kindSource).toBe("default");
-    declareProcessKind("agent", "agents/agent-process.ts");
+    declareAgentProcess("agents/agent-process.ts");
     expect(getEnv().kindSource).toBe("declared");
   });
 });
@@ -357,5 +358,98 @@ describe("N-1: importing the client factory is not a declaration", () => {
     });
     reset();
     expect(() => createDb("user")).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// N-4 — "both legs are DENY-ONLY" was a comment, not a fact
+// ---------------------------------------------------------------------------
+
+/**
+ * process-kind.ts:29 claimed "Both legs are DENY-ONLY: they can assert `agent`,
+ * never `app` or `edge`". Leg A accepted `"app"` and this very file blessed it.
+ *
+ * Worse than a stale comment: a declaration SHADOWED Leg B rather than being
+ * reconciled with it, so `bun agents/run-triage.ts` resolved `agent` under 1B
+ * and under Leg B, but `app` if anything in its import graph declared `"app"`.
+ * That is a path where the new code is LESS restrictive than the env-var-only
+ * code it replaced, and it is reached through code rather than the environment —
+ * which is the one thing C-2's whole design was supposed to rule out.
+ */
+describe("N-4: the declaration leg can only ever assert agent", () => {
+  it("exports no way to declare a kind — declareAgentProcess is the whole API", async () => {
+    const mod = await import("../packages/config/process-kind.ts");
+    expect(Object.keys(mod)).not.toContain("declareProcessKind");
+    expect(typeof (mod as Record<string, unknown>)["declareAgentProcess"]).toBe("function");
+  });
+
+  it("does not ship the test reset from production source", async () => {
+    // resetDeclaredProcessKind() un-declares an agent process. In production
+    // source it is a bypass with a friendly name: call it and rule 40's check
+    // stops running. It lives in tests/support/ now.
+    const mod = await import("../packages/config/process-kind.ts");
+    expect(Object.keys(mod)).not.toContain("resetDeclaredProcessKind");
+  });
+
+  it("reports agent when EITHER leg says so, rather than short-circuiting on one", () => {
+    // Leg B alone.
+    const realArgv = process.argv;
+    try {
+      process.argv = [realArgv[0] ?? "node", "/home/ez/app/agents/run-triage.ts"];
+      expect(provenProcessKind()).toEqual({ kind: "agent", source: "entrypoint" });
+
+      // Both legs. The declaration is the more specific statement, so it names
+      // the source — but it can no longer CHANGE the answer, which is the part
+      // that was wrong.
+      declareAgentProcess("agents/agent-process.ts");
+      expect(provenProcessKind()).toEqual({ kind: "agent", source: "declared" });
+    } finally {
+      process.argv = realArgv;
+    }
+  });
+
+  it("an agent entrypoint stays an agent whatever else the graph declares", () => {
+    const realArgv = process.argv;
+    try {
+      process.argv = [realArgv[0] ?? "node", "/home/ez/app/agents/run-triage.ts"];
+      declareAgentProcess("some-module.ts");
+      expect(provenProcessKind()?.kind).toBe("agent");
+    } finally {
+      process.argv = realArgv;
+    }
+  });
+});
+
+describe("N-4: the entrypoint segment test is case-insensitive", () => {
+  const realArgv = process.argv;
+  afterEach(() => {
+    process.argv = realArgv;
+  });
+
+  const asEntry = (path: string) => {
+    process.argv = [realArgv[0] ?? "node", path];
+    return entrypointProcessKind();
+  };
+
+  it("claims agent for a capitalised Agents directory on Windows", () => {
+    // This repo lives on Windows and NTFS is case-insensitive: a launcher, a
+    // shortcut or a hand-typed path can spell it `Agents\` and reach exactly the
+    // same files. `/(^|\/)agents\//` missed it, so the deny leg silently did not
+    // apply to the process it was written for.
+    const winPath = ["C:", "Users", "AAndew", "AutoDispatch", "ez-app", "Agents", "run-triage.ts"]
+      .join(String.fromCharCode(92)); // a real backslash, not an escape sequence
+    expect(asEntry(winPath)).toBe("agent");
+  });
+
+  it("claims agent for AGENTS/ too", () => {
+    expect(asEntry("/home/ez/app/AGENTS/run.ts")).toBe("agent");
+  });
+
+  it("still matches a segment, not a substring, in any case", () => {
+    // A false positive here is only ever MORE restrictive, but a rule nobody can
+    // predict is worse than a rule that is slightly narrow — so the segment
+    // requirement survives the case change.
+    expect(asEntry("/home/ez/app/src/Reagents/index.ts")).toBeUndefined();
+    expect(asEntry("/home/ez/MyAgents/index.ts")).toBeUndefined();
   });
 });

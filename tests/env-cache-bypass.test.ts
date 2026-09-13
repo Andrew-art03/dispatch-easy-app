@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { assertNotProd, createDb } from "../packages/config/db.ts";
 import { getEnv, resetEnvCache } from "../packages/config/env.ts";
 import { KillSwitchTrip } from "../packages/config/kill-switch.ts";
-import { resetDeclaredProcessKind } from "../packages/config/process-kind.ts";
+import { resetDeclaredProcessKind } from "./support/process-kind.ts";
 
 /**
  * Regression test for the kill-switch cache bypass (Gemini, adversarial review).
