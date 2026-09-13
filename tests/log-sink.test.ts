@@ -441,3 +441,107 @@ describe("1F/N-3 — multi-line credential shapes survive the sink", () => {
     expect(joined).toContain("[redacted:PRIVATE_KEY]");
   });
 });
+
+// ---------------------------------------------------------------------------
+// 1F/N-7 — `cut === 0` starves the cap
+// ---------------------------------------------------------------------------
+
+/**
+ * `safeSplitIndex()` can legitimately return 0: when the whole buffer is a chain
+ * of registered-value prefixes, there is no index at which anything can be cut
+ * away. The sink's cap then did `if (cut > 0)` and nothing else — so the
+ * pressure valve did nothing, and `buffer` grew past `maxBuffer` with no bound
+ * in code at all. A log sink that can be made to exhaust memory is a log sink
+ * that can take down whatever it was added to protect.
+ *
+ * What IS true when `cut === 0` is the thing that makes this fixable: every
+ * pull-back asserts that the region it skipped over equals the first k
+ * characters of a registered value, so a chain reaching 0 means every character
+ * in the buffer belongs to a partial registered secret. There is no legitimate
+ * output in there to lose — emitting one redaction marker for the lot is exact.
+ *
+ * And then the sink must STAY quiet until the run ends, which is the same hole
+ * the N-3 cap fix left behind: redacting the head of a credential and then
+ * emitting the tail of it a moment later is not a fix, it is a slower leak.
+ */
+describe("1F/N-7 — the cap must relieve pressure even when nothing can be cut", () => {
+  // A registered value of no PATTERN shape, so these cases exercise the REGISTRY
+  // rail and nothing else.
+  const LONG = "ez-fixture-" + "QwErTyUiOp".repeat(60);
+  // Its first 64 characters. Writing THIS repeatedly is what drives the cut to
+  // zero and keeps it there: every 64-character window at the end of the buffer
+  // is a proper prefix of LONG, so the fixpoint pulls `safe` back 64 at a time
+  // all the way to 0 — and the value never completes, so `scrub()` never has a
+  // whole secret to match either.
+  const HEAD = LONG.slice(0, 64);
+
+  it("emits something under pressure instead of buffering without bound", () => {
+    registerSecretValue("ANTHROPIC_API_KEY", LONG);
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 64 });
+
+    for (let i = 0; i < 10; i += 1) sink.write(HEAD); // ten times the cap
+
+    const joined = out.join("");
+    expect(out.length).toBeGreaterThan(0); // `if (cut > 0)` and nothing else
+    expect(joined).toContain("[redacted:");
+    expect(joined).not.toContain(HEAD);
+  });
+
+  it("does not dump the held fragments at flush() either", () => {
+    registerSecretValue("ANTHROPIC_API_KEY", LONG);
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 64 });
+
+    for (let i = 0; i < 10; i += 1) sink.write(HEAD);
+    sink.flush();
+
+    // Before the fix the buffer simply grew, and flush() handed all 640
+    // characters of partial credential to `scrub()`, which matches a whole
+    // registered value and not a prefix of one — so it went out in cleartext.
+    expect(out.join("")).not.toContain(HEAD);
+  });
+
+  it("resumes normally at the next line boundary", () => {
+    // Suppression is bounded too. A sink that goes quiet for the rest of the
+    // stream after one pathological run is its own kind of outage.
+    registerSecretValue("ANTHROPIC_API_KEY", LONG);
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 64 });
+
+    for (let i = 0; i < 10; i += 1) sink.write(HEAD);
+    sink.write("still-inside-the-run" + "\n");
+    sink.write("ordinary line" + "\n");
+
+    const joined = out.join("");
+    expect(joined).toContain("ordinary line" + "\n");
+    expect(joined).not.toContain("still-inside-the-run");
+  });
+
+  it("N-3's cap fix does not leak the rest of the block either", () => {
+    // Same defect, the other forced redaction. The cap emitted
+    // [redacted:PRIVATE_KEY] for the open block and cleared the buffer — and
+    // then the base64 body that arrived next had no opener in front of it any
+    // more, so it went out as an ordinary line. Redacting the head of a
+    // credential and emitting its tail a moment later is a slower leak, not a
+    // fix.
+    const BEGIN = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
+    const END = ["-----END", "PRIVATE KEY-----"].join(" ");
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 64 });
+
+    sink.write(BEGIN + "\n");
+    sink.write("A".repeat(400) + "\n"); // forces the cap while the block is open
+    sink.write("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcw" + "\n"); // the rest of the body
+    sink.write(END + "\n");
+    sink.write("after the key" + "\n");
+    sink.flush();
+
+    const joined = out.join("");
+    expect(joined).toContain("[redacted:PRIVATE_KEY]");
+    expect(joined).not.toContain("AAAA");
+    expect(joined).not.toContain("MIIEvQIBADAN");
+    // and the stream is usable again once the block has closed
+    expect(joined).toContain("after the key" + "\n");
+  });
+});

@@ -177,6 +177,7 @@ function readEnv(name: string): string | undefined {
 export type { MultilineRegion } from "../packages/config/scrubber.ts";
 export {
   MIN_REGISTERED_LENGTH,
+  closingMarkerFor,
   firstMultilineRegion,
   registerSecretValue,
   resetSecretRegistry,

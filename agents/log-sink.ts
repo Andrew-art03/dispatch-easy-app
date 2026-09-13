@@ -32,7 +32,12 @@
  * does not get a single point of failure.
  */
 
-import { firstMultilineRegion, safeSplitIndex, scrub } from "./secrets.ts";
+import {
+  closingMarkerFor,
+  firstMultilineRegion,
+  safeSplitIndex,
+  scrub,
+} from "./secrets.ts";
 
 // ---------------------------------------------------------------------------
 // H-6 — formatting, then scrubbing
@@ -151,6 +156,27 @@ const DEFAULT_MAX_BUFFER = 1 << 20; // 1 MiB
  * region and drops it instead. Text after a BEGIN marker with no END inside a
  * whole buffer is either key material or something imitating it, and neither is
  * output worth protecting.
+ *
+ * `cut === 0`, AND WHAT HAPPENS AFTER A FORCED REDACTION (1F/N-7).
+ * `safeSplitIndex()` legitimately returns 0 when the whole buffer is a chain of
+ * registered-value prefixes — there is then no index at which anything can be
+ * cut away. The cap did `if (cut > 0)` and nothing else, so the pressure valve
+ * did nothing and the buffer grew past `maxBuffer` with no bound in code at
+ * all. A log sink that can be made to exhaust memory takes down the thing it
+ * was added to protect.
+ *
+ * It is fixable because of what `cut === 0` proves: every pull-back asserts
+ * that the region it skipped equals the first k characters of a registered
+ * value, so a chain reaching 0 means every character in the buffer belongs to a
+ * partial registered secret. There is no legitimate output in there to lose,
+ * and one redaction marker for the lot is exact.
+ *
+ * The sink then SUPPRESSES until the run ends — until the closing marker for a
+ * multi-line block, until the next newline otherwise. Without that, redacting
+ * the head of a credential and emitting its tail on the next write is a slower
+ * leak rather than a fix, and the N-3 cap path had exactly that shape.
+ * Suppression is itself bounded: a sink that goes quiet for the rest of the
+ * stream is its own kind of outage.
  */
 export function createScrubbedSink(
   emit: (text: string) => void,
@@ -194,11 +220,54 @@ export function createScrubbedSink(
   };
 
   /**
+   * After a forced redaction the run it covered is not over — the rest of the
+   * credential is still coming. This is what the sink waits for before it
+   * speaks again: the closing marker of the block it redacted, or a newline.
+   * `null` means not suppressing.
+   */
+  let suppressUntil: RegExp | null = null;
+
+  /**
+   * Discard input belonging to an already-redacted run. Returns true while the
+   * run is still open, so the caller stops there.
+   *
+   * A newline terminator is emitted, so downstream line structure survives a
+   * suppressed run. A block-closing marker is not: it is part of the credential
+   * that was redacted.
+   */
+  const consumeSuppressed = (): boolean => {
+    if (suppressUntil === null) return false;
+    const isNewlineTerminator = suppressUntil.source === "\\n";
+    const match = suppressUntil.exec(buffer);
+    if (match === null) {
+      buffer = ""; // all of it belongs to the redacted run
+      return true;
+    }
+    const end = match.index + match[0].length;
+    if (isNewlineTerminator) {
+      emit("\n");
+      buffer = buffer.slice(end);
+      suppressUntil = null;
+      return false;
+    }
+    // The closer arrived; drop through the end of the line it sits on, since a
+    // partial END line is still inside the credential.
+    const newlineAfter = buffer.indexOf("\n", end);
+    if (newlineAfter === -1) {
+      buffer = "";
+      return true;
+    }
+    buffer = buffer.slice(newlineAfter + 1);
+    suppressUntil = null;
+    return false;
+  };
+
+  /**
    * Emit whatever remains, without ever handing out a fragment of a credential.
    * Shared by the cap and by `flush()`, because the two face the same question:
    * the buffer has to shrink and the stream may not be finished with it.
    */
-  const drainUnterminated = () => {
+  const drainUnterminated = (): boolean => {
     const region = firstMultilineRegion(buffer);
 
     // An open block is the one pattern-matched shape whose start is known, so
@@ -209,6 +278,8 @@ export function createScrubbedSink(
       if (region.start > 0) emit(scrub(buffer.slice(0, region.start)));
       emit(`[redacted:${region.label}]`);
       buffer = "";
+      // 1F/N-7: the block is not finished, only unprintable from here on.
+      suppressUntil = closingMarkerFor(region.label);
       return true;
     }
     return false;
@@ -217,6 +288,7 @@ export function createScrubbedSink(
   return {
     write(chunk) {
       buffer += typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
+      if (consumeSuppressed()) return;
       emitCompleteLines();
 
       if (buffer.length > maxBuffer) {
@@ -228,11 +300,21 @@ export function createScrubbedSink(
         if (cut > 0) {
           emit(scrub(buffer.slice(0, cut)));
           buffer = buffer.slice(cut);
+          return;
         }
+        // 1F/N-7: cut === 0. The whole buffer is a chain of registered-value
+        // prefixes, so none of it is ordinary output — and `if (cut > 0)`
+        // alone left it to grow without bound. One marker covers the lot, and
+        // the rest of the run is suppressed so the tail of the same secret
+        // cannot follow it out.
+        emit("[redacted:PARTIAL_SECRET]");
+        buffer = "";
+        suppressUntil = /\n/;
       }
     },
 
     flush() {
+      if (consumeSuppressed()) return;
       if (buffer === "") return;
       // End of stream is not a reason to hand over key material: an
       // unterminated BEGIN block is still the head of a private key.

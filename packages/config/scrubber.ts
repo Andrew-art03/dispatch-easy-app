@@ -315,6 +315,27 @@ export function firstMultilineRegion(text: string): MultilineRegion | null {
 }
 
 /**
+ * The closing marker of a multi-line shape, by label (1F/N-7).
+ *
+ * The sink needs it after a FORCED redaction: having emitted
+ * `[redacted:PRIVATE_KEY]` for a block it could not hold any longer, it has to
+ * know what the end of that block looks like, or the base64 body arriving on
+ * the next write has no opener in front of it any more and goes out as an
+ * ordinary line. Redacting the head of a credential and emitting its tail is a
+ * slower leak, not a fix.
+ *
+ * A fresh RegExp each call: a `lastIndex` left behind by one caller on a shared
+ * global regex is the classic way the next caller silently misses a match.
+ */
+export function closingMarkerFor(label: string): RegExp {
+  const shape = MULTILINE_SHAPES.find((s) => s.label === label);
+  // Unknown label: fall back to the newline terminator, which is the SHORTER
+  // suppression. Failing closed here would mean going quiet to end of stream.
+  if (shape === undefined) return /\n/;
+  return new RegExp(shape.close.source, shape.close.flags);
+}
+
+/**
  * Redact secrets from a string.
  *
  * Registered values are replaced by exact substring match — split/join, not a
