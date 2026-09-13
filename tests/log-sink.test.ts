@@ -345,3 +345,99 @@ describe("1F/N-2 — pulling the cut back for one secret must re-examine the res
     expect(safeSplitIndex(buffer, buffer.length)).toBeGreaterThanOrEqual(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 1F/N-3 — a line is not a safe unit for every credential shape
+// ---------------------------------------------------------------------------
+
+/**
+ * The sink's stated premise was: "a credential does not contain a newline, so a
+ * complete line contains whole credentials or none, and `scrub()` on that line
+ * is exact." That premise is false for the FIRST entry in the scrubber's own
+ * pattern list. A PEM block is three parts separated by newlines, so line
+ * buffering hands `scrub()` the BEGIN line on its own — where nothing matches —
+ * then the body, then the END, and all three go out in cleartext.
+ *
+ * `scrub()` on the unsplit text returns `[redacted:PRIVATE_KEY]`, so this is a
+ * REGRESSION against 1C rather than a gap 1C shared. And the sink is the rail
+ * that child-process stdout actually goes through, which is exactly where PEMs
+ * and service-account JSON turn up.
+ */
+describe("1F/N-3 — multi-line credential shapes survive the sink", () => {
+  // Assembled from parts: a whole PEM-looking block sitting in tracked source is
+  // what check:env exists to stop. The body is deliberate nonsense.
+  const BEGIN = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
+  const END = ["-----END", "PRIVATE KEY-----"].join(" ");
+  const BODY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ";
+  const PEM = [BEGIN, BODY, BODY, END].join("\n");
+
+  const drain = (chunks: string[], options?: { maxBuffer?: number }) => {
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), options);
+    for (const c of chunks) sink.write(c);
+    sink.flush();
+    return out.join("");
+  };
+
+  it("scrub() on the unsplit text redacts it — this is what the sink must match", () => {
+    expect(scrub(PEM)).toBe("[redacted:PRIVATE_KEY]");
+  });
+
+  it("redacts a PEM written as one chunk with its newlines in it", () => {
+    const joined = drain([PEM + "\n"]);
+    expect(joined).not.toContain(BODY);
+    expect(joined).toBe("[redacted:PRIVATE_KEY]" + "\n");
+  });
+
+  it("redacts a PEM arriving one line at a time, as a child process writes it", () => {
+    const joined = drain([BEGIN + "\n", BODY + "\n", BODY + "\n", END + "\n"]);
+    expect(joined).not.toContain(BODY);
+    expect(joined).not.toContain(BEGIN);
+    expect(joined).toBe("[redacted:PRIVATE_KEY]" + "\n");
+  });
+
+  it("emits nothing while the block is open — not even the BEGIN line", () => {
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t));
+    sink.write(BEGIN + "\n");
+    expect(out).toEqual([]); // the LINE is complete; the CREDENTIAL is not
+    sink.write(BODY + "\n");
+    expect(out).toEqual([]);
+    sink.write(END + "\n");
+    expect(out.join("")).toBe("[redacted:PRIVATE_KEY]" + "\n");
+  });
+
+  it("does not hold ordinary lines hostage before or after the block", () => {
+    const joined = drain(["before" + "\n", BEGIN + "\n", BODY + "\n", END + "\n", "after" + "\n"]);
+    expect(joined).toBe("before" + "\n" + "[redacted:PRIVATE_KEY]" + "\n" + "after" + "\n");
+  });
+
+  it("lets an ordinary line through immediately when nothing multi-line is open", () => {
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t));
+    sink.write("one" + "\n" + "two" + "\n");
+    expect(out).toEqual(["one" + "\n", "two" + "\n"]);
+  });
+
+  it("does not leak the head of an unterminated block when the cap fires", () => {
+    // The point of holding is lost if the pressure valve hands out the first
+    // few hundred bytes of the key instead. `safeSplitIndex` cannot help here:
+    // a PEM is matched by SHAPE, never registered, so nothing knows its length.
+    // What the sink does know is exactly where the block starts.
+    const joined = drain(["filler" + "\n", BEGIN + "\n", "A".repeat(400) + "\n"], { maxBuffer: 64 });
+    expect(joined).not.toContain(BEGIN);
+    expect(joined).not.toContain("AAAA");
+    expect(joined).toContain("[redacted:PRIVATE_KEY]");
+    // The ordinary line in front of it is not held hostage by the block behind.
+    expect(joined.startsWith("filler" + "\n")).toBe(true);
+  });
+
+  it("flush() redacts a block that never closed rather than dumping it", () => {
+    // End of stream is not a reason to hand over key material. An unterminated
+    // BEGIN block is still the head of a private key.
+    const joined = drain([BEGIN + "\n", BODY + "\n"]);
+    expect(joined).not.toContain(BODY);
+    expect(joined).not.toContain(BEGIN);
+    expect(joined).toContain("[redacted:PRIVATE_KEY]");
+  });
+});

@@ -174,8 +174,10 @@ function readEnv(name: string): string | undefined {
  * registered through `createDb()` there land on the same rail, which is the
  * property the whole design rests on.
  */
+export type { MultilineRegion } from "../packages/config/scrubber.ts";
 export {
   MIN_REGISTERED_LENGTH,
+  firstMultilineRegion,
   registerSecretValue,
   resetSecretRegistry,
   safeSplitIndex,

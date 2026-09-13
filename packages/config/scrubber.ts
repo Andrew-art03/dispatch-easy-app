@@ -247,6 +247,74 @@ const PATTERNS: ReadonlyArray<{ re: RegExp; label: string }> = [
 ];
 
 /**
+ * Credential shapes that legitimately span several lines (1F/N-3).
+ *
+ * `createScrubbedSink` held output only until a newline, on the stated premise
+ * that "a credential does not contain a newline, so a complete line contains
+ * whole credentials or none". That premise is false for the first entry in
+ * PATTERNS above. A PEM block is a BEGIN line, a base64 body and an END line;
+ * fed through the sink it emitted all three unredacted, where `scrub()` on the
+ * unsplit text returns `[redacted:PRIVATE_KEY]` — a regression against 1C, on
+ * the one rail child-process stdout actually goes through, which is where PEMs
+ * and service-account JSON turn up.
+ *
+ * Each entry is an OPENING marker and the marker that closes it. The sink asks
+ * `firstMultilineRegion()` whether the buffer holds one and whether it has
+ * closed yet; while one is open, a complete line is not a safe unit and the
+ * sink holds.
+ *
+ * Kept deliberately short. This is not a second pattern list — it is the list
+ * of shapes whose LINE STRUCTURE is part of the shape. A credential that fits
+ * on one line does not belong here; PATTERNS already handles it.
+ */
+const MULTILINE_SHAPES: ReadonlyArray<{
+  readonly label: string;
+  readonly open: RegExp;
+  readonly close: RegExp;
+}> = [
+  {
+    label: "PRIVATE_KEY",
+    open: /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    close: /-----END [A-Z ]*PRIVATE KEY-----/,
+  },
+];
+
+export interface MultilineRegion {
+  /** The pattern label, so a forced redaction can name what it redacted. */
+  readonly label: string;
+  /** Index of the opening marker. */
+  readonly start: number;
+  /** Index just past the closing marker, or -1 while the shape is still open. */
+  readonly end: number;
+}
+
+/**
+ * The first multi-line credential shape in `text`, or null.
+ *
+ * "First" is by opening position, so the sink always deals with the earliest
+ * one and the rest are found on later passes. `end === -1` means the opener has
+ * no closer yet — which is the case the sink must hold on, and the case a cap
+ * or a flush must redact rather than hand over.
+ */
+export function firstMultilineRegion(text: string): MultilineRegion | null {
+  let best: MultilineRegion | null = null;
+  for (const shape of MULTILINE_SHAPES) {
+    const opened = shape.open.exec(text);
+    if (opened === null) continue;
+    const start = opened.index;
+    if (best !== null && start >= best.start) continue;
+    const after = start + opened[0].length;
+    const closed = shape.close.exec(text.slice(after));
+    best = {
+      label: shape.label,
+      start,
+      end: closed === null ? -1 : after + closed.index + closed[0].length,
+    };
+  }
+  return best;
+}
+
+/**
  * Redact secrets from a string.
  *
  * Registered values are replaced by exact substring match — split/join, not a

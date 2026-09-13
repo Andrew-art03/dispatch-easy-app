@@ -32,7 +32,7 @@
  * does not get a single point of failure.
  */
 
-import { safeSplitIndex, scrub } from "./secrets.ts";
+import { firstMultilineRegion, safeSplitIndex, scrub } from "./secrets.ts";
 
 // ---------------------------------------------------------------------------
 // H-6 — formatting, then scrubbing
@@ -110,9 +110,24 @@ const DEFAULT_MAX_BUFFER = 1 << 20; // 1 MiB
  * writing down why so nobody "simplifies" it back. A secret straddling the cut
  * point has its first characters in the part being emitted, so the fragment goes
  * out unredacted; no choice of N fixes that, because the leak is the prefix, not
- * the remainder. Holding until a line is complete has no such boundary: a
- * credential does not contain a newline, so a complete line contains whole
- * credentials or none, and `scrub()` on that line is exact.
+ * the remainder. Holding until a line is complete has no such boundary for a
+ * credential that fits on one line.
+ *
+ * WHY A LINE IS STILL NOT ALWAYS THE UNIT (1F/N-3). The sentence above used to
+ * end "a credential does not contain a newline, so a complete line contains
+ * whole credentials or none, and `scrub()` on that line is exact". That is
+ * false for the FIRST entry in the scrubber's own pattern list. A PEM block is
+ * a BEGIN line, a base64 body and an END line, so line buffering handed
+ * `scrub()` the BEGIN line alone — where nothing matches — then the body, then
+ * the END, and all three went out in cleartext, while `scrub()` on the unsplit
+ * text returns `[redacted:PRIVATE_KEY]`. A regression against 1C, on the one
+ * rail child-process stdout actually goes through, which is exactly where PEMs
+ * and service-account JSON turn up.
+ *
+ * So the sink asks `firstMultilineRegion()` whether the buffer has opened a
+ * shape whose LINE STRUCTURE is part of the shape. Complete lines in front of
+ * one still flow; the block itself is held until it closes, and then the whole
+ * block is scrubbed as ONE unit, which is the only way the pattern can match it.
  *
  * THE CAP, and how it avoids reintroducing the bug. A stream that never emits a
  * newline would buffer forever, so there is a limit. On reaching it the sink
@@ -128,6 +143,14 @@ const DEFAULT_MAX_BUFFER = 1 << 20; // 1 MiB
  * registered, so nothing knows its length — can still be split across a forced
  * emission. Accepted, and it is why `readSecret` / `registerSecretValue` being
  * the normal path is the thing that matters.
+ *
+ * The one pattern-matched shape NOT left to that residual is an open multi-line
+ * block, because the sink knows exactly where it starts. A cap or a flush that
+ * met one would otherwise have to choose between handing over the head of a
+ * private key and buffering forever; it emits `[redacted:<label>]` for the held
+ * region and drops it instead. Text after a BEGIN marker with no END inside a
+ * whole buffer is either key material or something imitating it, and neither is
+ * output worth protecting.
  */
 export function createScrubbedSink(
   emit: (text: string) => void,
@@ -136,15 +159,59 @@ export function createScrubbedSink(
   const maxBuffer = options.maxBuffer ?? DEFAULT_MAX_BUFFER;
   let buffer = "";
 
+  /**
+   * Emit every complete line that is safe to emit, stopping at an open
+   * multi-line block. A CLOSED block goes out as one scrub call covering the
+   * whole thing — scrubbing its lines separately is precisely the N-3 bug.
+   */
   const emitCompleteLines = () => {
-    let newline = buffer.indexOf("\n");
-    while (newline !== -1) {
-      // The newline goes out with its line, so the sink is transparent to
-      // anything downstream that cares about line structure.
-      emit(scrub(buffer.slice(0, newline + 1)));
-      buffer = buffer.slice(newline + 1);
-      newline = buffer.indexOf("\n");
+    for (;;) {
+      const newline = buffer.indexOf("\n");
+      if (newline === -1) return;
+
+      const region = firstMultilineRegion(buffer);
+
+      // Nothing multi-line starts inside the line about to go out: emit it on
+      // its own, so the sink stays transparent to line structure downstream.
+      // The newline goes out with its line.
+      if (region === null || region.start > newline) {
+        emit(scrub(buffer.slice(0, newline + 1)));
+        buffer = buffer.slice(newline + 1);
+        continue;
+      }
+
+      // Open: hold. The LINE is complete; the CREDENTIAL is not.
+      if (region.end === -1) return;
+
+      // Closed: emit through the end of the closer's line, as one unit. If that
+      // line has not arrived yet, hold — a partial END line is still inside the
+      // credential.
+      const lineEnd = buffer.indexOf("\n", region.end);
+      if (lineEnd === -1) return;
+      emit(scrub(buffer.slice(0, lineEnd + 1)));
+      buffer = buffer.slice(lineEnd + 1);
     }
+  };
+
+  /**
+   * Emit whatever remains, without ever handing out a fragment of a credential.
+   * Shared by the cap and by `flush()`, because the two face the same question:
+   * the buffer has to shrink and the stream may not be finished with it.
+   */
+  const drainUnterminated = () => {
+    const region = firstMultilineRegion(buffer);
+
+    // An open block is the one pattern-matched shape whose start is known, so
+    // it is redacted outright rather than cut around. `safeSplitIndex` cannot
+    // help: a PEM is matched by shape, never registered, so nothing knows its
+    // length.
+    if (region !== null && region.end === -1) {
+      if (region.start > 0) emit(scrub(buffer.slice(0, region.start)));
+      emit(`[redacted:${region.label}]`);
+      buffer = "";
+      return true;
+    }
+    return false;
   };
 
   return {
@@ -153,6 +220,7 @@ export function createScrubbedSink(
       emitCompleteLines();
 
       if (buffer.length > maxBuffer) {
+        if (drainUnterminated()) return;
         // No newline in sight. Emit as much as can be cut away without
         // orphaning the start of a registered secret; keep the remainder so it
         // can still match once the rest of the value arrives.
@@ -166,6 +234,9 @@ export function createScrubbedSink(
 
     flush() {
       if (buffer === "") return;
+      // End of stream is not a reason to hand over key material: an
+      // unterminated BEGIN block is still the head of a private key.
+      if (drainUnterminated()) return;
       emit(scrub(buffer));
       buffer = "";
     },
