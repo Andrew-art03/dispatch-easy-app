@@ -106,6 +106,16 @@ function forbiddenPackage(specifier) {
  * in the tree, not a pass.
  */
 function resolveSpecifier(root, fromFile, specifier) {
+  // Vite asset imports are not modules and never will be: `../styles.css?url`,
+  // `./logo.svg`, `./data.json`. A `?query` suffix is a Vite-ism, and an
+  // extension that is not a source extension means the thing on the other end
+  // cannot import anything, so it is a leaf rather than an unresolvable defect.
+  // Needed the moment `src/**` became a walk root at N-1 — the agent tree had
+  // no assets in it, which is why this never came up before.
+  const bare = specifier.split("?")[0];
+  const ext = /\.[A-Za-z0-9]+$/.exec(bare)?.[0];
+  if (ext !== undefined && !SOURCE_EXT.includes(ext)) return null;
+
   let base;
   if (specifier.startsWith("@/")) {
     base = resolve(root, "src", specifier.slice(2)); // tsconfig paths: "@/*" -> "./src/*"
@@ -141,11 +151,17 @@ function importsOf(file) {
 }
 
 /**
- * Breadth-first walk from one root. Returns the first chain that reaches a
- * forbidden package, or null. First and shortest, so the message names the
+ * Breadth-first walk from one root. Returns the first chain that reaches
+ * something forbidden, or null. First and shortest, so the message names the
  * nearest cause rather than the deepest one.
+ *
+ * Two predicates, because the two directions forbid different kinds of thing.
+ * `hitSpecifier` sees the raw specifier (that is how a bare package is caught —
+ * a package resolves to nothing on disk). `hitFile` sees the repo-relative path
+ * a specifier resolved to (that is how a MODULE is caught, whatever name was
+ * used to reach it). Either returns the label to report, or null.
  */
-function findForbiddenPath(root, entry) {
+function findForbiddenPath(root, entry, hitSpecifier, hitFile) {
   const queue = [[entry]];
   const seen = new Set([entry]);
 
@@ -154,17 +170,24 @@ function findForbiddenPath(root, entry) {
     const file = chain[chain.length - 1];
 
     for (const specifier of importsOf(file)) {
-      const hit = forbiddenPackage(specifier);
+      const hit = hitSpecifier(specifier);
       if (hit) return { chain: chain.map((f) => rel(root, f)), specifier: hit };
 
       const resolved = resolveSpecifier(root, file, specifier);
-      if (resolved === null || seen.has(resolved)) continue;
+      if (resolved === null) continue;
+
+      const fileHit = hitFile(rel(root, resolved));
+      if (fileHit) return { chain: chain.map((f) => rel(root, f)), specifier: fileHit };
+
+      if (seen.has(resolved)) continue;
       seen.add(resolved);
       queue.push([...chain, resolved]);
     }
   }
   return null;
 }
+
+const never = () => null;
 
 /**
  * The whole gate as a function, so the self-test and the vitest suite can run
@@ -176,7 +199,61 @@ export function checkAgentImports(root) {
   );
   const violations = [];
   for (const entry of entries) {
-    const found = findForbiddenPath(root, entry);
+    const found = findForbiddenPath(root, entry, forbiddenPackage, never);
+    if (found) violations.push(found);
+  }
+  return { entries: entries.map((f) => rel(root, f)), violations };
+}
+
+// ---------------------------------------------------------------------------
+// The OTHER direction — 1F/N-1
+// ---------------------------------------------------------------------------
+
+/**
+ * Roots that are NOT agent processes.
+ *
+ * `packages` is here and it is the reason this check exists. `packages/config/db.ts`
+ * is the ONE sanctioned client factory; the app, the Edge Functions and
+ * `scripts/migrate.ts` are all supposed to call it. It imported
+ * `agents/secrets.ts` for the scrubber registry, `agents/secrets.ts` imports
+ * `agents/agent-process.ts`, and that module runs `declareProcessKind("agent")`
+ * at import time. So using the factory as designed declared the caller an agent
+ * and then either killed it on its own `EZ_PROCESS_KIND=app` opt-out or refused
+ * it the production client it was entitled to.
+ *
+ * `scripts` is deliberately NOT a root: a script run from `agents/` is an agent
+ * by leg B anyway, and a maintenance script that wants agent identity may say so.
+ */
+const APP_ROOTS = ["src", "supabase/functions", "packages"];
+
+/**
+ * Modules whose mere import declares the process an agent. Reaching one of these
+ * from an APP_ROOT is the N-1 defect.
+ *
+ * Matched as a resolved FILE, not as a specifier string, so it is caught however
+ * it was named — `../../agents/agent-process.ts`, a re-export, an index barrel,
+ * or a module that imports it three hops down and never mentions it.
+ */
+const AGENT_DECLARING_MODULES = ["agents/agent-process.ts"];
+
+const declaringModule = (relPath) =>
+  AGENT_DECLARING_MODULES.includes(relPath) ? relPath : null;
+
+/**
+ * Fails if app, edge or shared-config code can reach the agent declaration.
+ *
+ * `agents/agent-process.ts`'s own header claimed `check:agent-imports` already
+ * did this. It did not — `AGENT_ROOTS = ["agents"]` and one forbidden package;
+ * nothing looked this way at all, which is exactly how the N-1 edge survived a
+ * panel, a CI run and four reviewers.
+ */
+export function checkAppImports(root) {
+  const entries = APP_ROOTS.flatMap((d) => walkDir(join(root, d))).filter(
+    (f) => !ROOT_EXCLUDE.test(f),
+  );
+  const violations = [];
+  for (const entry of entries) {
+    const found = findForbiddenPath(root, entry, never, declaringModule);
     if (found) violations.push(found);
   }
   return { entries: entries.map((f) => rel(root, f)), violations };
@@ -237,9 +314,43 @@ function selfTest() {
       console.error("  indirect:", JSON.stringify(indirect.violations));
       process.exit(1);
     }
+    // ---------------------------------------------------------------------
+    // N-1: the direction rule, same treatment — a planted positive, seen RED
+    // ---------------------------------------------------------------------
+    rmSync(join(dir, "agents/planted-indirect.ts"));
+    write("agents/agent-process.ts", `export const AGENT_PROCESS_DECLARED = true;\n`);
+    write("packages/config/db.ts", `export const createDb = () => 1;\n`);
+
+    const appClean = checkAppImports(dir);
+    if (appClean.violations.length !== 0) {
+      console.error("SELF-TEST FAIL — a clean app tree was reported as reaching the declaration:");
+      console.error(JSON.stringify(appClean.violations, null, 2));
+      process.exit(1);
+    }
+
+    // The N-1 shape exactly: the shared factory reaching the declaration two
+    // hops away, through a module it imported for something else entirely.
+    write("agents/secrets.ts", `import "./agent-process.ts";\nexport const registerSecretValue = () => undefined;\n`);
+    write(
+      "packages/config/db.ts",
+      `import { registerSecretValue } from "../../agents/secrets.ts";\nexport const createDb = () => registerSecretValue();\n`,
+    );
+    const appPlanted = checkAppImports(dir);
+    const appOk =
+      appPlanted.violations.length === 1 &&
+      appPlanted.violations[0].chain.join(" -> ") === "packages/config/db.ts -> agents/secrets.ts" &&
+      appPlanted.violations[0].specifier === "agents/agent-process.ts";
+
+    if (!appOk) {
+      console.error("SELF-TEST FAIL — the planted direction positive did not produce the expected chain.");
+      console.error("  app:", JSON.stringify(appPlanted.violations));
+      process.exit(1);
+    }
+
     console.log(
       "self-test: PASS — clean tree green; direct planted positive RED; " +
-        "re-export planted positive RED with the full 3-file chain (a grep sees neither).",
+        "re-export planted positive RED with the full 3-file chain (a grep sees neither); " +
+        "N-1 direction positive RED (packages/config/db.ts -> agents/secrets.ts -> the declaration).",
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -261,8 +372,10 @@ if (isMain) {
 
   const root = fileURLToPath(new URL("..", import.meta.url));
   let result;
+  let appResult;
   try {
     result = checkAgentImports(root);
+    appResult = checkAppImports(root);
   } catch (error) {
     console.error(`check:agent-imports FAIL — the graph could not be walked: ${error.message}`);
     process.exit(2);
@@ -270,6 +383,13 @@ if (isMain) {
 
   if (result.entries.length === 0) {
     console.error("check:agent-imports FAIL — no agent modules found. Fails closed rather than green.");
+    process.exit(1);
+  }
+
+  if (appResult.entries.length === 0) {
+    console.error(
+      "check:agent-imports FAIL — no app/edge/shared modules found. Fails closed rather than green.",
+    );
     process.exit(1);
   }
 
@@ -285,8 +405,27 @@ if (isMain) {
     process.exit(1);
   }
 
+  if (appResult.violations.length > 0) {
+    console.error("check:agent-imports FAIL — app/edge/shared code reaches the agent declaration (1F/N-1):");
+    for (const v of appResult.violations) {
+      console.error("  " + v.chain.join(" -> ") + " -> " + v.specifier);
+    }
+    console.error(
+      [
+        "",
+        'Importing that module runs declareProcessKind("agent") for the whole process. An app',
+        "process, an Edge Function or the shared client factory that reaches it becomes an agent",
+        "by accident, and is then either killed by its own EZ_PROCESS_KIND=app opt-out or refused",
+        "the production client it is entitled to. Move the shared thing out of agents/ instead.",
+        "",
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
   selfTest();
   console.log(
-    `check:agent-imports OK — ${result.entries.length} agent modules walked, no path to ${FORBIDDEN_PACKAGES.join(", ")}.`,
+    `check:agent-imports OK — ${result.entries.length} agent modules walked, no path to ${FORBIDDEN_PACKAGES.join(", ")}; ` +
+      `${appResult.entries.length} app/edge/shared modules walked, no path to ${AGENT_DECLARING_MODULES.join(", ")}.`,
   );
 }

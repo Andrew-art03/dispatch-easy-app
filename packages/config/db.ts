@@ -21,9 +21,20 @@ import {
 } from "./env.ts";
 import { killSwitchTrip } from "./kill-switch.ts";
 // P-1C-2: the keys this factory hands out go onto the scrubber's PRIMARY rail
-// (exact-value registry), not only the shape-pattern backstop. No cycle:
-// agents/secrets.ts imports only ./kill-switch.ts, which imports nothing.
-import { registerSecretValue } from "../../agents/secrets.ts";
+// (exact-value registry), not only the shape-pattern backstop.
+//
+// 1F/N-1: this used to import `agents/secrets.ts`, under a comment claiming the
+// edge was harmless because "agents/secrets.ts imports only ./kill-switch.ts,
+// which imports nothing". That comment went stale on this branch the moment C-2
+// added `import "./agent-process.ts"` to agents/secrets.ts, and a stale comment
+// is what hid the edge: importing THIS file — the one sanctioned client factory
+// every app process, Edge Function and script is told to use — ran
+// `declareProcessKind("agent")` and made the caller an agent process.
+//
+// The registry now lives in ./scrubber.ts, which imports nothing, and
+// `scripts/assert-agent-imports.mjs` fails if anything under `src/**`,
+// `supabase/functions/**` or `packages/**` reaches the declaration again.
+import { registerSecretValue } from "./scrubber.ts";
 
 /**
  * Modules allowed to build a privileged (service-role) client. Deliberately

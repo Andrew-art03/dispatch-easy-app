@@ -302,3 +302,60 @@ describe("agents/agent-process.ts", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// N-1 — the sanctioned factory must stay usable by the processes it is for
+// ---------------------------------------------------------------------------
+
+/**
+ * Closing C-2 made `packages/config/db.ts` import `agents/secrets.ts` for the
+ * scrubber registry, and `agents/secrets.ts` imports `agents/agent-process.ts`,
+ * which calls `declareProcessKind("agent")` at module init. So merely importing
+ * the client factory declared the whole process an agent — every app process,
+ * every Edge Function, and `scripts/migrate.ts` with it.
+ *
+ * The consequence is not theoretical. Such a process then has two outcomes and
+ * both are wrong: it sets the `EZ_PROCESS_KIND=app` opt-out the docs require and
+ * the contradiction kills it, or it leaves the variable alone, resolves as an
+ * agent, and rule 40 refuses it the production client it is legitimately allowed
+ * to hold. CI was green only because the web app never calls `createDb()` — it
+ * uses the unguarded `src/lib/supabase.ts`, which is C-1's actual open defect.
+ *
+ * `vi.resetModules()` is what makes this honest: ESM caches modules, so without
+ * a fresh registry this would read a declaration left behind by a sibling file
+ * rather than the import under test.
+ */
+describe("N-1: importing the client factory is not a declaration", () => {
+  it("importing packages/config/db.ts leaves the process undeclared", async () => {
+    vi.resetModules();
+    const fresh = await import("../packages/config/process-kind.ts");
+    expect(fresh.declaredProcessKind()).toBeUndefined();
+
+    await import("../packages/config/db.ts");
+
+    expect(fresh.declaredProcessKind()).toBeUndefined();
+  });
+
+  it("importing packages/config/env.ts leaves the process undeclared", async () => {
+    vi.resetModules();
+    const fresh = await import("../packages/config/process-kind.ts");
+    await import("../packages/config/env.ts");
+    expect(fresh.declaredProcessKind()).toBeUndefined();
+  });
+
+  it("an app process can still build a prod client through the factory", async () => {
+    // The end the user actually cares about: this is the whole stated design of
+    // 1B — every client comes from createDb() — and N-1 had made it impossible
+    // for the one process kind that is allowed a prod target.
+    vi.resetModules();
+    const { createDb } = await import("../packages/config/db.ts");
+    const { resetEnvCache: reset } = await import("../packages/config/env.ts");
+    setEnv({
+      SUPABASE_URL: PROD_URL,
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_AAAAAAAAAAAAAAAAAAAAAA",
+      EZ_PROCESS_KIND: "app",
+    });
+    reset();
+    expect(() => createDb("user")).not.toThrow();
+  });
+});

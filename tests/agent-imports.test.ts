@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // @ts-expect-error — .mjs gate script, no type declarations; it is plain JS on purpose
 // so CI can run it with bare node, before any build step exists.
-import { checkAgentImports } from "../scripts/assert-agent-imports.mjs";
+import { checkAgentImports, checkAppImports } from "../scripts/assert-agent-imports.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -31,6 +31,8 @@ type Violation = { chain: string[]; specifier: string };
 type Result = { entries: string[]; violations: Violation[] };
 
 const check = (root: string): Result => checkAgentImports(root) as Result;
+/** N-1: the same walk in the other direction — app/edge/shared -> the agent declaration. */
+const checkApp = (root: string): Result => checkAppImports(root) as Result;
 
 describe("rule 40 structurally: no agent module can reach a Supabase client", () => {
   it("this repo has no path from agent code to @supabase/supabase-js", () => {
@@ -128,5 +130,98 @@ describe("the gate goes red on a planted positive", () => {
   it("fails closed on an unresolvable relative import rather than skipping it", () => {
     write("agents/planted.ts", `import { gone } from "./does-not-exist.ts";\nexport const y = gone;\n`);
     expect(() => check(dir)).toThrow(/cannot resolve/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// N-1 — the OTHER direction, which nothing checked
+// ---------------------------------------------------------------------------
+
+/**
+ * The gate above walks agent code and asks "can it reach a database client?".
+ * `agents/agent-process.ts` claimed in its own header that `check:agent-imports`
+ * "fails if this module is reachable from the web app's import graph". That was
+ * false: `AGENT_ROOTS = ["agents"]` and one forbidden PACKAGE — nothing looked
+ * the other way at all.
+ *
+ * It matters because importing `agents/agent-process.ts` is not inert. It runs
+ * `declareProcessKind("agent")` at module init, permanently, for the whole
+ * process. So an app, an Edge Function or the shared client factory that reaches
+ * it becomes an agent process by accident — and then either trips `process_kind`
+ * against its own `EZ_PROCESS_KIND=app` opt-out, or resolves as an agent and
+ * trips `prod_target` on a production client it is legitimately allowed to hold.
+ *
+ * That is a direction rule, and a direction rule has to be checked in its own
+ * direction.
+ */
+describe("N-1: app, edge and shared config must not reach the agent declaration", () => {
+  it("this repo has no path from an app/edge/shared root to agents/agent-process.ts", () => {
+    const { violations } = checkApp(REPO_ROOT);
+    expect(violations.map((v) => [...v.chain, v.specifier].join(" -> "))).toEqual([]);
+  });
+
+  it("is not vacuous — the client factory and the app entry are among the roots walked", () => {
+    // The same lesson as the gate above: a direction rule whose root set is
+    // empty passes for the wrong reason. `packages/config/db.ts` is named
+    // explicitly because it is the file N-1 was actually about.
+    const { entries } = checkApp(REPO_ROOT);
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries).toContain("packages/config/db.ts");
+    expect(entries).toContain("packages/config/env.ts");
+  });
+});
+
+describe("N-1: the direction rule goes red on a planted violation", () => {
+  let dir: string;
+
+  const write = (relPath: string, body: string) => {
+    mkdirSync(dirname(join(dir, relPath)), { recursive: true });
+    writeFileSync(join(dir, relPath), body);
+  };
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "ez-app-imports-vitest-"));
+    write("agents/agent-process.ts", `export const AGENT_PROCESS_DECLARED = true;\n`);
+    write("src/main.ts", `export const app = 1;\n`);
+    write("packages/config/db.ts", `export const createDb = () => 1;\n`);
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("is green while nothing on the app side names it", () => {
+    expect(checkApp(dir).violations).toEqual([]);
+  });
+
+  it("fails on the N-1 shape itself: the shared factory importing it, two hops away", () => {
+    // Exactly what HEAD does — db.ts imports agents/secrets.ts for the
+    // registry, and agents/secrets.ts declares the process an agent on import.
+    write("agents/secrets.ts", `import "./agent-process.ts";\nexport const registerSecretValue = () => undefined;\n`);
+    write(
+      "packages/config/db.ts",
+      `import { registerSecretValue } from "../../agents/secrets.ts";\nexport const createDb = () => registerSecretValue();\n`,
+    );
+    const { violations } = checkApp(dir);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]?.chain).toEqual(["packages/config/db.ts", "agents/secrets.ts"]);
+    expect(violations[0]?.specifier).toBe("agents/agent-process.ts");
+  });
+
+  it("fails on a direct import from src/", () => {
+    write("src/main.ts", `import "../agents/agent-process.ts";\nexport const app = 1;\n`);
+    const { violations } = checkApp(dir);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]?.chain).toEqual(["src/main.ts"]);
+  });
+
+  it("fails on an Edge Function reaching it, since Deno code is the edge kind", () => {
+    write("supabase/functions/hello/index.ts", `import "../../../agents/agent-process.ts";\nexport const h = 1;\n`);
+    expect(checkApp(dir).violations).toHaveLength(1);
+  });
+
+  it("does not flag agent code itself — agents/** is supposed to declare", () => {
+    write("agents/guardrails.ts", `import "./agent-process.ts";\nexport const g = 1;\n`);
+    expect(checkApp(dir).violations).toEqual([]);
   });
 });
