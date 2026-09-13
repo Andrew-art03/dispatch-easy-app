@@ -96,7 +96,10 @@ describe("createDb — rule 40 enforcement at the factory", () => {
     });
     declareAgentProcess("tests/db-boundary.test.ts"); // what agents/** does at import
     expect(() => createDb("user")).toThrow(KillSwitchTrip);
-    expect(() => createDb("user")).toThrow(/process_kind/);
+    // 1F/N-5: `prod_target`, not `process_kind`. The variable no longer kills
+    // the process before rule 40 can run; it is ignored, the process resolves
+    // as the agent it is, and rule 40's own check refuses it the prod client.
+    expect(() => createDb("user")).toThrow(/prod_target/);
   });
 
   it("lets an app process build a user client against prod", () => {

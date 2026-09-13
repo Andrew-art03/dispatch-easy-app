@@ -35,6 +35,15 @@ const SCRATCH_REF = "krwcnieffeasjczkwrlz";
 const PROD_URL = `https://${PROD_REF}.supabase.co`;
 const SCRATCH_URL = `https://${SCRATCH_REF}.supabase.co`;
 
+/** A structurally valid anon JWT for the scratch ref, so classification agrees. */
+const SCRATCH_ANON = [
+  btoa(JSON.stringify({ alg: "HS256", typ: "JWT" })),
+  btoa(JSON.stringify({ iss: "supabase", role: "anon", ref: SCRATCH_REF })),
+  "sig",
+]
+  .map((part) => part.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""))
+  .join(".");
+
 const MANAGED = [
   "SUPABASE_URL",
   "VITE_SUPABASE_URL",
@@ -74,28 +83,32 @@ afterEach(() => {
 
 describe("C-2: EZ_PROCESS_KIND cannot turn an agent into an app", () => {
   it("refuses a prod client to a declared agent that claims to be an app", () => {
+    // 1F/N-5 changed WHICH trip this is, and that is the point. It used to be
+    // `process_kind` out of getEnv(), before rule 40's check ran at all. It is
+    // now `prod_target` out of createDb() — the agent resolves as an agent,
+    // which is what the variable was trying to prevent, and is refused the prod
+    // client for being one.
     setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
     declareAgentProcess("agents/agent-process.ts");
     expect(() => createDb("user")).toThrow(KillSwitchTrip);
-    expect(() => createDb("user")).toThrow(/process_kind/);
+    expect(() => createDb("user")).toThrow(/prod_target/);
   });
 
-  it("names both the claim and what overruled it, so the log says what happened", () => {
+  it("names both the claim and what overruled it, so the record says what happened", () => {
     setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
     declareAgentProcess("agents/agent-process.ts");
-    expect(() => getEnv()).toThrow(/EZ_PROCESS_KIND=app contradicts agent/);
-    expect(() => getEnv()).toThrow(/agents\/agent-process\.ts/);
+    expect(getEnv().kind).toBe("agent");
+    expect(getEnv().ignoredKindClaim).toBe("app");
+    expect(getEnv().kindSource).toBe("declared");
   });
 
-  it("refuses the contradiction against scratch too, not only against prod", () => {
-    // The contradiction is about identity, not about the target. A process that
-    // cannot say what it is does not get a client of any kind — resolving it as
-    // "probably fine, it's only scratch" is how the unknown-is-safe class of bug
-    // gets back in (same reasoning as UnknownEnvironment in 1B).
-    setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "app" });
-    declareAgentProcess("agents/agent-process.ts");
-    expect(() => getEnv()).toThrow(KillSwitchTrip);
-  });
+  // The "refuses the contradiction against scratch too" case that stood here
+  // argued that a process which "cannot say what it is" gets no client at all,
+  // by analogy with UnknownEnvironment. 1F/N-5 overturns the premise: after N-4
+  // both legs are deny-only, so the process CAN say what it is — `agent` — and
+  // the variable is not a competing answer, it is an attempted widening. The
+  // replacement is in the N-5 suite at the bottom of this file, where the same
+  // environment resolves to agent and keeps running.
 
   // The "is symmetric: a declared app cannot be demoted to an agent by the
   // variable either" case that stood here until 1F/N-4 is GONE, and its absence
@@ -225,12 +238,14 @@ describe("entrypointProcessKind — deny-only inference from argv", () => {
 
   it("outranks EZ_PROCESS_KIND exactly as a declaration does", () => {
     // resolveEnv takes the proven kind explicitly so this needs no argv games.
-    expect(() =>
-      resolveEnv(
-        { SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" },
-        { kind: "agent", source: "entrypoint" },
-      ),
-    ).toThrow(/contradicts agent, established by the entrypoint path/);
+    // 1F/N-5: outranking is now visible in the RESULT rather than in a throw.
+    const resolved = resolveEnv(
+      { SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" },
+      { kind: "agent", source: "entrypoint" },
+    );
+    expect(resolved.kind).toBe("agent");
+    expect(resolved.kindSource).toBe("entrypoint");
+    expect(resolved.ignoredKindClaim).toBe("app");
   });
 
   it("yields to an explicit declaration, which is the more specific statement", () => {
@@ -254,7 +269,10 @@ describe("getEnv memoisation must not outlive the declaration either", () => {
     // code has no reason to, so a test that reset here could not see the bug.
     declareAgentProcess("agents/agent-process.ts");
 
-    expect(() => getEnv()).toThrow(KillSwitchTrip);
+    // The stale verdict must not be served back. 1F/N-5: the proof of that is
+    // the kind flipping, not a throw.
+    expect(getEnv().kind).toBe("agent");
+    expect(getEnv().ignoredKindClaim).toBe("app");
   });
 
   it("re-resolves when a declaration lands and the variable was never set", () => {
@@ -451,5 +469,110 @@ describe("N-4: the entrypoint segment test is case-insensitive", () => {
     // requirement survives the case change.
     expect(asEntry("/home/ez/app/src/Reagents/index.ts")).toBeUndefined();
     expect(asEntry("/home/ez/MyAgents/index.ts")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// N-5 — the contradiction trip was a self-inflicted denial of service
+// ---------------------------------------------------------------------------
+
+/**
+ * `EZ_PROCESS_KIND=app` inherited from a launcher, a CI matrix or a container
+ * image, plus Leg A, threw `KillSwitchTrip` out of `getEnv()`. `createDb()`
+ * calls `getEnv()` on EVERY client build and a failed resolution is
+ * deliberately not cached, so it re-tripped on every call, forever, for every
+ * agent in the process. Pre-1F the same environment was a security failure;
+ * 1F turned it into a total availability failure.
+ *
+ * It was never a necessary trade. Both legs are deny-only after N-4, so they
+ * can only ever say `agent` — the MORE restrictive answer. A variable saying
+ * `app` is an attempt to WIDEN, and the safe response to an attempted widening
+ * is to ignore it, not to take the process down. Refusing to run is not a
+ * stricter version of refusing to widen; it is a different, worse outcome that
+ * protects nothing extra.
+ *
+ * What must not weaken: the refusal that actually matters. An agent process
+ * pointed at prod is still refused a client — by `prod_target` in `createDb()`,
+ * which is rule 40's own check and the one that was being bypassed in the first
+ * place.
+ */
+describe("N-5: an inherited EZ_PROCESS_KIND=app must not take the agent down", () => {
+  it("resolves to agent and keeps running, against scratch", () => {
+    setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "app" });
+    declareAgentProcess("agents/agent-process.ts");
+
+    expect(() => getEnv()).not.toThrow();
+    expect(getEnv().kind).toBe("agent");
+    expect(getEnv().isAgentProcess).toBe(true);
+    expect(getEnv().kindSource).toBe("declared");
+  });
+
+  it("still builds the client it is entitled to, on every call, not just the first", () => {
+    // The re-trip is the part that made this total: a failed resolution is not
+    // cached, so every createDb() in the process hit the same wall.
+    setEnv({
+      SUPABASE_URL: SCRATCH_URL,
+      SUPABASE_ANON_KEY: SCRATCH_ANON,
+      EZ_PROCESS_KIND: "app",
+    });
+    declareAgentProcess("agents/agent-process.ts");
+
+    expect(() => createDb("user")).not.toThrow();
+    expect(() => createDb("user")).not.toThrow();
+    expect(() => createDb("user")).not.toThrow();
+  });
+
+  it("records the ignored claim rather than swallowing it", () => {
+    setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "app" });
+    declareAgentProcess("agents/agent-process.ts");
+    expect(getEnv().ignoredKindClaim).toBe("app");
+  });
+
+  it("says nothing about an ignored claim when there is no contradiction", () => {
+    setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "agent" });
+    declareAgentProcess("agents/agent-process.ts");
+    expect(getEnv().ignoredKindClaim).toBeUndefined();
+  });
+
+  it("warns loudly, once, naming the claim and what overruled it", () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map(String).join(" "));
+    };
+    try {
+      setEnv({ SUPABASE_URL: SCRATCH_URL, EZ_PROCESS_KIND: "app" });
+      // A source no other case in this file uses, so the once-per-process set
+      // is keyed on a message this test owns.
+      declareAgentProcess("agents/warn-once-fixture.ts");
+      getEnv();
+      resetEnvCache();
+      getEnv();
+    } finally {
+      console.warn = realWarn;
+    }
+    expect(warnings.length).toBe(1); // once per process, not once per client build
+    expect(warnings[0]).toContain("EZ_PROCESS_KIND=app");
+    expect(warnings[0]).toContain("agent");
+    expect(warnings[0]).toContain("agents/warn-once-fixture.ts");
+  });
+
+  it("THE REFUSAL THAT MATTERS IS UNCHANGED: prod is still refused, as prod_target", () => {
+    // Rule 40's own check, in createDb(), which is the one C-2 was about. The
+    // process resolves as an agent — exactly what the contradiction was trying
+    // to prevent it from being — and is then refused the prod client for being
+    // one. That is the check doing its job, rather than the process dying
+    // before the check runs.
+    setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
+    declareAgentProcess("agents/agent-process.ts");
+
+    expect(() => createDb("user")).toThrow(KillSwitchTrip);
+    expect(() => createDb("user")).toThrow(/prod_target/);
+  });
+
+  it("an app process with no declaration is still an app, and still unaffected", () => {
+    setEnv({ SUPABASE_URL: PROD_URL, EZ_PROCESS_KIND: "app" });
+    expect(getEnv().kind).toBe("app");
+    expect(getEnv().ignoredKindClaim).toBeUndefined();
   });
 });

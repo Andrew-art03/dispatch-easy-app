@@ -14,7 +14,13 @@ export type KillSwitchReason =
   | "privilege" // a privileged client was built outside the allowlist
   | "secret_scope" // rule 41: a secret was read outside a skill's allowlist
   | "unknown_env" // classification failed closed
-  | "process_kind" // 1F/C-2: the environment contradicted what this process can be proven to be
+  // 1F/C-2 added "process_kind" for an environment that contradicted what a
+  // process can be proven to be. 1F/N-5 removed the last thing that raised it:
+  // the contradiction is RESOLVED now — the deny-only legs win and the variable
+  // is ignored with a warning — because tripping took every agent in the process
+  // down on every createDb() call and protected nothing that prod_target does
+  // not already protect. A reason nothing can raise is a reason that reads like
+  // a live control, so it is gone rather than left as decoration.
   | "destructive"; // rule 47: a reset/force/shadow/DROP/rm -rf style operation was attempted (1D migrate wrapper)
 
 export class KillSwitchTrip extends Error {

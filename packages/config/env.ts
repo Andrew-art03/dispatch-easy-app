@@ -15,7 +15,10 @@
  * name the hostname and nothing else.
  */
 
-import { killSwitchTrip } from "./kill-switch.ts";
+// 1F/N-5: this file no longer trips the kill switch. It classifies and it
+// reports; refusing is db.ts's job, where rule 40's check lives. The import is
+// gone rather than left unused, so nobody reading the header assumes a refusal
+// happens here.
 import {
   type KindSource,
   type ProcessKind,
@@ -383,9 +386,40 @@ export interface ResolvedEnv {
   readonly kind: ProcessKind;
   /** Which leg decided `kind`. `env`/`default` mean nothing in code claimed this process. */
   readonly kindSource: KindSource;
+  /**
+   * 1F/N-5: the `EZ_PROCESS_KIND` value that was overruled, when there was one.
+   * Present means an environment tried to widen this process's identity and was
+   * ignored — worth seeing in a health endpoint or an incident, and the reason
+   * the outcome is not silent.
+   */
+  readonly ignoredKindClaim?: ProcessKind;
 }
 
 export type EnvSource = Record<string, string | undefined>;
+
+/**
+ * Report an overruled `EZ_PROCESS_KIND` — 1F/N-5.
+ *
+ * ONCE PER DISTINCT MESSAGE, per process. `getEnv()` is called on every
+ * `createDb()` and a resolution that carries a contradiction is cached like any
+ * other, but the cache is keyed and can be invalidated, so without this a
+ * misconfigured launcher would print the same line thousands of times and
+ * nobody would read any of them.
+ *
+ * `console.warn` is not the end state and should not be mistaken for one. A
+ * real notification channel is rule 48, release-blocking at the same tier as
+ * rule 36's audit log, and this is what there is until that exists. It is
+ * deliberately NOT the kill switch: nothing here is being refused, and an
+ * incidents entry that fires on a launcher's stale environment variable would
+ * train people to ignore the incidents log.
+ */
+const reportedKindClaims = new Set<string>();
+
+function reportIgnoredKindClaim(message: string): void {
+  if (reportedKindClaims.has(message)) return;
+  reportedKindClaims.add(message);
+  console.warn(`[EZ] ${message}`);
+}
 
 /**
  * Pure resolver — takes its source explicitly so tests never mutate the real
@@ -433,12 +467,36 @@ export function resolveEnv(
 
   if (proven !== undefined) {
     // The variable may agree, or be absent. It may not overrule.
+    //
+    // 1F/N-5: a disagreement is RESOLVED, not fatal. This used to trip the kill
+    // switch, and `createDb()` calls `getEnv()` on every client build with a
+    // failed resolution deliberately uncached — so an `EZ_PROCESS_KIND=app`
+    // inherited from a launcher, a CI matrix or a container image took every
+    // agent in the process down, on every call, forever. Pre-1F that same
+    // environment was a security failure; 1F turned it into a total
+    // availability failure, and the two are not a trade.
+    //
+    // Resolving it costs nothing, because of what the legs can say. Both are
+    // deny-only (N-4): they assert `agent` and nothing else, which is the MORE
+    // restrictive answer. A variable saying `app` is an attempt to WIDEN, and
+    // ignoring an attempted widening IS the safe response — refusing to run is
+    // not a stricter version of it, just a worse outcome protecting nothing
+    // extra. The refusal that matters still happens, one layer down: this
+    // process resolves as an agent and `createDb()` refuses it a prod client
+    // with `prod_target`, which is rule 40's own check and the thing C-2 was
+    // about.
+    //
+    // Not silent, though. An environment trying to change what a process IS is
+    // a real signal about a launcher or an image, so it is reported once and
+    // carried on the result.
+    let ignoredKindClaim: ProcessKind | undefined;
     if (claimed !== undefined && claimed !== proven.kind) {
+      ignoredKindClaim = claimed;
       const by = proven.source === "declared" ? declaredProcessKindSource() : "the entrypoint path";
-      killSwitchTrip(
-        "process_kind",
+      reportIgnoredKindClaim(
         `EZ_PROCESS_KIND=${claimed} contradicts ${proven.kind}, established by ${by}. ` +
-          `Process identity is not settable by environment (1F/C-2).`,
+          `Process identity is not settable by environment (1F/C-2), so the variable is ` +
+          `IGNORED and this process remains "${proven.kind}".`,
       );
     }
     return {
@@ -446,6 +504,7 @@ export function resolveEnv(
       isAgentProcess: proven.kind === "agent",
       kind: proven.kind,
       kindSource: proven.source,
+      ...(ignoredKindClaim === undefined ? {} : { ignoredKindClaim }),
     };
   }
 
