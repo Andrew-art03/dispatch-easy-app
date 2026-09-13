@@ -142,6 +142,26 @@ function encodedVariants(value: string): string[] {
  * COMPLETE occurrence inside it is redacted by `scrub` as usual. The retained
  * remainder stays in the buffer until the rest of the value arrives.
  *
+ * WHY THE FIXPOINT LOOP (1F/N-2). A single pass over the registry is wrong, and
+ * the panel supplied the repro rather than the theory. Pulling `safe` back for
+ * one secret MOVES THE END of the emitted region — so a secret already iterated,
+ * and cleared against the OLD position, can have its prefix sitting at the new
+ * one, with nothing left to re-examine it. With this repo's real registration
+ * order (the anon key first, via `readTarget()`; `ANTHROPIC_API_KEY` second, via
+ * the first skill that reads it) on a no-newline stream at the cap:
+ *
+ *     "x"*1024 + ANON_JWT.slice(0, 60) + "sk-ant-api03-7Qw9ZtL"
+ *
+ * iteration 1 found no ANON prefix at the end — the tail was `sk-ant…` —
+ * iteration 2 pulled `safe` back 20, and that left the 60-character ANON prefix
+ * INSIDE the emitted region. `scrub()` does not save it either: the JWT pattern
+ * needs three dot-separated segments and a 60-character head has two.
+ *
+ * So the whole registry pass repeats until `safe` stops moving. It terminates
+ * because `safe` strictly decreases on every repeat and is bounded below by 0,
+ * which the suite asserts rather than assumes — a guard that spins inside a log
+ * sink hangs the process it was added to protect.
+ *
  * Exact for the registry rail only. A pattern-matched credential — one that was
  * never registered, so nothing here knows its length — can still be split across
  * a forced emission. That residual is why `readSecret` / `registerSecretValue`
@@ -149,12 +169,17 @@ function encodedVariants(value: string): string[] {
  */
 export function safeSplitIndex(text: string, cut: number): number {
   let safe = Math.min(cut, text.length);
-  for (const value of registered.keys()) {
-    const longestProperPrefix = Math.min(value.length - 1, safe);
-    for (let k = longestProperPrefix; k > 0; k -= 1) {
-      if (text.startsWith(value.slice(0, k), safe - k)) {
-        safe -= k;
-        break;
+  let moved = true;
+  while (moved) {
+    moved = false;
+    for (const value of registered.keys()) {
+      const longestProperPrefix = Math.min(value.length - 1, safe);
+      for (let k = longestProperPrefix; k > 0; k -= 1) {
+        if (text.startsWith(value.slice(0, k), safe - k)) {
+          safe -= k;
+          moved = true;
+          break;
+        }
       }
     }
   }

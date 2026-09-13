@@ -14,7 +14,13 @@ import {
   installScrubbedConsole,
   renderArg,
 } from "../agents/log-sink.ts";
-import { registerSecretValue, resetSecretRegistry, scrub, scrubDeep } from "../agents/secrets.ts";
+import {
+  registerSecretValue,
+  resetSecretRegistry,
+  safeSplitIndex,
+  scrub,
+  scrubDeep,
+} from "../agents/secrets.ts";
 
 /**
  * Fixture credentials, assembled from parts so no realistic-looking secret sits
@@ -242,5 +248,100 @@ describe("1F/H-7 — a secret split across writes", () => {
     sink.flush();
     sink.flush();
     expect(out).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1F/N-2 — the safe split point was a single unordered pass
+// ---------------------------------------------------------------------------
+
+/**
+ * The panel supplied the repro rather than the theory, so this suite uses it.
+ *
+ * `safeSplitIndex` pulls the emission point back to before any proper prefix of
+ * a registered value sitting at the end of the emitted region. Pulling it back
+ * MOVES that end — so a secret already iterated, and cleared against the OLD
+ * position, can have its prefix sitting at the new one. One pass over the
+ * registry therefore leaks the prefix of whichever secret was iterated first.
+ *
+ * It is the real registration order in this repo. `readTarget()` registers the
+ * anon/publishable key on the first `createDb()`; ANTHROPIC_API_KEY is
+ * registered later, by the first skill that reads it. Map iteration is insertion
+ * order, so the anon key is iteration 1 and the model key is iteration 2 — and
+ * iteration 2 is the one that moves `safe`.
+ *
+ * `scrub()` does not rescue it: the JWT pattern needs three dot-separated
+ * segments and a 60-character head has two.
+ */
+describe("1F/N-2 — pulling the cut back for one secret must re-examine the rest", () => {
+  // Shaped like a JWT so the residual is realistic, assembled from parts so no
+  // whole credential-looking string sits in tracked source.
+  const ANON_JWT = ["eyJ", "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", ".", "e30", ".", "c2ln"].join("");
+  const MODEL_KEY = ["sk-", "ant-", "api03-", "7Qw9ZtL", "0000000000000000"].join("");
+
+  it("leaves no prefix of ANY registered secret in the emitted region", () => {
+    registerSecretValue("VITE_SUPABASE_ANON_KEY", ANON_JWT); // registered first, as in the app
+    registerSecretValue("ANTHROPIC_API_KEY", MODEL_KEY);
+
+    const anonHead = ANON_JWT.slice(0, 30);
+    const modelHead = MODEL_KEY.slice(0, 20);
+    const buffer = "x".repeat(1024) + anonHead + modelHead;
+
+    const cut = safeSplitIndex(buffer, buffer.length);
+    const emitted = buffer.slice(0, cut);
+
+    // The single-pass version cut back only for MODEL_KEY, which left anonHead
+    // sitting inside `emitted` with nothing left to re-examine it.
+    expect(emitted).not.toContain(anonHead);
+    expect(emitted).not.toContain(modelHead);
+    expect(cut).toBe(1024);
+  });
+
+  it("does not leak it through the sink either, which is where it would be seen", () => {
+    registerSecretValue("VITE_SUPABASE_ANON_KEY", ANON_JWT);
+    registerSecretValue("ANTHROPIC_API_KEY", MODEL_KEY);
+
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 1024 });
+
+    // A child process writing a long line with no newline in it: the cap fires,
+    // and what goes out must carry no fragment of either key.
+    sink.write("x".repeat(1024) + ANON_JWT.slice(0, 30) + MODEL_KEY.slice(0, 20));
+
+    const joined = out.join("");
+    expect(joined).not.toContain(ANON_JWT.slice(0, 30));
+    expect(joined).not.toContain(MODEL_KEY.slice(0, 20));
+  });
+
+  it("still completes and redacts both once the rest of the stream arrives", () => {
+    // A guard that holds output forever is its own incident. The held remainder
+    // has to redact normally when the values complete.
+    registerSecretValue("VITE_SUPABASE_ANON_KEY", ANON_JWT);
+    registerSecretValue("ANTHROPIC_API_KEY", MODEL_KEY);
+
+    const out: string[] = [];
+    const sink = createScrubbedSink((t) => out.push(t), { maxBuffer: 1024 });
+
+    sink.write("x".repeat(1024) + ANON_JWT.slice(0, 30));
+    sink.write(ANON_JWT.slice(30) + " " + MODEL_KEY);
+    sink.flush();
+
+    const joined = out.join("");
+    expect(joined).toContain("[redacted:VITE_SUPABASE_ANON_KEY]");
+    expect(joined).toContain("[redacted:ANTHROPIC_API_KEY]");
+    expect(joined).not.toContain(ANON_JWT);
+    expect(joined).not.toContain(MODEL_KEY);
+    // Nothing dropped: every "x" still there.
+    expect(joined.split("x").length - 1).toBe(1024);
+  });
+
+  it("terminates on a buffer that is nothing but overlapping prefixes", () => {
+    // The fixpoint loop must not spin: `safe` strictly decreases on every
+    // repeat and is bounded below by 0. Asserted rather than assumed, because a
+    // non-terminating guard in a log sink hangs the process it was protecting.
+    registerSecretValue("ANTHROPIC_API_KEY", MODEL_KEY);
+    registerSecretValue("VITE_SUPABASE_ANON_KEY", ANON_JWT);
+    const buffer = MODEL_KEY.slice(0, 10) + ANON_JWT.slice(0, 10) + MODEL_KEY.slice(0, 10);
+    expect(safeSplitIndex(buffer, buffer.length)).toBeGreaterThanOrEqual(0);
   });
 });
