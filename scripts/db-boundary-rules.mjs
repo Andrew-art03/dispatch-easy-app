@@ -7,6 +7,15 @@
 // matters here because `check:db-boundary` is not a CI step yet (it is RED by
 // design while `src/lib/supabase.ts` exists, F-20 / held item C-3) and
 // `bun run test` is. Putting the rules here makes them gated today.
+//
+// 1F/N-6: the rules were gated; the repo-wide SCAN was not, in ci.yml or in
+// `bun run test`, so a new `src/**` file importing supabase-js was unblocked —
+// a rail with tests that never once looked at the tree. The scan runs in
+// tests/db-boundary.test.ts now, as a RATCHET against an exact baseline of the
+// one known violation, because the CLI's own exit code cannot go into
+// `bun run test` while C-3 keeps it red by design. A new offender turns the
+// suite red; so does fixing C-3, which forces the baseline to shrink rather
+// than outliving the defect.
 
 const PACKAGE = "@supabase/supabase-js";
 
@@ -17,8 +26,21 @@ const QUOTED = PACKAGE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const FORBIDDEN_PACKAGE = PACKAGE;
 
+// 1F/N-6: a SUBPATH is part of the package.
+//
+// This used to require the closing quote immediately after the package name, so
+// db-boundary:allow — the next line QUOTES the import that used to slip past.
+// `from "@supabase/supabase-js/dist/module"` sailed past — same package, same
+// `createClient`, one rail asleep. The graph walk in assert-agent-imports.mjs
+// resolved subpaths correctly all along, so the two rails disagreed about what
+// a violation IS, which is worse than either being wrong on its own.
+//
+// The subpath must start with `/`, never an arbitrary suffix: `@supabase/
+// supabase-js-helpers` is a DIFFERENT package, and widening this to a prefix
+// match would make the rail cry wolf, which is how a rail gets switched off.
+// Both directions are in the shared case list below.
 export const IMPORT = new RegExp(
-  "(?:\\bfrom\\s*|\\bimport\\s*|\\brequire\\s*\\(\\s*|\\bimport\\s*\\(\\s*)['\"`]" + QUOTED + "['\"`]",
+  "(?:\\bfrom\\s*|\\bimport\\s*|\\brequire\\s*\\(\\s*|\\bimport\\s*\\(\\s*)['\"`]" + QUOTED + "(?:/[^'\"`]*)?['\"`]",
 );
 
 // ---------------------------------------------------------------------------
@@ -132,6 +154,45 @@ export function selfTestCases() {
       label: "pragma exempts exactly ONE line, not the rest of the file",
       rel: "scripts/rail.mjs",
       text: pragma + "\nconst harmless = 1;\n" + realImport,
+      violates: true,
+    },
+    // 1F/N-6: the subpath hole, and the false positive that closing it must not
+    // introduce. Both live here so the CLI self-test and tests/db-boundary.test.ts
+    // run the SAME list and cannot drift apart.
+    {
+      label: "subpath import in application code",
+      rel: "src/thing.ts",
+      text: 'import { createClient } from "' + PACKAGE + '/dist/module";\n',
+      violates: true,
+    },
+    {
+      label: "subpath require() in application code",
+      rel: "src/thing.ts",
+      text: 'const { createClient } = require("' + PACKAGE + '/dist/main/index.js");\n',
+      violates: true,
+    },
+    {
+      label: "subpath dynamic import() in application code",
+      rel: "src/thing.ts",
+      text: 'await import("' + PACKAGE + '/dist/module/index.js");\n',
+      violates: true,
+    },
+    {
+      label: "a DIFFERENT package whose name merely starts the same",
+      rel: "src/thing.ts",
+      text: 'import x from "' + PACKAGE + '-helpers";\n',
+      violates: false,
+    },
+    {
+      label: "pragma exempts a subpath import in scripts/",
+      rel: "scripts/rail.mjs",
+      text: pragma + "\n" + 'import { createClient } from "' + PACKAGE + '/dist/module";\n',
+      violates: false,
+    },
+    {
+      label: "pragma does NOT exempt a subpath import under src/",
+      rel: "src/sneaky.ts",
+      text: pragma + "\n" + 'import { createClient } from "' + PACKAGE + '/dist/module";\n',
       violates: true,
     },
   ];

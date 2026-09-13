@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import { assertNotProd, createDb } from "../packages/config/db.ts";
@@ -363,5 +365,126 @@ describe("1F/H-8 — callerModule is deny-only", () => {
     // starts throwing, the mechanism has leaked onto the ordinary path.
     expect(() => createDb("user", { caller: "src/anything.ts" })).not.toThrow();
     expect(() => createDb("user")).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1F/N-6 — check:db-boundary ran nowhere, and its IMPORT rule had a subpath hole
+// ---------------------------------------------------------------------------
+
+/**
+ * Only the rule FIXTURES were unit-tested. The repo-wide scan was in neither
+ * ci.yml nor `bun run test`, so a new `src/**` file importing supabase-js was
+ * unblocked: the rail existed, had tests, and never once looked at the tree.
+ *
+ * The scan is here now. `bun run test` is already a CI step, and the ci.yml line
+ * is Andrew's to add (rule 27 — this session's token has no `workflow` scope).
+ *
+ * IT IS A RATCHET, NOT A PASS. The scan is RED today, on purpose:
+ * `src/lib/supabase.ts` builds an unguarded client at import time and that is
+ * C-3, which the panel recorded as NOT CLOSED and which is not this ticket's to
+ * fix. Asserting the violation list EXACTLY, rather than "contains", is what
+ * makes the rail useful in both directions — a new offender turns it red, and so
+ * does fixing C-3, which forces the baseline to shrink instead of quietly
+ * outliving the defect.
+ */
+describe("1F/N-6: the repo-wide db-boundary scan actually runs", () => {
+  const KNOWN = ["src/lib/supabase.ts"];
+
+  const scan = async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { join, posix, relative, sep } = await import("node:path");
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+
+    const ROOT = fileURLToPath(new URL("..", import.meta.url));
+    const SEARCH_DIRS = ["src", "packages", "scripts", "tests"];
+    const SKIP = new Set(["node_modules", ".git", ".output", "dist", ".tanstack", ".wrangler"]);
+    const EXT = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
+    const BOUNDARY = "packages/config/db.ts";
+
+    const walk = (dir: string, out: string[] = []): string[] => {
+      let entries: string[];
+      try {
+        entries = readdirSync(dir);
+      } catch {
+        return out;
+      }
+      for (const entry of entries) {
+        if (SKIP.has(entry)) continue;
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) walk(full, out);
+        else if (EXT.test(entry)) out.push(full);
+      }
+      return out;
+    };
+
+    const files = SEARCH_DIRS.flatMap((d) => walk(join(ROOT, d)));
+    const rels = files.map((f) => relative(ROOT, f).split(sep).join(posix.sep));
+    return {
+      sawBoundary: rels.includes(BOUNDARY),
+      scanned: rels.length,
+      violations: rels
+        .filter((rel) => rel !== BOUNDARY)
+        .filter((rel) => violates(rel, readFileSync(join(ROOT, rel), "utf8"))),
+    };
+  };
+
+  it("scans a non-empty tree and finds the boundary file, so it cannot pass vacuously", async () => {
+    const { scanned, sawBoundary } = await scan();
+    expect(scanned).toBeGreaterThan(0);
+    expect(sawBoundary).toBe(true);
+  });
+
+  it("finds exactly the known, recorded violations and no others", async () => {
+    // If this fails with MORE than the list: a new file builds an unchecked
+    // client and rule 40 has stopped being structural. If it fails with FEWER:
+    // C-3 is fixed — delete the entry, do not widen the list.
+    const { violations } = await scan();
+    expect(violations.sort()).toEqual([...KNOWN].sort());
+  });
+
+  it("the baseline is C-3 and nothing else, named rather than counted", () => {
+    expect(KNOWN).toEqual(["src/lib/supabase.ts"]);
+  });
+});
+
+describe("1F/N-6: the IMPORT rule matches a subpath import too", () => {
+  // Interpolated, never written adjacent to `from "`: the rail greps THIS file
+  // too, and a fixture that is indistinguishable from a live import is one.
+  const PACKAGE = "@supabase/supabase-js";
+  const sub = `import { createClient } from "${PACKAGE}/dist/module";\n`;
+  const deep = `const { createClient } = require("${PACKAGE}/dist/main/index.js");\n`;
+  const dyn = `await import("${PACKAGE}/dist/module/index.js");\n`;
+
+  it("catches a subpath import, which the closing-quote rule let through", async () => {
+    // The graph walk in assert-agent-imports.mjs already caught subpaths; this
+    // grep-shaped rail did not, so the two rails disagreed about what a
+    // violation is. Same package, same client, one rail asleep.
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    expect(violates("src/thing.ts", sub)).toBe(true);
+    expect(violates("src/thing.ts", deep)).toBe(true);
+    expect(violates("src/thing.ts", dyn)).toBe(true);
+  });
+
+  it("still catches the bare package import", async () => {
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    expect(violates("src/thing.ts", `import "${PACKAGE}";` + "\n")).toBe(true);
+  });
+
+  it("does not fire on a DIFFERENT package whose name merely starts the same", async () => {
+    // `@supabase/supabase-js-helpers` is not `@supabase/supabase-js`. The
+    // subpath must be a real path segment, or widening the rule turns it into a
+    // prefix match and the next false positive teaches someone to switch it off.
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    expect(violates("src/thing.ts", `import x from "${PACKAGE}-helpers";` + "\n")).toBe(
+      false,
+    );
+  });
+
+  it("the pragma still exempts a subpath import under scripts/, and only there", async () => {
+    const { violates } = await import("../scripts/db-boundary-rules.mjs");
+    const pragma = "// db-boundary:allow — fixture text, not a live import";
+    expect(violates("scripts/rail.mjs", pragma + "\n" + sub)).toBe(false);
+    expect(violates("src/sneaky.ts", pragma + "\n" + sub)).toBe(true);
   });
 });
