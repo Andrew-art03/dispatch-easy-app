@@ -25,7 +25,10 @@
     "check:db-boundary": "node scripts/assert-db-boundary.mjs --self-test && node scripts/assert-db-boundary.mjs",
     "check:agent-imports": "node scripts/assert-agent-imports.mjs",
     "check:secrets": "gitleaks detect --no-git --config .gitleaks.toml --redact -v",
-    "hooks:install": "node scripts/install-hooks.mjs"
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "test:db": "bun run check:rls-matrix && bun scripts/with-test-db.ts npx vitest run --config vitest.db.config.ts",
+    "db:shell": "bun scripts/with-test-db.ts",
+    "check:rls-matrix": "node scripts/assert-rls-matrix.mjs --self-test && node scripts/assert-rls-matrix.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -88,10 +91,13 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.20.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.16.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",

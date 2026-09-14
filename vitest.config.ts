@@ -74,6 +74,13 @@ export default defineConfig({
       "**/.tanstack/**",
       "**/.vinxi/**",
       "**/.nitro/**",
+      // EZ-BUILD-02 Slice 1: `tests/db/**` needs a live PostgreSQL and runs under
+      // `vitest.db.config.ts` via `bun run test:db`. It is excluded HERE, not merely
+      // absent from a list somewhere, because this config's include is a `**` glob —
+      // adding a file under tests/db/ would otherwise silently make `bun run test`,
+      // and with it the 24/784 floor, depend on a database being reachable. A floor
+      // that goes red because a port was busy teaches people to ignore red.
+      "tests/db/**",
     ],
     // The JSON report is what `scripts/assert-test-floor.mjs` reads to hold the
     // floor. Written on every run so the gate can never be "forgotten" by a
