@@ -53,10 +53,22 @@ SPEC §2C pins the founder to a hard-coded `auth.users.id` **and** the
 `00000000-0000-0000-0000-000000000000` with a comment saying Andrew fills it in
 when he applies 0003.
 
-**Default I proceeded under.** The placeholder ships exactly as the signed spec
-writes it, with the comment intact, and a test asserts that the all-zero uid can
-never satisfy `is_founder()` against a real session. Andrew substitutes the real
-uid at apply time. No guess, no invented identifier.
+**Default I proceeded under — as actually built in Slice 2, and stronger than the
+spec.** O-3 (logged 2026-09-06) showed why a comment is not enough: applied as
+written, the zeroes uid makes `is_founder()` false for every human and the
+rule-37 kill switch becomes permanently unreleasable through the database — an
+engaged switch nobody can release.
+
+So `supabase/migrations/0003_hardening_and_runtime.sql` ships `{{AUTH_USERS_ID}}`,
+an unsubstituted literal, and **GATE 0 is the first statement in the file**: it
+raises unless the value is UUID-shaped and is not the all-zeroes uid. The
+migration runs in one transaction, so it aborts whole rather than half-applying.
+`tests/migration-0003.test.ts` asserts the placeholder is still unsubstituted in
+git — a real uid committed here would be a live identifier in a public repo.
+
+Andrew substitutes the real uid at apply time, from Supabase Dashboard →
+Authentication → Users. No guess, no invented identifier, and no way to apply
+without it.
 
 ---
 
