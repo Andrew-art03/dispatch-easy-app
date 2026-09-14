@@ -16,6 +16,9 @@ dist-ssr
 .nitro
 *.local
 
+# vitest's JSON report — regenerated on every run, read by scripts/assert-test-floor.mjs
+.vitest/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
