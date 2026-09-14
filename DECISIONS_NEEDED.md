@@ -12,6 +12,26 @@ never a bare question.
 
 ## D-CC-8 — Docker Desktop will not start its engine unattended. One human click unblocks Slices 1–5.
 
+> ### ✅ RESOLVED 2026-09-14 14:05 CT — Director. **There is no Docker dependency.**
+>
+> Docker is not coming back today: Docker Desktop dies at launch because the machine-level
+> `ProgramData` / `ALLUSERSPROFILE` variables are empty, the fix needs an elevated shell,
+> and Andrew's attempt was refused. `supabase start` was the wrong next command.
+>
+> Ruled: use the `embedded-postgres` harness the Easy Eats build proved on this same
+> machine — a real PostgreSQL binary managed by the package manager, no daemon, no
+> container, no administrator. My one-click framing was wrong, and the "needs no further
+> decision from anyone" line in my 14:00 entry needed exactly this one.
+>
+> **Carried out, same day:** `scripts/with-test-db.ts` on port 55433 (55432 belongs to
+> another build and is untouched), the chain 0001/0003/0004/0005/0006 applied, the RLS
+> matrix and the tenancy suite behind `bun run test:db`, `bun run test` left free of any
+> database so the 24/784 floor never depends on one. Playwright installed. Two real
+> defects found on first contact — see `QA_ISSUES.md` Q-1 and Q-2.
+>
+> `supabase/config.toml` is kept, per the ruling: it costs nothing and Slice 9 will use it
+> against the scratch branch Andrew supplies. It is simply not on today's path.
+
 **Opened:** 2026-09-14 13:50 CT, by Claude Code (ez-app-ez010), during EZ-BUILD-02 Slice 1.
 **Blocks:** the live half of Slice 1's done-when, and the same in Slices 2–5.
 **Cost to unblock: one person opening Docker Desktop once and clearing whatever it is asking.**

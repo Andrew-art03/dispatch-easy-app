@@ -18,6 +18,9 @@ The ruling requires this teardown note.
 |---|---|---|---|
 | Supabase CLI | **2.117.0** | `npm install -g supabase` | global npm, Andrew's user profile |
 | `supabase/config.toml` + `supabase/.gitignore` | — | `supabase init --force` | this repo |
+| `embedded-postgres` | **18.4.0-beta.17** | `bun add -d` | this repo (devDependency) |
+| `@types/pg` | 8.23.1 | `bun add -d` | this repo (devDependency) |
+| `@playwright/test` + chromium | **1.63.0** | `bun add -d` + `npx playwright install chromium` | this repo; browser binary in the user profile cache |
 
 **Teardown — removes everything the build added, in this order:**
 
@@ -31,9 +34,16 @@ npm uninstall -g supabase
 # 3. remove the scaffold from the repo
 rm -f supabase/config.toml supabase/.gitignore
 
-# 4. optional — the images the stack pulls, if you want the disk back
-docker image prune -a --filter "label=com.supabase.cli.project"
+# 4. the devDependencies, if the harness is not wanted
+bun remove embedded-postgres @types/pg @playwright/test
+
+# 5. optional — the downloaded browser binaries, if you want the disk back
+npx playwright uninstall --all
 ```
+
+The embedded PostgreSQL keeps **no** persistent data directory: `with-test-db.ts` creates one
+under the OS temp dir per run and removes it in a `finally`, so there is nothing to clean up
+between runs and nothing survives a crash except an empty temp folder.
 
 Nothing was installed system-wide, no service was registered to auto-start, and no PATH
 entry was added beyond npm's existing global bin. Docker Desktop was **already installed**
@@ -44,20 +54,32 @@ read-only or otherwise. `.env.local` is for the local stack's keys only and is g
 
 ---
 
-## The local stack is not running yet — Docker Desktop needs one human start
+## The database harness: real PostgreSQL, no Docker
 
-See `DECISIONS_NEEDED.md` **D-CC-8**. `supabase start` fails because the Docker engine is
-not up:
+`bun run test:db` starts a throwaway PostgreSQL via the `embedded-postgres` devDependency
+(`scripts/with-test-db.ts`, port **55433** — 55432 belongs to another build on this PC and
+is never touched), applies the real chain 0001/0003/0004/0005/0006, runs the suite, and
+tears the cluster down. No daemon, no container, no administrator.
 
-```
-LegacyDockerLifecycleInspectError: failed to inspect container health: failed to connect
-to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
-```
+**Docker is NOT used and is not a dependency of this build.** Docker Desktop on this machine
+dies at launch because the machine-level `ProgramData` / `ALLUSERSPROFILE` variables are
+empty and the fix needs an elevated shell (D-CC-8, resolved 2026-09-14 — the ruling was that
+there is no Docker dependency at all). Nothing needs to be done about it for this ticket.
 
-Docker Desktop's processes run and its WSL distro boots, but the engine pipe is never
-published and `AcceptedTermsOfService` is empty — it is waiting on a first-run dialog that
-only a person at the keyboard can clear. Until then Slices 1–5 cannot be verified against a
-real database, and per the ruling they must not fall back to mocks for the tenancy tests.
+Two things the harness stands in for, both narrow and both asserted rather than assumed:
+
+- **Supabase platform furniture** — the `auth` schema, `auth.users`, `auth.uid()` reading the
+  request GUC, and the three roles (`scripts/test-db/supabase-prelude.sql`), plus the table
+  grants Supabase's platform applies (`supabase-epilogue.sql`). Without the grants a tenancy
+  test would pass for the wrong reason: carrier B would read nothing because it may read
+  *nothing at all*, not because RLS refused it.
+- **PostGIS** — absent from the embedded binary. Exactly two columns use it
+  (`facility.geo`, `facility.dock_geo`) and no test touches either, so `geography(point,4326)`
+  is substituted with `text`. The count is asserted: a third such column, or any `ST_*` call,
+  throws rather than quietly running a schema that is not ours.
+
+`supabase/config.toml` is kept for Slice 9's rehearsal against a scratch branch, and is not
+used by `test:db`.
 
 ---
 
@@ -79,13 +101,14 @@ C-3 is a real piece of work and not a one-line import swap.
 
 ---
 
-## Playwright is not installed
+## Playwright: installed, phone-first, two projects
 
-Slices 1–4 each ask for a Playwright case and Slice 7 asks for the whole project. Nothing
-Playwright-related is in `package.json` yet. It was deliberately not installed on
-2026-09-14: the constraint on Slice 1 is the database, not the browser driver, and
-installing a test runner that cannot yet reach a working app would have been motion rather
-than progress.
+`@playwright/test` 1.63.0 + chromium, behind `bun run test:e2e`. `playwright.config.ts`
+runs **phone (393x852) first** with desktop (1280x800) as a second project, so a layout that
+only works wide cannot pass by accident. Slice 7 still owns the full project — WebKit,
+isolated identities per worker, the seven TESTING-PLAN workflows; this is its start.
+
+Not part of `bun run test`, for the same reason `test:db` is not.
 
 ---
 
