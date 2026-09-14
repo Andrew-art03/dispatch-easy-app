@@ -25,9 +25,76 @@
 // Plain .mjs so bare node runs it, before any build step exists.
 
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { join, posix, relative, sep } from "node:path";
+import { dirname, join, posix, relative, sep } from "node:path";
 
 export const DOMAIN_ROOT = "packages/domain";
+
+/**
+ * The ONLY bare specifiers packages/domain may import, each with a reason.
+ *
+ * MERGE NOTE (Slice 7). The 4A branch shipped its own copy of this rail as a DENYLIST -- a list
+ * of forbidden packages (@supabase/*, the model SDKs). This copy is an ALLOWLIST, which is
+ * strictly stronger: a denylist is silent about the next package nobody has thought of yet,
+ * and "nobody thought of it" is the normal way a dependency arrives. The two were reconciled
+ * by keeping the allowlist AND absorbing 4A's named bans below as a second layer, so an edit
+ * that loosens this set cannot silently reopen the specific packages SPEC-4A names.
+ *
+ * `zod` earns its place: it is a pure schema validator with no I/O, and SPEC-4A's whole point
+ * is that extraction output is validated against a schema before anything downstream sees it
+ * (CLAUDE.md rule 3). Hand-rolling that validation to satisfy a lint rule would be trading a
+ * real guarantee for a cosmetic one.
+ */
+export const ALLOWED_PACKAGES = new Set(["zod"]);
+
+/**
+ * 4A's denylist, kept as a SECOND layer beneath the allowlist above. Belt and braces on purpose:
+ * these are the specific reaches SPEC-4A names, and they should stay red even if someone widens
+ * ALLOWED_PACKAGES one day without thinking it through.
+ */
+export const FORBIDDEN_PACKAGES = [
+  /^@supabase\//,
+  /^@anthropic-ai\//,
+  /^openai$/,
+  /^@google\/generative-ai$/,
+  /^@aws-sdk\/client-bedrock/,
+  /^langchain/,
+];
+
+/** Specifier shapes that reach an agent entrypoint or a client factory, relative or not. */
+export const FORBIDDEN_PATHS = [
+  { match: /(?:^|[\/])agents[\/]/, why: "an agent entrypoint -- importing it declares the process an agent at module init" },
+  // Matched on `config/db.ts`, not `packages/config/db.ts`. A module INSIDE packages/domain
+  // reaches the factory as `../config/db.ts` — the `packages/` segment is never in the
+  // specifier, so 4A's original pattern could only ever have caught the import from outside
+  // the directory it was policing. Found by the self-test, not by review.
+  { match: /(?:^|[\\/])config[\\/]db\.ts$/, why: "the database client factory" },
+  { match: /[\/]supabase(?:-client)?\.ts$/, why: "a database client module" },
+];
+
+/**
+ * The module specifier a line IMPORTS, or undefined.
+ *
+ * The shapes that actually load a module, and nothing else:
+ *   import x from "m" / import {x} from "m" / export {x} from "m"
+ *   import "m"                                  (side effect)
+ *   require("m") / import("m")                  (dynamic)
+ *
+ * WHY THIS IS FUSSY. The first version of the no-bare-import rule matched
+ * `(?:import|export)[^"']*["']([^"']+)["']`, which reads
+ *     export type StopType = "pickup" | "delivery";
+ * as an import of the module "pickup" -- so every string-literal union type in the domain layer
+ * was a violation. It surfaced the moment real 4A code was ported in (Slice 7) and not before,
+ * because the state machine this rail was first written against happens to use `as const`
+ * arrays rather than union types. A rail that cries wolf on ordinary type declarations is a
+ * rail somebody switches off.
+ */
+export function specifierOf(line) {
+  const m =
+    /(?:^|[\s;])(?:import|export)[\s\S]*?\sfrom\s*["'`]([^"'`]+)["'`]/.exec(line) ??
+    /^\s*import\s*["'`]([^"'`]+)["'`]/.exec(line) ??
+    /(?:require|import)\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/.exec(line);
+  return m ? m[1] : undefined;
+}
 
 /**
  * One entry per rule. `test` receives a single line with its `--` and `//` comments already
@@ -37,16 +104,36 @@ export const DOMAIN_ROOT = "packages/domain";
 export const RULES = [
   {
     id: "no-bare-import",
-    // Anything that is not a relative path is a dependency on the outside world. That covers
-    // the model SDKs and the database client without having to enumerate them, and it covers
-    // the next one nobody has thought of yet.
+    // An ALLOWLIST, not a denylist: a denylist is silent about the next package nobody has
+    // thought of yet, and "nobody thought of it" is the normal way a dependency arrives.
     test: (line) => {
-      const m = /\b(?:import|export)\b[^"']*["']([^"']+)["']/.exec(line);
-      if (!m) return false;
-      const spec = m[1];
-      return !(spec.startsWith("./") || spec.startsWith("../"));
+      const spec = specifierOf(line);
+      if (spec === undefined) return false;
+      if (spec.startsWith("./") || spec.startsWith("../")) return false;
+      return !ALLOWED_PACKAGES.has(spec);
     },
-    why: "packages/domain may import only relative paths. A bare specifier is a dependency on something outside the domain.",
+    why: `packages/domain may import relative paths, plus exactly: ${[...ALLOWED_PACKAGES].join(", ")}. A bare specifier outside that set is a dependency the domain layer has not agreed to.`,
+  },
+  {
+    // 4A's denylist, kept BENEATH the allowlist as a second layer. See ALLOWED_PACKAGES: if
+    // someone ever widens that set without thinking it through, these stay red.
+    id: "no-forbidden-package",
+    test: (line) => {
+      const spec = specifierOf(line);
+      return spec !== undefined && FORBIDDEN_PACKAGES.some((re) => re.test(spec));
+    },
+    why: "A database client or a model SDK, named explicitly by SPEC-4A. Rule 2: an LLM never computes a number.",
+  },
+  {
+    // The gap the allowlist does NOT cover, and 4A's rail did: `../../agents/guardrails.ts` is
+    // a RELATIVE specifier, so "relative paths are fine" waves it straight through. Importing
+    // an agent entrypoint is not inert -- it declares the process an agent at module init.
+    id: "no-agent-or-client-path",
+    test: (line) => {
+      const spec = specifierOf(line);
+      return spec !== undefined && FORBIDDEN_PATHS.some((f) => f.match.test(spec));
+    },
+    why: "The specifier reaches an agent entrypoint or a database client module, whether written as a package or as a relative path.",
   },
   {
     id: "no-dynamic-import",
@@ -114,13 +201,22 @@ function codeLines(source) {
   return out;
 }
 
-/** @param {{path: string, source: string}[]} files */
+/** @param {{path: string, source: string, chain?: string[]}[]} files */
 export function checkPurity(files) {
   const violations = [];
   for (const file of files) {
     for (const { n, code } of codeLines(file.source)) {
       for (const rule of RULES) {
-        if (rule.test(code)) violations.push({ file: file.path, line: n, rule: rule.id, why: rule.why, code });
+        if (rule.test(code)) {
+          violations.push({
+            file: file.path,
+            line: n,
+            rule: rule.id,
+            why: rule.why,
+            code,
+            chain: file.chain ?? [file.path],
+          });
+        }
       }
     }
   }
@@ -135,6 +231,81 @@ function walk(dir, out = []) {
     else if (/\.(ts|tsx|mts|js|mjs)$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(full);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// The transitive walk -- SPEC-4A acceptance 20
+// ---------------------------------------------------------------------------
+//
+// WHY A WALK AND NOT A PER-FILE SCAN. This rail originally scanned the files under
+// packages/domain and stopped there. That is a grep, and it is defeated by one hop:
+//
+//     packages/domain/thing.ts       export { probe } from "../__leaf__.ts";   <- legal, relative
+// db-boundary:allow
+//     packages/__leaf__.ts           import "@supabase/supabase-js";           <- never scanned
+//
+// Nothing in packages/domain breaks a rule, and the domain layer still reaches a database
+// client. SPEC-4A's acceptance 20 asks for "a real walk, not a grep" and 4A's own copy of this
+// rail did one; mine did not, and the 4A test suite caught it on the first run after the port
+// (Slice 7). The walk follows RELATIVE specifiers wherever they lead, including out of
+// packages/domain, and reports the chain so a violation names the entrypoint that reached it.
+
+const EXTENSIONS = ["", ".ts", ".tsx", ".mts", ".mjs", ".js", "/index.ts", "/index.tsx"];
+
+/** Is this path a readable FILE? The single injection point, so the walk is testable. */
+const isFileOnDisk = (p) => {
+  try {
+    return existsSync(p) && statSync(p).isFile();
+  } catch {
+    return false;
+  }
+};
+
+/** Resolve a relative specifier against the importing file, or null if nothing is there. */
+export function resolveRelative(fromFile, spec, isFile = isFileOnDisk) {
+  if (!spec.startsWith("./") && !spec.startsWith("../")) return null;
+  const base = join(dirname(fromFile), spec);
+  for (const ext of EXTENSIONS) {
+    const candidate = `${base}${ext}`;
+    // `isFile` is the ONLY filesystem question asked here. An earlier version called the real
+    // statSync even when a predicate was injected, so the self-test's in-memory graph resolved
+    // to nothing and the transitive case passed by finding no modules to check — a walk that
+    // finds nothing looking exactly like a walk that found nothing wrong.
+    if (isFile(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Every module reachable from the entrypoints by following relative imports, each carrying the
+ * chain that reached it. Unresolvable relative imports FAIL CLOSED: a specifier that cannot be
+ * resolved is a specifier nobody checked, and skipping it is how a walk quietly becomes a grep.
+ */
+export function collectGraph(entries, readFile = (p) => readFileSync(p, "utf8"), isFile = isFileOnDisk) {
+  const norm = (p) => relative(process.cwd(), p).split(sep).join(posix.sep);
+  const seen = new Map();
+  const unresolved = [];
+  const queue = entries.map((p) => ({ path: p, chain: [norm(p)] }));
+
+  while (queue.length > 0) {
+    const { path, chain } = queue.shift();
+    const key = norm(path);
+    if (seen.has(key)) continue;
+    const source = readFile(path);
+    seen.set(key, { path: key, source, chain });
+
+    for (const { code } of codeLines(source)) {
+      const spec = specifierOf(code);
+      if (spec === undefined || !(spec.startsWith("./") || spec.startsWith("../"))) continue;
+      const target = resolveRelative(path, spec, isFile);
+      if (target === null) {
+        unresolved.push({ from: key, spec });
+        continue;
+      }
+      if (!seen.has(norm(target))) queue.push({ path: target, chain: [...chain, norm(target)] });
+    }
+  }
+  return { modules: [...seen.values()], unresolved };
 }
 
 // ---------------------------------------------------------------------------
@@ -187,11 +358,69 @@ export const add = (a: number, b: number): number => a + b + helper;
     console.log(`  ${hit ? "ok  " : "FAIL"} ${expected.padEnd(18)} caught: ${line.trim()}`);
   }
 
-  // The rule that would otherwise pass for the wrong reason: a relative import is allowed.
-  const rel = checkPurity([{ path: "ok.ts", source: `import { x } from "../other/x.ts";` }]);
-  const relOk = rel.violations.length === 0;
-  if (!relOk) bad++;
-  console.log(`  ${relOk ? "ok  " : "FAIL"} a relative import is still allowed, so the rule is not just "no imports"`);
+  // The rules that would otherwise pass for the wrong reason.
+  const green = [
+    ["a relative import is still allowed, so the rule is not just \"no imports\"", `import { x } from "../other/x.ts";`],
+    [`the allowlisted package is allowed: ${[...ALLOWED_PACKAGES].join(", ")}`, `import { z } from "zod";`],
+    // The false positive that made this rail unusable against real 4A code (Slice 7).
+    ["a string-literal union type is NOT an import", `export type StopType = "pickup" | "delivery" | "other";`],
+    ["nor is a plain string constant that happens to sit on an export line", `export const LABEL = "from Dallas, TX";`],
+  ];
+  for (const [name, source] of green) {
+    const { violations } = checkPurity([{ path: "ok.ts", source }]);
+    const ok = violations.length === 0;
+    if (!ok) bad++;
+    console.log(`  ${ok ? "ok  " : "FAIL"} ${name}${ok ? "" : ` -- got ${JSON.stringify(violations.map((v) => v.rule))}`}`);
+  }
+
+  // The gap the allowlist alone does not cover: a RELATIVE path that reaches an agent.
+  const reaches = [
+    ["no-agent-or-client-path", `import { guard } from "../../agents/guardrails.ts";`],
+    ["no-agent-or-client-path", `import { createDb } from "../config/db.ts";`],
+    ["no-agent-or-client-path", `import { supabase } from "../../src/lib/supabase.ts";`],
+  ];
+  for (const [expected, line] of reaches) {
+    const { violations } = checkPurity([{ path: "planted.ts", source: line }]);
+    const hit = violations.some((v) => v.rule === expected);
+    if (!hit) bad++;
+    console.log(`  ${hit ? "ok  " : "FAIL"} ${expected.padEnd(24)} caught a RELATIVE reach: ${line.trim()}`);
+  }
+
+  // SPEC-4A acceptance 20: the walk is a WALK. The violation lives one hop OUTSIDE
+  // packages/domain, where a per-file scan of that directory can never see it.
+  {
+    const files = {
+      "packages/domain/entry.ts": `export { probe } from "../leaf.ts";\n`,
+      // db-boundary:allow
+      "packages/leaf.ts": `import "@supabase/supabase-js";\nexport const probe = 1;\n`,
+    };
+    const { modules } = collectGraph(
+      ["packages/domain/entry.ts"],
+      (p) => files[p.split(sep).join(posix.sep)] ?? "",
+      (p) => Object.prototype.hasOwnProperty.call(files, p.split(sep).join(posix.sep)),
+    );
+    const { violations } = checkPurity(modules);
+    const hop = violations.find((v) => v.rule === "no-bare-import" || v.rule === "no-forbidden-package");
+    const namesEntry = hop?.chain?.[0]?.includes("entry.ts") ?? false;
+    const ok = hop !== undefined && namesEntry;
+    if (!ok) bad++;
+    console.log(
+      `  ${ok ? "ok  " : "FAIL"} a TRANSITIVE reach one hop outside packages/domain is caught, and the chain names the entrypoint`,
+    );
+  }
+
+  // And the walk fails closed rather than skipping what it cannot resolve.
+  {
+    const files = { "packages/domain/entry.ts": `export { gone } from "./missing.ts";\n` };
+    const { unresolved } = collectGraph(
+      ["packages/domain/entry.ts"],
+      (p) => files[p.split(sep).join(posix.sep)] ?? "",
+      (p) => Object.prototype.hasOwnProperty.call(files, p.split(sep).join(posix.sep)),
+    );
+    const ok = unresolved.length === 1;
+    if (!ok) bad++;
+    console.log(`  ${ok ? "ok  " : "FAIL"} an unresolvable relative import is reported, not silently skipped`);
+  }
 
   if (bad > 0) {
     console.error(`\nassert-domain-purity --self-test: FAIL -- ${bad} case(s) did not behave as specified.`);
@@ -220,23 +449,38 @@ if (isMain) {
       console.error(`assert-domain-purity: ${DOMAIN_ROOT} contains no modules. A rail that finds nothing passes for the wrong reason.`);
       process.exit(2);
     }
-    const files = paths.map((p) => ({
-      path: relative(process.cwd(), p).split(sep).join(posix.sep),
-      source: readFileSync(p, "utf8"),
-    }));
-    const { violations, scanned } = checkPurity(files);
+    // The WALK, not a scan of the directory (SPEC-4A acceptance 20).
+    const { modules, unresolved } = collectGraph(paths);
+    const { violations, scanned } = checkPurity(modules);
+
+    if (unresolved.length > 0) {
+      // Fail closed. A relative specifier that cannot be resolved is a specifier nobody
+      // checked, and skipping it is how a walk quietly becomes a grep.
+      console.error(`assert-domain-purity FAIL -- ${unresolved.length} unresolvable relative import(s):\n`);
+      for (const u of unresolved) console.error(`  ${u.from}  ->  ${u.spec}  (cannot resolve)`);
+      process.exit(1);
+    }
 
     if (violations.length > 0) {
       console.error(`assert-domain-purity FAIL -- ${violations.length} violation(s) in ${scanned} module(s):\n`);
       for (const v of violations) {
         console.error(`  ${v.file}:${v.line}  [${v.rule}]  ${v.code}`);
+        // The chain, when the violation is not in the entrypoint itself. This is what makes a
+        // transitive finding actionable: a reviewer needs the hop that introduced it, not just
+        // the leaf that happens to hold the import.
+        if (v.chain.length > 1) console.error(`      reached by: ${v.chain.join(" -> ")}`);
+        if (v.rule === "no-agent-or-client-path") {
+          // SPEC-4A acceptance 6's wording, kept verbatim so the acceptance test asserts the
+          // sentence a reader will actually see.
+          console.error(`      packages/domain must not import agents/ or a database client.`);
+        }
         console.error(`      ${v.why}\n`);
       }
       process.exit(1);
     }
     console.log(
-      `assert-domain-purity OK -- ${scanned} module(s) under ${DOMAIN_ROOT}: no bare import, no dynamic import,\n` +
-        `no network, no environment, no clock, no randomness, no ambient global.`,
+      `assert-domain-purity: OK -- ${scanned} module(s) reachable from ${DOMAIN_ROOT}: no bare import,\n` +
+        `no dynamic import, no network, no environment, no clock, no randomness, no ambient global.`,
     );
   }
 }
