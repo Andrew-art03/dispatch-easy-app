@@ -8,5 +8,5 @@
     "Raising `observed` is a deliberate line in a diff, never an automatic rewrite."
   ],
   "mandated": { "files": 12, "tests": 268 },
-  "observed": { "files": 17, "tests": 409, "at": "2026-09-14", "slice": 5 }
+  "observed": { "files": 18, "tests": 446, "at": "2026-09-14", "slice": 6 }
 }

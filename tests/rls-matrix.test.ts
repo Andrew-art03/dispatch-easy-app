@@ -12,7 +12,7 @@
  * while writing 0004 are closed in the text. Whether Postgres then behaves as the text says is
  * what `bun run check:rls:live` answers, and it has not been run.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -102,6 +102,23 @@ describe("the matrix passes, and the exemptions are named rather than broad", ()
       "system_flag:org_scoped",
       "system_flag_event:org_scoped",
     ]);
+  });
+
+  it("CHAIN covers every migration that creates a table or a policy", () => {
+    // The gap this closes: scripts/assert-rls-matrix.mjs folds a HARD-CODED list of migrations.
+    // A later migration that adds a table or a policy and is not added to that list escapes the
+    // matrix entirely — and the matrix still prints OK, which is the worst way to miss one.
+    // Noticed while writing 0005 (Slice 6), which creates neither and so is legitimately absent.
+    const dir = `${REPO_ROOT}supabase/migrations`;
+    const relevant = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => {
+        const sql = read(`supabase/migrations/${f}`).replace(/--[^\n]*/g, "");
+        return /create table\s+/i.test(sql) || /create policy\s+/i.test(sql);
+      })
+      .map((f) => `supabase/migrations/${f}`)
+      .sort();
+    expect([...(CHAIN as string[])].sort()).toEqual(relevant);
   });
 
   it("every exemption names a real table, a real rule and a reason worth reading", () => {

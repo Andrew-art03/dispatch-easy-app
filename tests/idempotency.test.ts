@@ -148,15 +148,22 @@ describe("SPEC 2E case 2 — two concurrent identical requests produce one row",
 
     const a = idempotent(ctx(), post({ x: 1 }), "loads.create", store, slow);
     const b = idempotent(ctx(), post({ x: 1 }), "loads.create", store, slow);
-    const [first, second] = await Promise.allSettled([a, b]);
+    const settled = await Promise.allSettled([a, b]);
 
     expect(runs()).toBe(1);
     expect(store.rows.size).toBe(1);
-    expect(first.status).toBe("fulfilled");
-    expect(second.status).toBe("rejected");
+
+    // WHICH of the two wins the race is not determined, and asserting that the first array
+    // element is the winner made this test flaky — it failed one run in roughly ten before
+    // being fixed. `Promise.allSettled` preserves INPUT order, not completion order. What is
+    // guaranteed is the shape: exactly one winner, exactly one refusal.
+    const won = settled.filter((r) => r.status === "fulfilled");
+    const lost = settled.filter((r) => r.status === "rejected");
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
     // In flight, not a mismatch: the body was identical. Retrying the SAME key is the right
     // next move and the message says so.
-    expect((second as PromiseRejectedResult).reason).toMatchObject({ status: 409 });
+    expect((lost[0] as PromiseRejectedResult).reason).toMatchObject({ status: 409 });
   });
 });
 
