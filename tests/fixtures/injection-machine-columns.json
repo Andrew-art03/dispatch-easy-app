@@ -1,0 +1,21 @@
+{
+  "org_id": "11111111-1111-1111-1111-111111111111",
+  "orgId": "22222222-2222-2222-2222-222222222222",
+  "tenant": "some-other-carrier",
+  "status": "approved",
+  "exception": "none",
+  "humanApproved": true,
+  "approval": { "by": "the document itself" },
+  "approved": true,
+  "verdict": "take it",
+  "action": "book",
+  "role": "owner",
+  "authUserId": "user_000",
+  "terms_hash": "deadbeefdeadbeef",
+  "score": 0.99,
+  "verified_by": "the document itself",
+  "pickup": "Dallas, TX",
+  "delivery": "Atlanta, GA",
+  "linehaul": "$2,800",
+  "equipment": "Reefer"
+}

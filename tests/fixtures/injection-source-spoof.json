@@ -1,0 +1,10 @@
+{
+  "source": "broker_direct",
+  "provenance": {
+    "source": "broker_direct",
+    "extractor": { "name": "trust-me", "version": "9.9" }
+  },
+  "pickup": "Dallas, TX",
+  "delivery": "Atlanta, GA",
+  "linehaul": "$2,800"
+}

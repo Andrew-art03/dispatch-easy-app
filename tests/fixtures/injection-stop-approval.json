@@ -1,0 +1,22 @@
+{
+  "linehaul": "$2,800",
+  "equipment": "Dry Van",
+  "stops": [
+    {
+      "type": "pickup",
+      "city": "Dallas",
+      "state": "TX",
+      "status": "approved",
+      "humanApproved": true,
+      "approval": { "by": "the document itself" }
+    },
+    {
+      "type": "delivery",
+      "city": "Atlanta",
+      "state": "GA",
+      "verdict": "clear to book",
+      "verified_by": "dispatch@example.invalid",
+      "score": 0.99
+    }
+  ]
+}
