@@ -1,0 +1,17 @@
+[
+  {
+    "table": "system_flag",
+    "rule": "org_scoped",
+    "reason": "Platform-level, not per-org (see supabase/schema.allowlist.0003.json): the rule-37 kill switch and the rule-31/43/44 budget ceilings apply to the installation, so there is no tenant to scope to. Its boundary is is_founder() for write and any authenticated user for read — seeing that the switch is engaged is the point of it."
+  },
+  {
+    "table": "system_flag_event",
+    "rule": "org_scoped",
+    "reason": "The incident timeline for system_flag. Carries no tenant data by construction — flag key, before/after value, acting auth uid, required reason. Readable by is_founder() only; insert is revoked from every role so its trigger is the sole writer."
+  },
+  {
+    "table": "org",
+    "rule": "no_blanket_check",
+    "reason": "org_bootstrap_insert is `with check (true)` because sign-up creates the org BEFORE the caller has a user row, so auth.org_id() is still NULL at that moment and nothing narrower can be written without also deciding what sign-up looks like — a product decision, not a builder's. Consequence, stated plainly: any authenticated user can create org rows. It grants no access to an existing org (that path is closed by user_bootstrap_insert, O-13). Proposed narrowing is in NOT_BUILT_YET.md."
+  }
+]

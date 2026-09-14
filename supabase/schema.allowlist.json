@@ -4,80 +4,79 @@
     "invariant": "org_id",
     "reason": "org IS the tenant; its own id is the boundary. Policy org_self uses id = current_org_id()."
   },
-
   {
     "table": "org",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "user",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "truck",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "driver",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "facility",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "broker",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "load",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "stop",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "deal",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "document",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "score",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "event",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "hunt",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "call",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   },
   {
     "table": "ledger_line",
     "invariant": "force_rls",
-    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+    "reason": "FORCE ROW LEVEL SECURITY lands in supabase/migrations/0004_rls_force_and_org_id.sql (2B, EZ-BUILD-01 Slice 3), not in schema.sql. This entry is PERMANENT, not a countdown: schema.sql is the frozen Day-0 baseline and check:migration-baseline requires it to stay byte-identical to 0001_baseline.sql, so FORCE can never be added here. The chain-wide matrix is check:rls (scripts/assert-rls-matrix.mjs), which folds 0001+0003+0004 and does assert FORCE on this table."
   }
 ]

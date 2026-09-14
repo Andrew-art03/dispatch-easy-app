@@ -30,13 +30,27 @@ if (/efeaylkqgqhobookcqby/.test(url)) {
   process.exit(1);
 }
 
-const statements = readFileSync("tests/schema/invariants.sql", "utf8")
+// EZ-BUILD-01 Slice 3: the file and its statement count are arguments, defaulting to exactly
+// what they were before. Slice 3 adds tests/schema/rls.sql, which is the same kind of artifact
+// -- statements that must return zero rows -- and duplicating this runner to read a second
+// file would have been two runners to keep honest instead of one.
+//
+//   node scripts/check-schema-live.mjs                              # invariants.sql, 3 statements
+//   node scripts/check-schema-live.mjs tests/schema/rls.sql 8       # the 2B proof
+//
+// The count stays MANDATORY. It is what stops a merge that silently drops a statement from
+// reporting green on the ones that survived.
+const positional = process.argv.slice(2).filter((a) => !a.startsWith("-"));
+const file = positional[0] ?? "tests/schema/invariants.sql";
+const expected = Number(positional[1] ?? 3);
+
+const statements = readFileSync(file, "utf8")
   .split(/^\s*;;\s*$/m)
   .map((chunk) => chunk.replace(/--[^\n]*/g, "").trim())
   .filter(Boolean);
 
-if (statements.length !== 3) {
-  console.error(`check:schema:live: expected 3 invariant statements, found ${statements.length}`);
+if (statements.length !== expected) {
+  console.error(`check:schema:live: expected ${expected} statements in ${file}, found ${statements.length}`);
   process.exit(2);
 }
 
