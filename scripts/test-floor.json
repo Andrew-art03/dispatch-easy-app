@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "EZ-BUILD-01 Slice 1 — the suite's ratchet. BUILD_DEFAULTS R-2.",
+    "`mandated` is the floor the ticket fixes and it never moves down, for any reason.",
+    "`observed` is the last run that was accepted; scripts/assert-test-floor.mjs fails",
+    "when a run collects fewer files or fewer tests than this, so a slice that silently",
+    "stops collecting a file is red even when every test it did collect passed.",
+    "Raising `observed` is a deliberate line in a diff, never an automatic rewrite."
+  ],
+  "mandated": { "files": 12, "tests": 268 },
+  "observed": { "files": 13, "tests": 280, "at": "2026-09-14", "slice": 1 }
+}
