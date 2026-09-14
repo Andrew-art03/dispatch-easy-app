@@ -29,14 +29,40 @@ export function WeekGoalColdOpenHost() {
   const [days, setDays] = useState<ColdOpenDay[]>(FIXTURE);
   const [isFixture, setIsFixture] = useState(true);
 
+  /**
+   * SIGNED-IN ONLY. This host is mounted in `__root.tsx`, so it renders on every route —
+   * including `/auth`, where it used to drop a `fixed inset-0 z-50` panel over the sign-in
+   * form. A driver opening the app cold got a week-goal film, showing SAMPLE money, on top
+   * of the form, and could not tap anything underneath it until they found "Continue".
+   *
+   * Found by tests/e2e/auth.spec.ts, which could not click the mode tabs:
+   *   "<svg …WeekGoalColdOpen…> from <div …WeekGoalColdOpenHost…> subtree intercepts
+   *    pointer events"
+   *
+   * Two things wrong with it and both are fixed by the same gate: a signed-out visitor
+   * could not use the screen (A-03 — ease of use is a release criterion), and they were
+   * shown a week of earnings before the product knew who they were.
+   *
+   * The session check comes BEFORE the once-per-cold-open flag on purpose. Burning the
+   * flag on the auth screen would mean the driver never saw the film on the home screen
+   * they actually signed in to — trading one defect for a quieter one.
+   */
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(SESSION_KEY)) return;
-      sessionStorage.setItem(SESSION_KEY, "1");
-    } catch {
-      return;
-    }
-    setVisible(true);
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!alive || !data.session) return;
+      try {
+        if (sessionStorage.getItem(SESSION_KEY)) return;
+        sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {
+        return;
+      }
+      if (alive) setVisible(true);
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {

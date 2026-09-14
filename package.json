@@ -28,7 +28,8 @@
     "hooks:install": "node scripts/install-hooks.mjs",
     "test:db": "bun run check:rls-matrix && bun scripts/with-test-db.ts npx vitest run --config vitest.db.config.ts",
     "db:shell": "bun scripts/with-test-db.ts",
-    "check:rls-matrix": "node scripts/assert-rls-matrix.mjs --self-test && node scripts/assert-rls-matrix.mjs"
+    "check:rls-matrix": "node scripts/assert-rls-matrix.mjs --self-test && node scripts/assert-rls-matrix.mjs",
+    "test:e2e": "playwright test"
   },
   "overrides": {
     "rolldown": "1.2.1"
