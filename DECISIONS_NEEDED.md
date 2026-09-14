@@ -90,3 +90,81 @@ secret, or a ticket to re-point those pins at `registry.npmjs.org` and re-lock.
 anything — BUILD_DEFAULTS §5 says that is a ticket, not a side effect. Every
 gate this build adds is wired into `bun run test`, which is already a CI step,
 so the gates become real the moment CI can install at all.
+
+---
+
+## D-CC-4 — every money column in the frozen schema is `numeric`, and the money path is integer cents
+
+**Raised:** 2026-09-14, Slice 9 · **Owner:** Andrew · **Status:** OPEN, partially worked around
+
+`ledger_line.amount`, `load.gross_rate`, `load.accessorials`, `deal.target_rate`,
+`deal.floor_rate`, `deal.agreed_rate`, `score.true_net`, `score.all_in_rpm`,
+`score.net_per_day`, `score.recommended_bid`, `score.floor_rate` and `call.minutes`
+are all `numeric` in `supabase/schema.sql`.
+
+Postgres `numeric` is exact decimal, so **nothing is lost inside the database**.
+The problem is the trip out: PostgREST hands `numeric` to JavaScript as a
+`number`, which is an IEEE-754 float — and BUILD_DEFAULTS R-4 says money is
+integer cents with no float formed at any point, "including the parse". 3B's
+calculator and 4A's normalizer both speak integer cents end to end. The seam is
+exactly at the database boundary.
+
+**What I did, narrowly.** Migration 0006 adds `ledger_line.amount_cents bigint`
+and makes it authoritative, because the ledger is the record of what money
+actually moved and it is currently empty, so the change costs nothing. `amount`
+stays (the frozen schema requires it NOT NULL) as an exact-numeric display copy
+derived from the integer, never the reverse.
+
+**What I did not do, and why.** The other five tables reach the finished front
+end — `score` and `deal` are read by components that are already built and
+signed off. Widening a frozen schema across tables nobody asked me to touch, in
+a way that changes what the front end receives, is not a builder's call.
+
+**What I need.** A decision on whether the remaining money columns get
+`*_cents` companions in their own migration, and if so whether the front end
+changes in the same PR or reads both for a transition period. Until then, any
+code reading those columns is reading a float, and R-4 is satisfied only on the
+ledger.
+
+---
+
+## D-CC-5 — `src/components/AddExpense.tsx`: three findings, and the feature is already broken
+
+**Raised:** 2026-09-14, Slice 9 · **Owner:** Andrew · **Status:** OPEN
+
+Found by a Slice 9 test that asserts no TypeScript writes a ledger line. One
+file does, and looking at it turned up three separate problems in fifteen lines.
+
+**1. It inserts into `ledger_line` directly, with the user's JWT.** Migration
+0003 revokes `insert on ledger_line` from `authenticated`, `anon` and
+`service_role` — money is written by `execute_approved_action` after
+`consume_approval`, and by nothing else (SPEC 2C v3, enforced at the grant
+layer). **So applying 0003 stops this feature working.**
+
+**2. It forms a float on the money path.** `const value = Number(amount)` on a
+text input, then `amount: -Math.abs(value)`. That is the parse R-4 names
+explicitly.
+
+**3. It is already broken today, before any migration of mine.** The code
+carries the comment *"org_id is filled by the database default
+(current_org_id()) — never sent from here"* and omits `org_id`. **There is no
+such default.** `ledger_line.org_id` is `not null` with no default, and no table
+in the frozen schema defaults `org_id` at all. The insert violates NOT NULL, so
+it cannot ever have succeeded. A test pins this so the claim is checkable rather
+than asserted in a report.
+
+**Why I did not fix it.** `src/**` is out of this ticket's scope
+(BUILD_DEFAULTS §2), and the fix is a product decision rather than a mechanical
+one: **expenses have no approved-action path.** `execute_approved_action`
+requires an `approval` row, and requiring a human approval for every fuel
+receipt may or may not be what Andrew wants. Inventing that flow would be
+inventing a product.
+
+**What I need.** One of:
+- expenses go through `execute_approved_action` like every other ledger write, with an approval minted by the same tap that saves the expense; or
+- expenses are a distinct class with their own server endpoint and their own rule, written down; or
+- the expense feature is parked until there is an answer.
+
+**Default I proceeded under.** The offender is recorded by name in
+`tests/ledger.test.ts` — more offenders than the list is a failure, fewer means
+one was fixed. Identical treatment to C-3. Nothing was changed in `src/**`.
