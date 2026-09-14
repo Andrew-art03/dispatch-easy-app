@@ -17,6 +17,7 @@
     "check:migration-baseline": "node scripts/check-migration-baseline.mjs",
     "check:schema:live": "node scripts/check-schema-live.mjs",
     "check:rls": "node scripts/assert-rls-matrix.mjs --self-test && node scripts/assert-rls-matrix.mjs",
+    "check:domain": "node scripts/assert-domain-purity.mjs --self-test && node scripts/assert-domain-purity.mjs",
     "check:rls:live": "node scripts/check-schema-live.mjs tests/schema/rls.sql 8",
     "migrate": "bun scripts/migrate.ts",
     "check:env": "node scripts/assert-no-secret-source.mjs",
