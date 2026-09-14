@@ -202,12 +202,34 @@ function codeLines(source) {
 }
 
 /** @param {{path: string, source: string, chain?: string[]}[]} files */
+/**
+ * The same line with every string literal blanked to empty quotes.
+ *
+ * WHY. `no-globals` matches `document.` to catch the DOM global, and
+ *     export const NEVER_GATED = ["load.read", "document.upload"] as const;
+ * is a string containing "document." — so the rail flagged a plain array of feature names.
+ * That is the "naming a thing is not doing it" mistake again, one level down: a rule about
+ * CODE must not read a string literal as code.
+ *
+ * The two import rules opt OUT of this, because the specifier they inspect IS a string literal.
+ */
+const blankStrings = (line) =>
+  line
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+    .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+
+/** Rules whose whole job is to inspect a string literal. Everything else sees blanked strings. */
+const READS_STRING_LITERALS = new Set(["no-bare-import", "no-forbidden-package", "no-agent-or-client-path"]);
+
 export function checkPurity(files) {
   const violations = [];
   for (const file of files) {
     for (const { n, code } of codeLines(file.source)) {
+      const blanked = blankStrings(code);
       for (const rule of RULES) {
-        if (rule.test(code)) {
+        const subject = READS_STRING_LITERALS.has(rule.id) ? code : blanked;
+        if (rule.test(subject)) {
           violations.push({
             file: file.path,
             line: n,
@@ -365,6 +387,10 @@ export const add = (a: number, b: number): number => a + b + helper;
     // The false positive that made this rail unusable against real 4A code (Slice 7).
     ["a string-literal union type is NOT an import", `export type StopType = "pickup" | "delivery" | "other";`],
     ["nor is a plain string constant that happens to sit on an export line", `export const LABEL = "from Dallas, TX";`],
+    // The false positive found in Slice 11: a feature-name array that happens to contain the
+    // text "document." is not a use of the DOM global.
+    ["a string literal containing `document.` is not the DOM global", `export const NEVER_GATED = ["load.read", "document.upload"] as const;`],
+    ["nor is a string containing `process.env` a read of the environment", `export const BANNED_HINT = "do not use process.env here";`],
   ];
   for (const [name, source] of green) {
     const { violations } = checkPurity([{ path: "ok.ts", source }]);
