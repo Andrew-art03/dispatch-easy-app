@@ -1,0 +1,29 @@
+# .gitleaksignore — findings accepted BY EXACT FINGERPRINT (commit:file:rule:line).
+#
+# Added 2026-09-11 during ticket 1C-4 (Ticket C), the first time gitleaks ever ran
+# against this repository. Every entry below is a credential-SHAPED test fixture
+# that was committed as a literal before the fixtures were changed to runtime
+# assembly. The values are provably fake (hunter2, example/eztrucking/pooler hosts,
+# a PEM whose body is "xxxx"). They cannot be rewritten out of history without a
+# force-push, so they are accepted here — one fingerprint each, nothing broader.
+#
+# NOT listed on purpose: 8fbeaab7…:.env:generic-api-key:2 — the publishable key
+# that sat in a committed .env. That one is Andrew's rotation decision, not a
+# fixture, and must stay visible in every scan until he rules on it.
+#
+# Adding a line here is a review event: say why, in a commit that touches only
+# this file.
+
+166d5b393f12284e2ad0affbd5c279a57d02919d:tests/env-classification.test.ts:supabase-connection-string-password:73
+3b42b2785a282ebfa8dc3af57153626f218fa73e:tests/secrets.test.ts:supabase-connection-string-password:212
+3b42b2785a282ebfa8dc3af57153626f218fa73e:tests/secrets.test.ts:supabase-connection-string-password:217
+3b42b2785a282ebfa8dc3af57153626f218fa73e:tests/secrets.test.ts:supabase-connection-string-password:275
+3b42b2785a282ebfa8dc3af57153626f218fa73e:tests/secrets.test.ts:private-key:264
+d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connection-string-password:212
+d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connection-string-password:217
+d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:supabase-connection-string-password:275
+d96cec0f36de5da761024acc74a97a879db0839e:tests/secrets.test.ts:private-key:264
+
+# --- merged from ez-003 (P-1B-2 fixture literals, commit a39f163) ---
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:118
+a39f163b946fcf2d63cb20b273c1f0174bd75834:tests/db-boundary.test.ts:generic-api-key:127

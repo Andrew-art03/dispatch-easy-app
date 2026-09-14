@@ -1,0 +1,23 @@
+#!/bin/sh
+# EZ-TRUCKING-PRE-COMMIT  (SPEC 1C)
+#
+# Convenience only. CI is the gate — see .github/workflows and package.json.
+# Install with: bun run hooks:install   (never auto-installed; see install-hooks.mjs)
+#
+# Fast checks only. A slow pre-commit hook gets bypassed with --no-verify, and a
+# rail people routinely bypass is worse than no rail, because it looks like cover.
+
+set -e
+
+echo "pre-commit: check:env (tracked source, credential shapes)"
+node scripts/assert-no-secret-source.mjs
+
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks (staged changes)"
+  gitleaks protect --staged --config .gitleaks.toml --redact -v
+else
+  # Deliberately not a failure. gitleaks is not installed on every machine, and
+  # CI runs it unconditionally, so a missing local binary must not block a commit
+  # — but it must not pass silently either, or people assume they are covered.
+  echo "pre-commit: gitleaks NOT INSTALLED — skipped locally, CI still enforces it" >&2
+fi

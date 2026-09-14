@@ -9,7 +9,19 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:schema": "node scripts/check-schema-parity.mjs && node scripts/check-schema-parity.mjs --self-test",
+    "check:migration-baseline": "node scripts/check-migration-baseline.mjs",
+    "check:schema:live": "node scripts/check-schema-live.mjs",
+    "migrate": "bun scripts/migrate.ts",
+    "check:env": "node scripts/assert-no-secret-source.mjs",
+    "check:bundle": "node scripts/assert-no-service-role.mjs .output",
+    "check:db-boundary": "node scripts/assert-db-boundary.mjs --self-test && node scripts/assert-db-boundary.mjs",
+    "check:agent-imports": "node scripts/assert-agent-imports.mjs",
+    "check:secrets": "gitleaks detect --no-git --config .gitleaks.toml --redact -v",
+    "hooks:install": "node scripts/install-hooks.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -86,6 +98,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "8.1.5"
+    "vite": "8.1.5",
+    "vitest": "^5.0.0"
   }
 }

@@ -1,0 +1,83 @@
+[
+  {
+    "table": "org",
+    "invariant": "org_id",
+    "reason": "org IS the tenant; its own id is the boundary. Policy org_self uses id = current_org_id()."
+  },
+
+  {
+    "table": "org",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "user",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "truck",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "driver",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "facility",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "broker",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "load",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "stop",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "deal",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "document",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "score",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "event",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "hunt",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "call",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  },
+  {
+    "table": "ledger_line",
+    "invariant": "force_rls",
+    "reason": "FORCE ROW LEVEL SECURITY lands in 2B (auth.org_id() hardening). Remove this line when 2B merges."
+  }
+]
