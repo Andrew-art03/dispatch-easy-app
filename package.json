@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run && node scripts/assert-test-floor.mjs",
     "check:test-floor": "node scripts/assert-test-floor.mjs --self-test && node scripts/assert-test-floor.mjs",
-    "check:schema": "node scripts/check-schema-parity.mjs && node scripts/check-schema-parity.mjs --self-test",
+    "check:schema": "node scripts/check-schema-parity.mjs && node scripts/check-schema-parity.mjs --self-test && node scripts/check-schema-parity.mjs supabase/migrations/0003_hardening_and_runtime.sql supabase/schema.allowlist.0003.json",
     "check:migration-baseline": "node scripts/check-migration-baseline.mjs",
     "check:schema:live": "node scripts/check-schema-live.mjs",
     "migrate": "bun scripts/migrate.ts",
