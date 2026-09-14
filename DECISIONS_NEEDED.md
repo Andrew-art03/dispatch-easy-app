@@ -10,7 +10,97 @@ never a bare question.
 
 ---
 
+## D-CC-8 — Docker Desktop will not start its engine unattended. One human click unblocks Slices 1–5.
+
+**Opened:** 2026-09-14 13:50 CT, by Claude Code (ez-app-ez010), during EZ-BUILD-02 Slice 1.
+**Blocks:** the live half of Slice 1's done-when, and the same in Slices 2–5.
+**Cost to unblock: one person opening Docker Desktop once and clearing whatever it is asking.**
+
+### What happened
+
+D-CC-7 authorised the local stack and I stood up everything that does not need the daemon:
+
+- Supabase CLI **2.117.0** installed (`npm install -g supabase`) — recorded with its teardown
+  in `KNOWN_ISSUES.md`, as the ruling requires.
+- `supabase init --force` succeeded; `supabase/config.toml` is in the repo.
+- The static half of Slice 1's done-when is **green** — `assert-rls-matrix.mjs` passes and its
+  self-test goes red on every planted positive.
+
+`supabase start` is where it stops, and the reason is Docker, not Supabase:
+
+```
+{"_tag":"Error","error":{"code":"LegacyDockerLifecycleInspectError","message":"failed to
+inspect container health: failed to connect to the docker API at
+npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon
+is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified."}}
+```
+
+### What I tried, and what the evidence says
+
+| Step | Result |
+|---|---|
+| `nohup "Docker Desktop.exe"` from bash | no process appeared — the launch did not take |
+| `Start-Process 'Docker Desktop.exe'` via PowerShell | **worked** — `Docker Desktop` + two `com.docker.backend` processes running |
+| polled `docker info` for ~10 minutes | pipe never appears |
+| `wsl -d docker-desktop -e echo ok` | prints `ok`; distro goes `Stopped` -> **`Running`** |
+| `docker info` after the distro is up | still no engine |
+| `settings-store.json` -> `AcceptedTermsOfService` | **empty** |
+
+So: the app runs, its WSL distro runs, and the engine is never published. An empty
+`AcceptedTermsOfService` on a machine where the distro already exists points at a first-run
+or terms dialog sitting on the desktop, waiting for a click I cannot give it and should not
+give it — accepting a vendor's terms on Andrew's behalf is not a builder's call.
+
+### Why I did not route around it
+
+The Director's own fallback is "plain Postgres in Docker" — which needs the same daemon. The
+other route would be an embedded-Postgres npm package, which is a **new third-party
+dependency**; rule 30 says a human reads the source first, and D-CC-7 authorised the Supabase
+CLI specifically, not a general licence to add packages. And the ruling is explicit: **do not
+fall back to mocks for the tenancy tests.** Rule 12 says the tenant boundary must be proved
+before real data, so proving it against a fake is worse than not proving it yet.
+
+### The options
+
+1. **Andrew (or anyone at the keyboard) opens Docker Desktop once** and clears the dialog.
+   Then `supabase start` needs no further decision — the CLI is installed, the config is
+   committed, and the next session runs migrations 0003–0006 and builds Slice 1 straight
+   through. **Recommended: it is one click and it unblocks five slices.**
+2. **Grant the build permission to add `embedded-postgres`** (or `pg` + a system Postgres) as
+   a devDependency, read under rule 30. Real Postgres, no Docker, no daemon. More moving
+   parts, and Supabase Auth would still be absent — `auth.uid()` / `auth.org_id()` would need
+   stubbing in the harness, which weakens the very test Slice 1 exists to run.
+3. **Do Slices 2–6 first and come back to 1.** They have the same dependency, so this only
+   changes the order in which we get stuck.
+
+**Recommendation: option 1.** Options 2 and 3 both spend real effort to avoid one click.
+
+### What is ready the moment Docker is up
+
+`supabase start` -> apply `0003`–`0006` -> point the tests at the local URL -> build the
+two-identity isolation test and the Playwright sign-up case. Nothing else is waiting on a
+decision. Playwright is deliberately not installed yet (`KNOWN_ISSUES.md`): the constraint is
+the database, not the browser driver.
+
+---
+
 ## D-CC-6 — Does the builder push to `main`? Three documents disagree, and the sandbox says no.
+
+> ### ✅ RESOLVED 2026-09-14 13:30 CT — Director. **Option 3.** The builder never pushes `main`.
+>
+> `CLAUDE.md` and `BUILD_DEFAULTS` §8 stand. The Director's own guide was the thing that was
+> wrong: EZ-BUILD-02 §C Slice 0's "Push after the last" contradicted two signed documents and
+> has been corrected in the guide with a dated note. The eleven merge commits are kept.
+>
+> Slice 0's done-when is amended to **"the branch is on `origin` and the PR exists"** — or the
+> branch is on origin and `gh` is reported refused. `origin/main` moving is the Director's step.
+>
+> **Carried out, same day:** `git push origin HEAD:refs/heads/ez-build-02-slice-0` succeeded;
+> `origin/ez-build-02-slice-0` == `4a98d67`, re-read from the remote. The PR was NOT opened —
+> `gh` is not installed on this machine (`gh: command not found`, exit 127), which is a
+> different failure from the earlier classifier refusal. Per the ruling I stopped there rather
+> than look for a third route. GitHub's compare link, from the push output:
+> `https://github.com/Andrew-art03/dispatch-easy-app/pull/new/ez-build-02-slice-0`
 
 **Opened:** 2026-09-14 12:10 CT, by Claude Code (ez-app-ez010), during EZ-BUILD-02 Slice 0.
 **Blocks:** Slice 0's done-when (`origin/main` == slice-11 content), and therefore the
@@ -81,6 +171,26 @@ this checkout restores the pre-merge state exactly.
 ---
 
 ## D-CC-7 — Slices 1+ cannot be verified to the plan: there is no Supabase instance a builder is allowed to use.
+
+> ### ✅ RESOLVED 2026-09-14 13:30 CT — Director. **Option 1 now, option 2 at Slice 9.**
+>
+> A local Supabase stack is authorised explicitly, under the charter: technical tooling, no
+> cost, reversible, local only. Install the Supabase CLI, `supabase init` + `supabase start`
+> against the Docker already on this machine, apply migrations 0003–0006, point the Slice 1–5
+> tests and the RLS matrix script at it. `.env.local` holds the local stack's keys only.
+>
+> Conditions, all binding:
+> - Record exactly what was installed and its version in the reply entry.
+> - Add a **teardown** line to `KNOWN_ISSUES.md` saying how to remove it.
+> - **Rule 49 is untouched.** The real project stays off limits, not even read-only.
+> - Slice 9 uses a scratch branch Andrew supplies; until then it runs against the local stack
+>   and the reply entry says so.
+> - If `supabase start` fails, fall back to plain Postgres in Docker with the migrations
+>   applied, and say so. **Do not fall back to mocks for the tenancy tests.**
+>
+> The Director confirmed the reading that prompted this: §5's "never wait for a key" governs
+> external service adapters, and the database is not one of those — faking the tenancy
+> boundary would invert rule 12.
 
 **Opened:** 2026-09-14 12:10 CT, same session.
 **Blocks:** Slice 1's done-when, and in the same way Slices 2, 3, 4, 5 and 9.
