@@ -5,6 +5,7 @@
     "packages/**/*.ts",
     "agents/**/*.ts",
     "tests/**/*.ts",
+    "supabase/functions/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts",
     "eslint.config.js"
