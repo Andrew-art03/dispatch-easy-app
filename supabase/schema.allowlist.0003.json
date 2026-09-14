@@ -1,0 +1,12 @@
+[
+  {
+    "table": "system_flag",
+    "invariant": "org_id",
+    "reason": "Platform-level, not per-org: the rule-37 kill switch and the rule-31/43/44 budget ceilings apply to the whole installation, so there is no tenant whose boundary they could sit inside. CLAUDE.md rule 4 names this case in its own parenthesis. Tenant isolation is instead: read by any authenticated user (seeing the switch is the point), write by is_founder() only."
+  },
+  {
+    "table": "system_flag_event",
+    "invariant": "org_id",
+    "reason": "The incident timeline for system_flag, and carries no tenant data by construction — only a flag key, its before/after value, the acting auth uid and a required reason. Readable by is_founder() only; insert is revoked from every role and the trigger is the sole writer."
+  }
+]
