@@ -10,6 +10,31 @@ Newest first.
 
 ---
 
+## Q-3 — The cold-open film plays over whatever screen the session starts on · Severity: LOW · OPEN (Slice 4 owns it)
+
+**Found by:** `tests/e2e/truck.spec.ts`, EZ-BUILD-02 Slice 2, 2026-09-14, while testing the
+settings screen as a signed-in driver.
+
+**What happens.** Q-2 stopped the film showing to signed-out visitors, and that is fixed.
+For a SIGNED-IN driver it still plays once per browser session on whatever screen they land
+on first — so a driver who deep-links to Settings, or refreshes there, gets a full-screen
+week-goal film over the settings form before they can use it.
+
+**Why this is filed rather than fixed.** It may be correct: it is a cold open for the app,
+not for a screen, and `sessionStorage` means it happens once. But the ticket scopes the
+animation to the home/goal screens ("cold-open animation once per cold open", Slice 4), and
+Slice 4 owns that feature. Redesigning another slice's behaviour from inside Slice 2 is how
+two slices end up disagreeing about the same component.
+
+**What Slice 4 has to decide:** does the film play on any first screen, or only on home/goal?
+
+**How the tests handle it meanwhile:** `installSupabaseStub` seeds the "already played"
+flag by default, which is the state a driver is in for every screen after their first. The
+case that is about the film itself will set it false. That default is documented in the stub
+as a modelling choice, not a workaround.
+
+---
+
 ## Q-2 — The cold-open film covered the sign-in form and swallowed every tap · Severity: HIGH · FIXED (verified)
 
 **Found by:** `tests/e2e/auth.spec.ts`, EZ-BUILD-02 Slice 1, 2026-09-14. The first browser
@@ -82,9 +107,12 @@ is about `RETURNING` and not about the insert.
 
 ---
 
-## Why both of these were invisible until today
+## Why these were invisible until Slice 1
 
-Neither is subtle, and neither needed a clever test. Q-1 needed *a database* and Q-2 needed
-*a browser*, and until this slice the build had neither. Seven slices of EZ-BUILD-01 reported
-green against a suite that, by design, stands up no service — which is the right design for a
+Q-1 and Q-2 are not subtle and neither needed a clever test. Q-1 needed *a database* and Q-2
+needed *a browser*, and until Slice 1 the build had neither. Eleven slices of EZ-BUILD-01
+reported green against a suite that, by design, stands up no service — the right design for a
 floor and the wrong thing to mistake for coverage of the product.
+
+Q-3 is the same lesson in a quieter form: it was sitting in front of every screen behind the
+sign-in wall, and it took a browser opening one of those screens to see it.

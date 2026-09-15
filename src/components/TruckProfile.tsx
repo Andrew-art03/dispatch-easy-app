@@ -4,6 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { useMe } from "@/lib/session";
 import { ErrorBox, Loading } from "@/components/AppShell";
 import type { EquipmentType, Truck } from "@/lib/types";
+import {
+  REQUIRED_TRUCK_FIELDS,
+  missingTruckFields,
+  truckCompleteness,
+} from "@/lib/truck-completeness";
 
 const EQUIPMENT: EquipmentType[] = [
   "van",
@@ -63,26 +68,12 @@ const EMPTY: Form = {
   home_base_lng: "",
 };
 
-const REQUIRED: (keyof Form)[] = [
-  "unit_number",
-  "equipment",
-  "mpg_loaded",
-  "mpg_empty",
-  "fuel_discount_per_gal",
-  "maintenance_reserve_per_mile",
-  "tire_reserve_per_mile",
-  "overhead_per_day",
-  "driver_pay_type",
-  "driver_pay_value",
-  "cpm_target",
-  "max_deadhead_miles",
-  "height_ft",
-  "length_ft",
-  "weight_lb",
-  "hos_hours_left",
-  "home_base_lat",
-  "home_base_lng",
-];
+// The required list and the percentage both live in `@/lib/truck-completeness` now, so the
+// number a driver reads as "how ready am I" has ONE implementation and a unit test (Slice
+// 2's done-when). It used to be a second copy of this list plus two lines of arithmetic
+// computed during render — testable only by mounting React and reading a percentage off
+// the DOM, which is why it never was tested.
+const REQUIRED = REQUIRED_TRUCK_FIELDS;
 
 function num(value: string): number | null {
   if (value.trim() === "") return null;
@@ -152,8 +143,8 @@ export function TruckProfile() {
     });
   }, [truckQuery.data, driverQuery.data]);
 
-  const filled = REQUIRED.filter((key) => String(form[key]).trim() !== "").length;
-  const completeness = Math.round((filled / REQUIRED.length) * 100);
+  const completeness = truckCompleteness(form);
+  const missing = missingTruckFields(form);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -235,14 +226,27 @@ export function TruckProfile() {
         <ErrorBox error={truckQuery.error} onRetry={() => truckQuery.refetch()} />
       ) : null}
 
-      <div className="rounded-md border border-border bg-card p-4">
+      <div className="rounded-md border border-border bg-card p-4" data-testid="truck-completeness">
         <div className="flex items-center justify-between text-sm">
           <span className="ez-label text-muted-foreground">Profile filled in</span>
-          <span className="font-bold text-primary">{completeness}%</span>
+          <span className="font-bold text-primary" data-testid="truck-completeness-percent">
+            {completeness}%
+          </span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
           <div className="h-full bg-primary transition-all" style={{ width: `${completeness}%` }} />
         </div>
+        {/*
+          A-03: a bar on its own tells a driver they are not finished without telling them
+          what to do about it. The count is the actionable half, and it is a count rather
+          than a list of field names because the fields are a scroll away on the same
+          screen — naming them here would be a second copy of the form to keep in step.
+        */}
+        <p className="mt-2 text-xs text-muted-foreground">
+          {missing.length === 0
+            ? "Everything EZ needs to price a load is filled in."
+            : `${missing.length} ${missing.length === 1 ? "figure" : "figures"} still needed before EZ can estimate a load.`}
+        </p>
       </div>
 
       <form

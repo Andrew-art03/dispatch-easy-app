@@ -27,6 +27,9 @@ export type StubUser = {
   orgName: string;
 };
 
+/** A `truck` row as PostgREST would return it. Shaped by the frozen schema, not invented. */
+export type StubTruck = Record<string, unknown> & { id: string; org_id: string };
+
 /** A row already exists — the returning-user path. */
 export const EXISTING: StubUser = {
   authUserId: "11111111-1111-4111-8111-111111111111",
@@ -53,11 +56,45 @@ const json = (route: Route, body: unknown, status = 200) =>
  */
 export async function installSupabaseStub(
   page: Page,
-  options: { firstLogin?: boolean; user?: StubUser } = {},
+  options: {
+    firstLogin?: boolean;
+    user?: StubUser;
+    /** The `truck` row the screen should load, or null for a driver with none yet. */
+    truck?: StubTruck | null;
+    /** The `driver` row, for the hand-typed hours-left figure. */
+    driver?: Record<string, unknown> | null;
+    /**
+     * Seed a stored session so protected routes open directly. Default FALSE.
+     *
+     * The default is off deliberately: a stub that signs you in without being asked would
+     * make every sign-in test pass by redirecting past the screen it meant to check, which
+     * is exactly what happened the first time this option existed.
+     */
+    signedIn?: boolean;
+    /**
+     * Whether the cold-open film has already played this browser session. Default true.
+     *
+     * `WeekGoalColdOpenHost` is mounted in `__root.tsx` and plays once per session on
+     * whatever screen the driver lands on first — so for every screen AFTER that first
+     * one, "already played" is the state a driver is actually in, and it is the right
+     * default for tests that are about some other screen. Set it false in the case that is
+     * about the film itself (Slice 4, which owns that feature).
+     *
+     * This is not a workaround for a defect: Q-2 was the film showing to a SIGNED-OUT
+     * visitor, and that is fixed. Whether it should also be scoped to the home screen for a
+     * signed-in driver who deep-links to Settings is a question for Slice 4, recorded in
+     * QA_ISSUES.md rather than decided here.
+     */
+    coldOpenPlayed?: boolean;
+  } = {},
 ) {
   const user = options.user ?? EXISTING;
   const firstLogin = options.firstLogin ?? false;
   let userRowExists = !firstLogin;
+  // Writes are kept in memory so a save followed by a refetch shows what was written —
+  // enough for the SCREEN. What the database actually keeps is proved in tests/db/.
+  let truck = options.truck ?? null;
+  let driver = options.driver ?? null;
 
   const session = {
     access_token: "stub-access-token",
@@ -75,6 +112,44 @@ export async function installSupabaseStub(
       created_at: new Date().toISOString(),
     },
   };
+
+  /**
+   * Seed the stored session, so a test can open a screen behind the `_authenticated`
+   * guard directly instead of driving the sign-in form first.
+   *
+   * This is needed because the guard asks the client for a session and the client answers
+   * from localStorage, not from the network — so intercepting HTTP alone leaves every
+   * protected route redirecting to /auth. `addInitScript` runs before the app's own code
+   * on every navigation in this context, which is what makes it survive `page.reload()`.
+   *
+   * The storage key is supabase-js's own convention, `sb-<project ref>-auth-token`, with
+   * the ref taken from the URL the app is built against.
+   */
+  if (options.signedIn ?? false) {
+    const ref = (process.env["VITE_SUPABASE_URL"] ?? "https://efeaylkqgqhobookcqby.supabase.co")
+      .replace(/^https?:\/\//, "")
+      .split(".")[0];
+    await page.addInitScript(
+      ([key, value]) => {
+        try {
+          window.localStorage.setItem(key as string, value as string);
+        } catch {
+          // A browser with storage disabled is a different test.
+        }
+      },
+      [`sb-${ref}-auth-token`, JSON.stringify(session)] as const,
+    );
+  }
+
+  if (options.coldOpenPlayed ?? true) {
+    await page.addInitScript(() => {
+      try {
+        window.sessionStorage.setItem("ez-coldopen-played", "1");
+      } catch {
+        // Storage disabled: the film plays, and the test that cares will say so.
+      }
+    });
+  }
 
   await page.route("**/auth/v1/**", async (route) => {
     const url = route.request().url();
@@ -107,6 +182,33 @@ export async function installSupabaseStub(
     if (table === "org") {
       if (method === "POST") return json(route, [], 201);
       return json(route, { id: user.orgId, name: user.orgName });
+    }
+
+    if (table === "truck") {
+      if (method === "POST") {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        truck = { id: "stub-truck", org_id: user.orgId, ...body } as StubTruck;
+        return json(route, [], 201);
+      }
+      if (method === "PATCH") {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        truck = { ...(truck ?? { id: "stub-truck", org_id: user.orgId }), ...body } as StubTruck;
+        return json(route, [], 200);
+      }
+      // `maybeSingle()` wants the object or null, never an array.
+      return json(route, truck);
+    }
+
+    if (table === "driver") {
+      if (method === "POST") {
+        driver = { id: "stub-driver", ...(request.postDataJSON() as Record<string, unknown>) };
+        return json(route, [], 201);
+      }
+      if (method === "PATCH") {
+        driver = { ...(driver ?? { id: "stub-driver" }), ...(request.postDataJSON() as Record<string, unknown>) };
+        return json(route, [], 200);
+      }
+      return json(route, driver ? { id: "stub-driver", ...driver } : null);
     }
 
     // Everything else: an empty collection. A screen that cannot render "nothing yet" is a
